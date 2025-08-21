@@ -2,15 +2,12 @@ package com.pedigree.ui;
 
 import com.pedigree.editor.AlignAndDistributeController;
 import com.pedigree.editor.CanvasView;
-import com.pedigree.editor.Rect;
 import com.pedigree.layout.PedigreeLayoutEngine;
 import com.pedigree.render.NodeMetrics;
 import com.pedigree.render.TreeRenderer;
-import com.pedigree.search.QuickSearchService;
 import com.pedigree.services.ProjectService;
 import com.pedigree.services.UndoRedoService;
 import com.pedigree.storage.ProjectRepository;
-import javafx.application.Platform;
 import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
@@ -22,7 +19,6 @@ import javafx.stage.Stage;
 
 import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class MainWindow {
 
