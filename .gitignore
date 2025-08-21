@@ -1,0 +1,37 @@
+# OS-specific
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Maven build output
+target/
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# IntelliJ IDEA (JetBrains)
+# If you want to share project settings, remove ".idea/" below and ignore only workspace-level files.
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+
+# VS Code (if present locally)
+.vscode/
+
+# Logs and crash dumps
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Environment files (keep example templates tracked)
+.env
+.env.*
+!.env.example
+
+# Local distribution directory (if used outside target)
+dist/
