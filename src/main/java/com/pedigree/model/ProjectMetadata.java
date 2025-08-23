@@ -8,11 +8,11 @@ public class ProjectMetadata {
     private Instant modifiedAt = Instant.now();
 
     public String getVersion() { return version; }
-    public void setVersion(String version) { this.version = version; }
+    public void setVersion(String version) { this.version = version; com.pedigree.util.DirtyFlag.setModified(); }
     public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; com.pedigree.util.DirtyFlag.setModified(); }
     public Instant getModifiedAt() { return modifiedAt; }
-    public void setModifiedAt(Instant modifiedAt) { this.modifiedAt = modifiedAt; }
+    public void setModifiedAt(Instant modifiedAt) { this.modifiedAt = modifiedAt; com.pedigree.util.DirtyFlag.setModified(); }
 }
 
 

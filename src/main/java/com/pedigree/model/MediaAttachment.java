@@ -9,9 +9,9 @@ public class MediaAttachment {
 
     public String getId() { return id; }
     public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; com.pedigree.util.DirtyFlag.setModified(); }
     public String getRelativePath() { return relativePath; }
-    public void setRelativePath(String relativePath) { this.relativePath = relativePath; }
+    public void setRelativePath(String relativePath) { this.relativePath = relativePath; com.pedigree.util.DirtyFlag.setModified(); }
 }
 
 
