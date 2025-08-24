@@ -2,6 +2,7 @@ package com.pedigree.ui;
 
 import com.pedigree.model.Family;
 import com.pedigree.model.Individual;
+import com.pedigree.model.Gender;
 import com.pedigree.storage.ProjectRepository;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -11,6 +12,8 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.Region;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
@@ -25,14 +28,21 @@ public class FamilyDialog {
         stage.setTitle("New Family");
 
         GridPane grid = buildForm(null, data);
-        Scene scene = new Scene(new VBox(grid), 600, 420);
+        VBox root = new VBox(grid);
+        root.setPadding(new Insets(8));
+        Scene scene = new Scene(root, 640, 520);
         stage.setScene(scene);
+        stage.setResizable(true);
+        stage.setMinWidth(580);
+        stage.setMinHeight(460);
 
         final Family[] result = new Family[1];
         Button btnOk = new Button("Create");
         Button btnCancel = new Button("Cancel");
-        grid.add(btnOk, 0, 4);
-        grid.add(btnCancel, 1, 4);
+        HBox buttons = new HBox(10, btnOk, btnCancel);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+        GridPane.setColumnSpan(buttons, 2);
+        grid.add(buttons, 0, 3);
 
         btnOk.setDefaultButton(true);
         btnCancel.setCancelButton(true);
@@ -69,14 +79,21 @@ public class FamilyDialog {
         stage.setTitle("Edit Family");
 
         GridPane grid = buildForm(fam, data);
-        Scene scene = new Scene(new VBox(grid), 600, 420);
+        VBox root = new VBox(grid);
+        root.setPadding(new Insets(8));
+        Scene scene = new Scene(root, 640, 520);
         stage.setScene(scene);
+        stage.setResizable(true);
+        stage.setMinWidth(580);
+        stage.setMinHeight(460);
 
         final boolean[] saved = new boolean[]{false};
         Button btnOk = new Button("Save");
         Button btnCancel = new Button("Cancel");
-        grid.add(btnOk, 0, 4);
-        grid.add(btnCancel, 1, 4);
+        HBox buttons = new HBox(10, btnOk, btnCancel);
+        buttons.setAlignment(Pos.CENTER_RIGHT);
+        GridPane.setColumnSpan(buttons, 2);
+        grid.add(buttons, 0, 3);
 
         btnOk.setDefaultButton(true);
         btnCancel.setCancelButton(true);
@@ -111,11 +128,24 @@ public class FamilyDialog {
         grid.setHgap(10);
         grid.setVgap(10);
         grid.setPadding(new Insets(12));
+        // Column 0 = labels (no grow), Column 1 = controls/content (grow)
+        ColumnConstraints col0 = new ColumnConstraints();
+        col0.setHgrow(Priority.NEVER);
+        col0.setFillWidth(false);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col0, col1);
 
         Label lA = new Label("Husband:");
+        lA.setMinWidth(Region.USE_PREF_SIZE);
         ComboBox<Individual> cbA = new ComboBox<>();
         cbA.setId("husband");
-        cbA.getItems().addAll(data.individuals);
+        // Only males can be selected as husband
+                for (Individual i : data.individuals) {
+                    if (i.getGender() == Gender.MALE) {
+                        cbA.getItems().add(i);
+                    }
+                }
         cbA.setCellFactory(list -> new ListCell<>() {
             @Override protected void updateItem(Individual item, boolean empty) {
                 super.updateItem(item, empty);
@@ -128,15 +158,40 @@ public class FamilyDialog {
                 setText(empty || item == null ? null : displayName(item));
             }
         });
+        // Also set a converter to ensure value is always displayed even if not in items
+        cbA.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Individual object) {
+                return object == null ? "" : displayName(object);
+            }
+            @Override public Individual fromString(String string) { return null; }
+        });
 
         Label lB = new Label("Wife:");
+        lB.setMinWidth(Region.USE_PREF_SIZE);
         ComboBox<Individual> cbB = new ComboBox<>();
         cbB.setId("wife");
-        cbB.getItems().addAll(data.individuals);
+        // Only females can be selected as wife
+                for (Individual i : data.individuals) {
+                    if (i.getGender() == Gender.FEMALE) {
+                        cbB.getItems().add(i);
+                    }
+                }
         cbB.setCellFactory(cbA.getCellFactory());
-        cbB.setButtonCell(cbA.getButtonCell());
+        cbB.setButtonCell(new ListCell<>() {
+            @Override protected void updateItem(Individual item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? null : displayName(item));
+            }
+        });
+        cbB.setConverter(new javafx.util.StringConverter<>() {
+            @Override public String toString(Individual object) {
+                return object == null ? "" : displayName(object);
+            }
+            @Override public Individual fromString(String string) { return null; }
+        });
 
         Label lChildren = new Label("Children:");
+        lChildren.setMinWidth(Region.USE_PREF_SIZE);
         // Dual-list UI: Available individuals -> Selected children
         ListView<Individual> lvChildrenAvailable = new ListView<>();
         lvChildrenAvailable.setId("childrenAvailable");
@@ -186,10 +241,27 @@ public class FamilyDialog {
         // Initialize existing values and keep spouses out of children
         if (existing != null) {
             if (existing.getHusbandId() != null) {
-                data.individuals.stream().filter(i -> i.getId().equals(existing.getHusbandId())).findFirst().ifPresent(cbA::setValue);
+                data.individuals.stream()
+                        .filter(i -> i.getId().equals(existing.getHusbandId()))
+                        .findFirst()
+                        .ifPresent(h -> {
+                            // Ensure the selected husband is present in the items even if filtered out (e.g., UNKNOWN gender)
+                            if (!cbA.getItems().contains(h)) {
+                                cbA.getItems().add(0, h);
+                            }
+                            cbA.setValue(h);
+                        });
             }
             if (existing.getWifeId() != null) {
-                data.individuals.stream().filter(i -> i.getId().equals(existing.getWifeId())).findFirst().ifPresent(cbB::setValue);
+                data.individuals.stream()
+                        .filter(i -> i.getId().equals(existing.getWifeId()))
+                        .findFirst()
+                        .ifPresent(w -> {
+                            if (!cbB.getItems().contains(w)) {
+                                cbB.getItems().add(0, w);
+                            }
+                            cbB.setValue(w);
+                        });
             }
             for (String cid : existing.getChildrenIds()) {
                 data.individuals.stream().filter(i -> i.getId().equals(cid)).findFirst().ifPresent(i -> {
@@ -226,6 +298,9 @@ public class FamilyDialog {
         HBox.setHgrow(lvChildrenSelected, Priority.ALWAYS);
         lvChildrenAvailable.setPrefHeight(200);
         lvChildrenSelected.setPrefHeight(200);
+        // Let the controls expand horizontally in column 1
+        cbA.setMaxWidth(Double.MAX_VALUE);
+        cbB.setMaxWidth(Double.MAX_VALUE);
 
         grid.add(lA, 0, 0); grid.add(cbA, 1, 0);
         grid.add(lB, 0, 1); grid.add(cbB, 1, 1);

@@ -32,15 +32,21 @@ public class FamiliesListView {
 
     private ProjectRepository.ProjectData data;
 
+    // Guard to prevent feedback loop and flicker when selection is driven externally (from canvas)
+    private boolean suppressOnSelect = false;
+
+    // Track last programmatically selected family id to avoid redundant re-selections
+    private String lastProgrammaticSelectionId = null;
+
     public FamiliesListView() {
         tagFilter.setPromptText("Filter by tag...");
         header.getChildren().addAll(new Label("Tags:"), tagFilter, btnAdd, btnEdit, btnDelete);
 
         TableColumn<Family, String> colA = new TableColumn<>("Husband");
-        colA.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getHusbandId()));
+        colA.setCellValueFactory(c -> new SimpleStringProperty(formatSpouse(c.getValue().getHusbandId())));
 
         TableColumn<Family, String> colB = new TableColumn<>("Wife");
-        colB.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getWifeId()));
+        colB.setCellValueFactory(c -> new SimpleStringProperty(formatSpouse(c.getValue().getWifeId())));
 
         TableColumn<Family, String> colChildren = new TableColumn<>("Children");
         colChildren.setCellValueFactory(c -> new SimpleStringProperty(
@@ -51,6 +57,7 @@ public class FamiliesListView {
         table.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             btnEdit.setDisable(n == null);
             btnDelete.setDisable(n == null);
+            if (suppressOnSelect) return; // avoid feedback when we select programmatically
             if (onSelect != null && n != null) onSelect.accept(n.getId());
         });
 
@@ -86,13 +93,43 @@ public class FamiliesListView {
         // Subscribe to selection events from canvas and select corresponding family
         SelectionBus.addListener(id -> {
             if (id == null || data == null) return;
-            boolean isFamily = data.families.stream().anyMatch(f -> id.equals(f.getId()));
-            if (!isFamily) return;
+
+            // Determine target family to select based on published id (family or individual)
+            String familyIdToSelect = null;
+            // If a family id is published, select it directly
+            if (data.families.stream().anyMatch(f -> id.equals(f.getId()))) {
+                familyIdToSelect = id;
+            } else {
+                // Otherwise, map individual id to its family (husband/wife/child)
+                for (Family f : data.families) {
+                    if (id.equals(f.getHusbandId()) || id.equals(f.getWifeId()) || (f.getChildrenIds() != null && f.getChildrenIds().contains(id))) {
+                        familyIdToSelect = f.getId();
+                        break;
+                    }
+                }
+            }
+
+            if (familyIdToSelect == null) return;
+
+            final String toSelect = familyIdToSelect;
             Platform.runLater(() -> {
+                // If already selected and equals the last programmatic selection, skip to avoid flicker
+                Family currentlySelected = table.getSelectionModel().getSelectedItem();
+                if (currentlySelected != null && toSelect.equals(currentlySelected.getId())) {
+                    lastProgrammaticSelectionId = toSelect;
+                    return;
+                }
                 for (Family row : table.getItems()) {
-                    if (row != null && id.equals(row.getId())) {
-                        table.getSelectionModel().select(row);
-                        table.scrollTo(row);
+                    if (row != null && toSelect.equals(row.getId())) {
+                        // Suppress outgoing onSelect while we update selection from the bus
+                        suppressOnSelect = true;
+                        try {
+                            table.getSelectionModel().select(row);
+                            table.scrollTo(row);
+                            lastProgrammaticSelectionId = toSelect;
+                        } finally {
+                            suppressOnSelect = false;
+                        }
                         break;
                     }
                 }
@@ -115,6 +152,29 @@ public class FamiliesListView {
     public void setData(ProjectRepository.ProjectData data) {
         this.data = data;
         refreshItems();
+    }
+
+    private String formatSpouse(String individualId) {
+        if (individualId == null || individualId.isBlank() || data == null || data.individuals == null) {
+            return "";
+        }
+        com.pedigree.model.Individual person = null;
+        for (com.pedigree.model.Individual i : data.individuals) {
+            if (individualId.equals(i.getId())) { person = i; break; }
+        }
+        if (person == null) {
+            return individualId; // fallback to id if not found
+        }
+        String last = person.getLastName();
+        String first = person.getFirstName();
+        StringBuilder sb = new StringBuilder();
+        if (last != null && !last.isBlank()) sb.append(last.trim());
+        if (first != null && !first.isBlank()) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(first.trim().charAt(0))).append('.');
+        }
+        String result = sb.toString();
+        return result.isBlank() ? individualId : result;
     }
 
     private void refreshItems() {

@@ -86,28 +86,8 @@ public class TreeRenderer {
                     label = combined.isEmpty() ? id : combined;
                 }
             } else if (familyIds.contains(id)) {
-                g.setFillColor(255, 245, 230, 1.0);
-                g.setStrokeColor(120, 90, 40, 1.0);
-                Family fam = familiesById.get(id);
-                if (fam != null) {
-                    Individual a = fam.getHusbandId() != null ? individualsById.get(fam.getHusbandId()) : null;
-                    Individual b = fam.getWifeId() != null ? individualsById.get(fam.getWifeId()) : null;
-                    String nameA = a != null
-                            ? ((a.getFirstName() != null ? a.getFirstName() : "") + " " + (a.getLastName() != null ? a.getLastName() : "")).trim()
-                            : "";
-                    String nameB = b != null
-                            ? ((b.getFirstName() != null ? b.getFirstName() : "") + " " + (b.getLastName() != null ? b.getLastName() : "")).trim()
-                            : "";
-                    if (!nameA.isEmpty() && !nameB.isEmpty()) {
-                        label = nameA + " — " + nameB;
-                    } else if (!nameA.isEmpty()) {
-                        label = nameA;
-                    } else if (!nameB.isEmpty()) {
-                        label = nameB;
-                    } else {
-                        label = "Family";
-                    }
-                }
+                // Do not visualize family nodes on the canvas per requirement
+                continue;
             } else {
                 g.setFillColor(235, 235, 235, 1.0);
                 g.setStrokeColor(60, 60, 60, 1.0);

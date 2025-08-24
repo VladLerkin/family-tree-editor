@@ -106,8 +106,79 @@ public class PropertiesInspector {
             return;
         }
         currentId = ids.iterator().next();
-        selectionInfo.setText("Selected: " + currentId);
+        selectionInfo.setText("Selected: " + buildSelectionLabel(currentId));
         populateDetails();
+    }
+
+    private String buildSelectionLabel(String id) {
+        if (data == null || id == null) return id;
+        // Try individual first
+        for (Individual i : data.individuals) {
+            if (id.equals(i.getId())) {
+                String first = i.getFirstName();
+                String last = i.getLastName();
+                String full = ((first != null ? first.trim() : "") + " " + (last != null ? last.trim() : "")).trim();
+                return full.isBlank() ? id : full;
+            }
+        }
+        // Try family
+        for (Family f : data.families) {
+            if (id.equals(f.getId())) {
+                Individual husband = findIndividualById(f.getHusbandId());
+                Individual wife = findIndividualById(f.getWifeId());
+                String surname = deriveFamilySurname(husband, wife);
+                String initials = buildSpousesInitials(husband, wife);
+                String label;
+                if (!surname.isBlank() && !initials.isBlank()) label = surname + " — " + initials;
+                else if (!surname.isBlank()) label = surname;
+                else if (!initials.isBlank()) label = initials;
+                else label = id;
+                return label;
+            }
+        }
+        return id;
+    }
+
+    private Individual findIndividualById(String indId) {
+        if (indId == null || indId.isBlank() || data == null) return null;
+        for (Individual i : data.individuals) {
+            if (indId.equals(i.getId())) return i;
+        }
+        return null;
+    }
+
+    private String deriveFamilySurname(Individual husband, Individual wife) {
+        String hLast = husband != null ? husband.getLastName() : null;
+        String wLast = wife != null ? wife.getLastName() : null;
+        String h = hLast != null ? hLast.trim() : "";
+        String w = wLast != null ? wLast.trim() : "";
+        if (!h.isBlank() && !w.isBlank()) {
+            if (h.equalsIgnoreCase(w)) return h; // same surname
+            // different surnames: prefer husband's surname by convention, else wife's
+            return h;
+        }
+        if (!h.isBlank()) return h;
+        if (!w.isBlank()) return w;
+        return "";
+    }
+
+    private String buildSpousesInitials(Individual husband, Individual wife) {
+        String hi = buildInitials(husband);
+        String wi = buildInitials(wife);
+        if (!hi.isBlank() && !wi.isBlank()) return hi + " и " + wi;
+        if (!hi.isBlank()) return hi;
+        if (!wi.isBlank()) return wi;
+        return "";
+    }
+
+    private String buildInitials(Individual person) {
+        if (person == null) return "";
+        String first = person.getFirstName();
+        if (first != null && !first.isBlank()) {
+            char c = Character.toUpperCase(first.trim().charAt(0));
+            return c + ".";
+        }
+        return "";
     }
 
     private void populateDetails() {

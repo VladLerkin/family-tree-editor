@@ -47,7 +47,27 @@ public class MainWindow {
 
         // List selection -> canvas selection
         individualsList.setOnSelect(id -> { if (id != null) { canvasView.select(id); canvasPane.draw(); }});
-        familiesList.setOnSelect(id -> { if (id != null) { canvasView.select(id); canvasPane.draw(); }});
+        familiesList.setOnSelect(familyId -> {
+            if (familyId == null) return;
+            var data = projectService.getCurrentData();
+            if (data == null || data.families == null) return;
+            // Find the family and collect all member ids (husband, wife, children)
+            data.families.stream().filter(f -> familyId.equals(f.getId())).findFirst().ifPresent(fam -> {
+                var sel = canvasView.getSelectionModel();
+                sel.clear();
+                if (fam.getHusbandId() != null && !fam.getHusbandId().isBlank()) sel.addToSelection(fam.getHusbandId());
+                if (fam.getWifeId() != null && !fam.getWifeId().isBlank()) sel.addToSelection(fam.getWifeId());
+                if (fam.getChildrenIds() != null) {
+                    for (String cid : fam.getChildrenIds()) {
+                        if (cid != null && !cid.isBlank()) sel.addToSelection(cid);
+                    }
+                }
+                // Update properties inspector to show the selected family's own properties (tags/notes/media)
+                propertiesInspector.setSelection(java.util.Set.of(familyId));
+                // Redraw canvas with highlighted family members
+                canvasPane.draw();
+            });
+        });
         relationshipsList.setOnSelect(rel -> { /* optional: select both ends */ canvasPane.draw(); });
 
         // Families add/edit/delete
@@ -190,7 +210,9 @@ public class MainWindow {
                 () -> align(AlignAndDistributeController.Alignment.RIGHT),
                 () -> distribute(AlignAndDistributeController.Distribution.HORIZONTAL),
                 () -> distribute(AlignAndDistributeController.Distribution.VERTICAL),
-                this::openQuickSearch
+                this::openQuickSearch,
+                projectService::getRecentProjects,
+                this::openProject
         );
         root.setTop(menuFactory.create());
 
@@ -241,6 +263,10 @@ public class MainWindow {
     private void openProject() {
         Path path = Dialogs.chooseOpenProjectPath();
         if (path == null) return;
+        openProject(path);
+    }
+
+    private void openProject(Path path) {
         try {
             projectService.openProject(path);
             refreshAll();

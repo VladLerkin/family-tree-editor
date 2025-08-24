@@ -138,6 +138,10 @@ public class CanvasView {
         double lx = (x - zoomAndPan.getPanX()) / zoomAndPan.getZoom();
         double ly = (y - zoomAndPan.getPanY()) / zoomAndPan.getZoom();
         for (String id : layout.getNodeIds()) {
+            // Skip family nodes for hit-testing (they are not visualized)
+            if (data != null && data.families != null && data.families.stream().anyMatch(f -> id.equals(f.getId()))) {
+                continue;
+            }
             Point2D p = layout.getPosition(id);
             if (p == null) continue;
             double w = metrics.getWidth(id);
@@ -150,11 +154,24 @@ public class CanvasView {
     }
 
     public void select(Object obj) {
-        selectionModel.select(Objects.requireNonNull(obj));
+        Objects.requireNonNull(obj);
+        String newId = (obj instanceof String s) ? s : null;
+        if (newId == null) {
+            // Fallback to SelectionModel's resolution to avoid duplication of logic
+            selectionModel.select(obj);
+            newId = selectionModel.getSelectedIds().stream().findFirst().orElse(null);
+        } else {
+            // Compare with current selection to avoid redundant publish
+            String current = selectionModel.getSelectedIds().stream().findFirst().orElse(null);
+            if (newId.equals(current)) {
+                // Already selected; no-op to prevent flicker
+                return;
+            }
+            selectionModel.select(newId);
+        }
         // Publish selected id for UI components (lists, etc.)
-        String id = selectionModel.getSelectedIds().stream().findFirst().orElse(null);
-        if (id != null) {
-            com.pedigree.ui.SelectionBus.publish(id);
+        if (newId != null) {
+            com.pedigree.ui.SelectionBus.publish(newId);
         }
     }
 }

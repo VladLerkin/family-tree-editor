@@ -8,6 +8,11 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.input.KeyCombination;
 
+import java.nio.file.Path;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 public class MenuBarFactory {
 
     private final Runnable onNew;
@@ -45,6 +50,10 @@ public class MenuBarFactory {
 
     private final Runnable onQuickSearch;
 
+    // Recent files support
+    private final Supplier<List<Path>> recentSupplier;
+    private final Consumer<Path> onOpenRecent;
+
     public MenuBarFactory(
             Runnable onNew, Runnable onOpen, Runnable onSave, Runnable onSaveAs, Runnable onExit,
             Runnable onImportGedcom, Runnable onExportGedcom, Runnable onExportHtml, Runnable onExportSvg, Runnable onExportImage, Runnable onPrint,
@@ -53,7 +62,9 @@ public class MenuBarFactory {
             Runnable onAlignTop, Runnable onAlignMiddle, Runnable onAlignBottom,
             Runnable onAlignLeft, Runnable onAlignCenter, Runnable onAlignRight,
             Runnable onDistributeH, Runnable onDistributeV,
-            Runnable onQuickSearch
+            Runnable onQuickSearch,
+            Supplier<List<Path>> recentSupplier,
+            Consumer<Path> onOpenRecent
     ) {
         this.onNew = onNew;
         this.onOpen = onOpen;
@@ -89,6 +100,9 @@ public class MenuBarFactory {
         this.onDistributeV = onDistributeV;
 
         this.onQuickSearch = onQuickSearch;
+
+        this.recentSupplier = recentSupplier;
+        this.onOpenRecent = onOpenRecent;
     }
 
     public MenuBar create() {
@@ -99,6 +113,7 @@ public class MenuBarFactory {
         file.getItems().addAll(
                 item("New", "Shortcut+N", onNew),
                 item("Open...", "Shortcut+O", onOpen),
+                openRecentMenu(),
                 item("Save", "Shortcut+S", onSave),
                 item("Save As...", null, onSaveAs),
                 item("Import GEDCOM...", null, onImportGedcom),
@@ -187,6 +202,36 @@ public class MenuBarFactory {
 
         mb.getMenus().addAll(file, edit, view, tools);
         return mb;
+    }
+
+    private Menu openRecentMenu() {
+        Menu recent = new Menu("Open Recent");
+        // Pre-populate to ensure submenu can open even before onShowing fires
+        populateRecent(recent);
+        recent.setOnShowing(e -> populateRecent(recent));
+        return recent;
+    }
+
+    private void populateRecent(Menu recent) {
+        recent.getItems().clear();
+        List<Path> paths;
+        try {
+            paths = recentSupplier != null ? recentSupplier.get() : List.of();
+        } catch (Exception ex) {
+            paths = List.of();
+        }
+        if (paths == null || paths.isEmpty()) {
+            MenuItem empty = new MenuItem("(Empty)");
+            empty.setDisable(true);
+            recent.getItems().add(empty);
+            return;
+        }
+        for (Path p : paths) {
+            if (p == null) continue;
+            MenuItem mi = new MenuItem(p.toString());
+            mi.setOnAction(a -> { if (onOpenRecent != null) onOpenRecent.accept(p); });
+            recent.getItems().add(mi);
+        }
     }
 
     private Menu exportMenu() {
