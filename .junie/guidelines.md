@@ -11,7 +11,7 @@ Last updated: 2025-08-23 22:37
 ## 1. Coding conventions used in this codebase
 
 General
-- Language level: Java 24 (see pom.xml maven.compiler.release 24). Use modern Java features judiciously where it improves clarity, but prefer simple, readable code over clever constructs.
+- Language level: Java 25 (see pom.xml maven.compiler.release 25). Use modern Java features judiciously where it improves clarity, but prefer simple, readable code over clever constructs.
 - Character encoding: UTF‑8.
 - Null-safety: Use `Objects.requireNonNull` for required constructor arguments and important setters. Prefer immutable IDs and avoid exposing internal mutable collections directly.
 - Collections mutability: For project-domain lists that drive UI state, use `com.pedigree.util.DirtyObservableList` to automatically set the global dirty flag on mutations.

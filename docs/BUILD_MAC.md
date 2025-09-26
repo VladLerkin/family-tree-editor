@@ -2,7 +2,7 @@
 
 Prerequisites:
 - macOS with Xcode Command Line Tools installed (for `hdiutil` utilities used by the OS).
-- JDK 24 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK).
+- JDK 25 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK).
 - Maven 3.8+.
 
 Build steps:

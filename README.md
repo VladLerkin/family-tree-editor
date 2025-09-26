@@ -3,7 +3,7 @@
 Ниже — самый короткий путь, чтобы запустить приложение локально и (при желании) упаковать установщик.
 
 Требования
-- JDK 24 (обязательно). Проверьте: `java -version` и переменную `JAVA_HOME`.
+- JDK 25 (обязательно). Проверьте: `java -version` и переменную `JAVA_HOME`.
 - Интернет для докачки зависимостей Maven'ом.
 - Ничего ставить дополнительно не нужно: в репозитории есть Maven Wrapper (`mvnw`, `mvnw.cmd`).
 
@@ -34,7 +34,7 @@
 - Создайте конфигурацию "Application":
   - Main class: `com.pedigree.app.MainApplication`
   - Use classpath of module: `pedigree-editor`
-- Запустите конфигурацию. Если на машине несколько JDK, убедитесь, что выбрана JDK 24 (Project SDK и Run configuration JRE).
+- Запустите конфигурацию. Если на машине несколько JDK, убедитесь, что выбрана JDK 25 (Project SDK и Run configuration JRE).
 
 Сборка установщика
 - Windows (MSI):
@@ -59,5 +59,5 @@
   Попробуйте добавить `-Dprism.order=sw` к команде запуска.
 
 Версии и окружение
-- Проект собирается Maven'ом, Java 24, JavaFX 21.0.3.
+- Проект собирается Maven'ом, Java 25, JavaFX 24.0.1.
 - Точка входа: `com.pedigree.app.MainApplication`.

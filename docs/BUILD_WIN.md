@@ -4,7 +4,7 @@ This guide explains how to run the app during development and how to build an MS
 
 Prerequisites:
 - Windows 10/11
-- JDK 24 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK)
+- JDK 25 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK)
 - Maven 3.8+
 - (For MSI packaging only) WiX Toolset v3.x installed: https://github.com/wixtoolset/wix3/releases
 
@@ -21,7 +21,7 @@ Run during development:
    
 Tips:
 - Important for PowerShell: quote -D system properties ("-Dname=value") or use `--%`. Otherwise PowerShell may break the argument and Maven will fail with "Unknown lifecycle phase '.order=sw'".
-- If you have multiple JDKs, ensure the one on PATH/JAVA_HOME is JDK 24.
+- If you have multiple JDKs, ensure the one on PATH/JAVA_HOME is JDK 25.
 - If you already have Maven installed and on PATH, you may use `mvn` instead of `mvnw.cmd`.
 - The `-Dprism.order=sw` flag forces software rendering; remove it if you want hardware acceleration.
 - If you see the message "Cannot find wrapperUrl in .mvn\wrapper\maven-wrapper.properties", update your local repo (git pull). Our wrapper config now includes both `distributionUrl` and `wrapperUrl`. Alternatively, ensure that file contains:
