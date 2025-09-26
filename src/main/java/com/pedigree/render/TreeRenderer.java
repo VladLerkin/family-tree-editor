@@ -8,8 +8,10 @@ import com.pedigree.model.Relationship;
 import com.pedigree.storage.ProjectRepository;
 
 import java.awt.geom.Point2D;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -110,28 +112,126 @@ public class TreeRenderer {
             g.drawText(label, x + 8, y + 20);
         }
 
-        // Draw edges with simple orthogonal routing
+        // Draw family-aligned edges (spouse bar + child stem), like in the reference screenshot
         g.setStrokeColor(60, 60, 60, 1.0);
         g.setLineWidth(1.0);
+
+        // Collect relationships by family
+        Map<String, List<String>> spousesByFamily = new HashMap<>(); // familyId -> spouseIds
+        Map<String, List<String>> childrenByFamily = new HashMap<>(); // familyId -> childIds
         for (Relationship rel : data.relationships) {
-            Point2D p1 = layout.getPosition(rel.getFromId());
-            Point2D p2 = layout.getPosition(rel.getToId());
-            if (p1 == null || p2 == null) continue;
+            if (rel.getType() == Relationship.Type.SPOUSE_TO_FAMILY) {
+                spousesByFamily.computeIfAbsent(rel.getToId(), k -> new ArrayList<>()).add(rel.getFromId());
+            } else if (rel.getType() == Relationship.Type.FAMILY_TO_CHILD) {
+                childrenByFamily.computeIfAbsent(rel.getFromId(), k -> new ArrayList<>()).add(rel.getToId());
+            }
+        }
 
-            double w1 = metrics.getWidth(rel.getFromId()) * zoom;
-            double h1 = metrics.getHeight(rel.getFromId()) * zoom;
-            double w2 = metrics.getWidth(rel.getToId()) * zoom;
-            double h2 = metrics.getHeight(rel.getToId()) * zoom;
+        // Families involved
+        Set<String> famIds = new HashSet<>();
+        famIds.addAll(spousesByFamily.keySet());
+        famIds.addAll(childrenByFamily.keySet());
 
-            double x1 = p1.getX() * zoom + panX + w1 / 2.0;
-            double y1 = p1.getY() * zoom + panY + h1 / 2.0;
-            double x2 = p2.getX() * zoom + panX + w2 / 2.0;
-            double y2 = p2.getY() * zoom + panY + h2 / 2.0;
+        final double barGap = 6.0 * zoom;          // gap below spouse boxes
+        final double singleBarHalf = 20.0 * zoom;  // half-width when only one spouse
 
-            double midX = (x1 + x2) / 2.0;
-            g.drawLine(x1, y1, midX, y1);
-            g.drawLine(midX, y1, midX, y2);
-            g.drawLine(midX, y2, x2, y2);
+        for (String famId : famIds) {
+            List<String> spouses = spousesByFamily.getOrDefault(famId, java.util.List.of());
+            List<String> children = childrenByFamily.getOrDefault(famId, java.util.List.of());
+
+            double barY = Double.NEGATIVE_INFINITY;
+            double minX = Double.POSITIVE_INFINITY;
+            double maxX = Double.NEGATIVE_INFINITY;
+            List<double[]> spouseAnchors = new ArrayList<>(); // [xCenter, bottomY]
+
+            for (String sId : spouses) {
+                Point2D ps = layout.getPosition(sId);
+                if (ps == null) continue;
+                double w = metrics.getWidth(sId) * zoom;
+                double h = metrics.getHeight(sId) * zoom;
+                double xCenter = ps.getX() * zoom + panX + w / 2.0;
+                double bottomY = ps.getY() * zoom + panY + h;
+                spouseAnchors.add(new double[]{xCenter, bottomY});
+                if (xCenter < minX) minX = xCenter;
+                if (xCenter > maxX) maxX = xCenter;
+                if (bottomY > barY) barY = bottomY;
+            }
+
+            // Fallback to family position if no spouse positions are known
+            double barX1, barX2;
+            if (spouseAnchors.isEmpty()) {
+                Point2D pf = layout.getPosition(famId);
+                if (pf == null) continue; // nothing to draw
+                double w = metrics.getWidth(famId) * zoom;
+                double xMid = pf.getX() * zoom + panX + w / 2.0;
+                double y = pf.getY() * zoom + panY;
+                barY = y; // use family Y as bar Y
+                barX1 = xMid - singleBarHalf;
+                barX2 = xMid + singleBarHalf;
+            } else if (spouseAnchors.size() == 1) {
+                double xMid = spouseAnchors.get(0)[0];
+                barY = spouseAnchors.get(0)[1] + barGap;
+                barX1 = xMid - singleBarHalf;
+                barX2 = xMid + singleBarHalf;
+                // vertical from the single spouse
+                g.drawLine(xMid, spouseAnchors.get(0)[1], xMid, barY);
+            } else {
+                barY = barY + barGap;
+                barX1 = minX;
+                barX2 = maxX;
+                // verticals from each spouse down to the bar
+                for (double[] a : spouseAnchors) {
+                    g.drawLine(a[0], a[1], a[0], barY);
+                }
+            }
+
+            // Horizontal bar
+            g.drawLine(barX1, barY, barX2, barY);
+            double barMidX = (barX1 + barX2) / 2.0;
+
+            // Children alignment: a lower bar aligned to children, connected via a short stem from the spouses' bar
+            if (!children.isEmpty()) {
+                double minChildX = Double.POSITIVE_INFINITY;
+                double maxChildX = Double.NEGATIVE_INFINITY;
+                double minTopY = Double.POSITIVE_INFINITY;
+                List<double[]> childAnchors = new ArrayList<>(); // [xCenter, topY]
+                for (String cId : children) {
+                    Point2D pc = layout.getPosition(cId);
+                    if (pc == null) continue;
+                    double w = metrics.getWidth(cId) * zoom;
+                    double xCenter = pc.getX() * zoom + panX + w / 2.0;
+                    double topY = pc.getY() * zoom + panY;
+                    childAnchors.add(new double[]{xCenter, topY});
+                    if (xCenter < minChildX) minChildX = xCenter;
+                    if (xCenter > maxChildX) maxChildX = xCenter;
+                    if (topY < minTopY) minTopY = topY;
+                }
+                if (!childAnchors.isEmpty()) {
+                    final double childBarGap = 8.0 * zoom; // distance above children
+                    double childBarY = minTopY - childBarGap;
+
+                    if (childAnchors.size() == 1) {
+                        // Special-case: single child. Draw a short stub bar centered at the child so it remains visible.
+                        double cx = childAnchors.get(0)[0];
+                        double ct = childAnchors.get(0)[1];
+                        // vertical from spouses' bar midpoint to children bar level
+                        g.drawLine(barMidX, barY, barMidX, childBarY);
+                        // horizontal from the stem to the child's x
+                        g.drawLine(Math.min(barMidX, cx), childBarY, Math.max(barMidX, cx), childBarY);
+                        // vertical down to the child
+                        g.drawLine(cx, childBarY, cx, ct);
+                    } else {
+                        // vertical from spouses' bar midpoint to children bar
+                        g.drawLine(barMidX, barY, barMidX, childBarY);
+                        // horizontal children bar spanning children range
+                        g.drawLine(minChildX, childBarY, maxChildX, childBarY);
+                        // verticals from children bar down to each child top
+                        for (double[] a : childAnchors) {
+                            g.drawLine(a[0], childBarY, a[0], a[1]);
+                        }
+                    }
+                }
+            }
         }
     }
 }
