@@ -22,6 +22,13 @@ public class CanvasPane {
     private double lastDragY;
     private boolean panning;
 
+    // Dragging a node
+    private String draggingNodeId;
+    private double dragOffsetLX; // offset in layout coords from node origin to mouse
+    private double dragOffsetLY;
+    private boolean wasDragging; // true if we moved a node during last gesture
+    private boolean suppressNextClick; // to prevent click after drag
+
     public CanvasPane(CanvasView view) {
         this.view = view;
         root.getChildren().add(canvas);
@@ -44,6 +51,39 @@ public class CanvasPane {
             lastDragX = e.getX();
             lastDragY = e.getY();
             panning = e.getButton() == MouseButton.MIDDLE || e.isSecondaryButtonDown();
+            wasDragging = false;
+            suppressNextClick = false;
+
+            if (!panning && e.getButton() == MouseButton.PRIMARY) {
+                // Check if pressed on a node to start dragging
+                String id = view.pickNearest(e.getX(), e.getY(), 30);
+                if (id != null) {
+                    draggingNodeId = id;
+                    // Compute offset in layout coords between mouse and node origin
+                    var zoom = view.getZoomAndPan().getZoom();
+                    var panX = view.getZoomAndPan().getPanX();
+                    var panY = view.getZoomAndPan().getPanY();
+                    var p = view.getLayout() != null ? view.getLayout().getPosition(id) : null;
+                    if (p != null) {
+                        double mouseLX = (e.getX() - panX) / zoom;
+                        double mouseLY = (e.getY() - panY) / zoom;
+                        dragOffsetLX = mouseLX - p.getX();
+                        dragOffsetLY = mouseLY - p.getY();
+                    } else {
+                        dragOffsetLX = 0;
+                        dragOffsetLY = 0;
+                    }
+                    // Select the node on press
+                    view.select(id);
+                    if (onSelectionChanged != null) {
+                        onSelectionChanged.accept(view.getSelectionModel().getSelectedIds());
+                    }
+                } else {
+                    draggingNodeId = null;
+                }
+            } else {
+                draggingNodeId = null;
+            }
         });
 
         canvas.setOnMouseDragged(e -> {
@@ -54,11 +94,32 @@ public class CanvasPane {
                 lastDragX = e.getX();
                 lastDragY = e.getY();
                 draw();
+            } else if (draggingNodeId != null) {
+                var zoom = view.getZoomAndPan().getZoom();
+                var panX = view.getZoomAndPan().getPanX();
+                var panY = view.getZoomAndPan().getPanY();
+                double mouseLX = (e.getX() - panX) / zoom;
+                double mouseLY = (e.getY() - panY) / zoom;
+                double newX = mouseLX - dragOffsetLX;
+                double newY = mouseLY - dragOffsetLY;
+                view.moveNode(draggingNodeId, newX, newY);
+                wasDragging = true;
+                draw();
             }
+        });
+
+        canvas.setOnMouseReleased(e -> {
+            // Stop dragging
+            if (wasDragging) {
+                suppressNextClick = true;
+            }
+            draggingNodeId = null;
         });
 
         canvas.setOnMouseClicked(e -> {
             if (panning) return;
+            // Suppress synthetic click after a drag gesture
+            if (suppressNextClick) { suppressNextClick = false; return; }
             String id = view.pickNearest(e.getX(), e.getY(), 30);
             if (id == null) return;
 
@@ -129,8 +190,6 @@ public class CanvasPane {
     public void draw() {
         javafx.scene.canvas.GraphicsContext jfxGc = canvas.getGraphicsContext2D();
         jfxGc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-        // Pass current selection to renderer for highlight
-        RenderHighlightState.setSelectedIds(view.getSelectionModel().getSelectedIds());
         // Pass current selection to renderer for highlight
         RenderHighlightState.setSelectedIds(view.getSelectionModel().getSelectedIds());
         GraphicsContext g = new JavaFxGraphicsContext(jfxGc);

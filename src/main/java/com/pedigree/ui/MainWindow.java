@@ -282,6 +282,9 @@ public class MainWindow {
                 saveProjectAs();
                 return;
             }
+            // Persist current viewport and node positions into ProjectLayout prior to saving
+            persistViewport();
+            persistNodePositions();
             projectService.saveProject();
             statusBar.setText("Saved: " + projectService.getCurrentProjectPath());
         } catch (Exception ex) {
@@ -293,6 +296,9 @@ public class MainWindow {
         Path path = Dialogs.chooseSaveProjectPath();
         if (path == null) return;
         try {
+            // Persist current viewport and node positions into ProjectLayout prior to saving
+            persistViewport();
+            persistNodePositions();
             projectService.saveProjectAs(path);
             statusBar.setText("Saved As: " + path);
         } catch (Exception ex) {
@@ -512,7 +518,27 @@ public class MainWindow {
         ProjectRepository.ProjectData data = projectService.getCurrentData();
         canvasView.setProjectData(data);
         canvasView.setRenderer(renderer);
-        canvasView.setLayout(layoutEngine.computeLayout(data));
+
+        // Compute base layout
+        var computed = layoutEngine.computeLayout(data);
+
+        // Apply persisted positions and viewport if available
+        var persisted = projectService.getCurrentLayout();
+        if (persisted != null && persisted.getNodePositions() != null) {
+            for (var e : persisted.getNodePositions().entrySet()) {
+                var np = e.getValue();
+                if (np != null) {
+                    computed.setPosition(e.getKey(), np.x, np.y);
+                }
+            }
+            // Apply zoom and pan
+            canvasView.setZoom(persisted.getZoom());
+            double dx = persisted.getViewOriginX() - canvasView.getZoomAndPan().getPanX();
+            double dy = persisted.getViewOriginY() - canvasView.getZoomAndPan().getPanY();
+            if (dx != 0 || dy != 0) canvasView.panBy(dx, dy);
+        }
+
+        canvasView.setLayout(computed);
         canvasPane.draw();
 
         individualsList.setData(data);
@@ -538,6 +564,22 @@ public class MainWindow {
             layout.setZoom(canvasView.getZoomAndPan().getZoom());
             layout.setViewOriginX(canvasView.getZoomAndPan().getPanX());
             layout.setViewOriginY(canvasView.getZoomAndPan().getPanY());
+        }
+    }
+
+    private void persistNodePositions() {
+        var layoutResult = canvasView.getLayout();
+        var persisted = projectService.getCurrentLayout();
+        if (layoutResult == null || persisted == null) return;
+        var map = persisted.getNodePositions();
+        map.clear();
+        for (String id : layoutResult.getNodeIds()) {
+            var p = layoutResult.getPosition(id);
+            if (p == null) continue;
+            var np = new com.pedigree.model.ProjectLayout.NodePos();
+            np.x = p.getX();
+            np.y = p.getY();
+            map.put(id, np);
         }
     }
 }
