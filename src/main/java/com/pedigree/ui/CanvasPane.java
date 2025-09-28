@@ -50,14 +50,14 @@ public class CanvasPane {
         canvas.setOnMousePressed(e -> {
             lastDragX = e.getX();
             lastDragY = e.getY();
-            panning = e.getButton() == MouseButton.MIDDLE || e.isSecondaryButtonDown();
             wasDragging = false;
             suppressNextClick = false;
 
-            if (!panning && e.getButton() == MouseButton.PRIMARY) {
-                // Check if pressed on a node to start dragging
+            if (e.getButton() == MouseButton.PRIMARY) {
+                // Primary button: either drag a node (if clicked on a node) or pan the canvas (if empty space)
                 String id = view.pickNearest(e.getX(), e.getY(), 30);
                 if (id != null) {
+                    panning = false;
                     draggingNodeId = id;
                     // Compute offset in layout coords between mouse and node origin
                     var zoom = view.getZoomAndPan().getZoom();
@@ -79,9 +79,13 @@ public class CanvasPane {
                         onSelectionChanged.accept(view.getSelectionModel().getSelectedIds());
                     }
                 } else {
+                    // No node under cursor: start panning with left button
+                    panning = true;
                     draggingNodeId = null;
                 }
             } else {
+                // Middle or secondary button pans as before
+                panning = e.getButton() == MouseButton.MIDDLE || e.isSecondaryButtonDown();
                 draggingNodeId = null;
             }
         });
@@ -183,6 +187,30 @@ public class CanvasPane {
         view.select(id);
         if (onSelectionChanged != null) {
             onSelectionChanged.accept(view.getSelectionModel().getSelectedIds());
+        }
+        draw();
+    }
+
+    /**
+     * Programmatically select multiple nodes and redraw with highlight.
+     * Publishes the first id (if any) to SelectionBus so lists stay in sync.
+     */
+    public void selectAndHighlight(java.util.Set<String> ids) {
+        if (ids == null || ids.isEmpty()) return;
+        var sel = view.getSelectionModel();
+        sel.clear();
+        // Preserve order roughly by iterating as provided
+        String first = null;
+        for (String s : ids) {
+            if (s == null || s.isBlank()) continue;
+            if (first == null) first = s;
+            sel.addToSelection(s);
+        }
+        if (first != null) {
+            com.pedigree.ui.SelectionBus.publish(first);
+        }
+        if (onSelectionChanged != null) {
+            onSelectionChanged.accept(sel.getSelectedIds());
         }
         draw();
     }

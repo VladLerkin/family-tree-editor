@@ -2,6 +2,7 @@ package com.pedigree.ui;
 
 import com.pedigree.render.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
 public class JavaFxGraphicsContext implements GraphicsContext {
 
@@ -24,6 +25,15 @@ public class JavaFxGraphicsContext implements GraphicsContext {
     @Override
     public void setLineWidth(double w) {
         gc.setLineWidth(w);
+    }
+
+    @Override
+    public void setFontSize(double size) {
+        try {
+            gc.setFont(Font.font(size));
+        } catch (Throwable ignore) {
+            // Fallback: ignore if font cannot be set in current context
+        }
     }
 
     @Override

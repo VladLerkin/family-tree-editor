@@ -22,6 +22,7 @@ public class MenuBarFactory {
     private final Runnable onExit;
 
     private final Runnable onImportGedcom;
+    private final Runnable onImportRel;
     private final Runnable onExportGedcom;
     private final Runnable onExportHtml;
     private final Runnable onExportSvg;
@@ -56,7 +57,7 @@ public class MenuBarFactory {
 
     public MenuBarFactory(
             Runnable onNew, Runnable onOpen, Runnable onSave, Runnable onSaveAs, Runnable onExit,
-            Runnable onImportGedcom, Runnable onExportGedcom, Runnable onExportHtml, Runnable onExportSvg, Runnable onExportImage, Runnable onPrint,
+            Runnable onImportGedcom, Runnable onImportRel, Runnable onExportGedcom, Runnable onExportHtml, Runnable onExportSvg, Runnable onExportImage, Runnable onPrint,
             Runnable onUndo, Runnable onRedo, Runnable onCopy, Runnable onCut, Runnable onPaste, Runnable onDelete,
             Runnable onZoomIn, Runnable onZoomOut, Runnable onResetZoom,
             Runnable onAlignTop, Runnable onAlignMiddle, Runnable onAlignBottom,
@@ -73,6 +74,7 @@ public class MenuBarFactory {
         this.onExit = onExit;
 
         this.onImportGedcom = onImportGedcom;
+        this.onImportRel = onImportRel;
         this.onExportGedcom = onExportGedcom;
         this.onExportHtml = onExportHtml;
         this.onExportSvg = onExportSvg;
@@ -117,6 +119,7 @@ public class MenuBarFactory {
                 item("Save", "Shortcut+S", onSave),
                 item("Save As...", null, onSaveAs),
                 item("Import GEDCOM...", null, onImportGedcom),
+                item("Import REL...", null, onImportRel),
                 exportMenu(),
                 item("Print...", "Shortcut+P", onPrint),
                 item("Close Project", null, () -> {

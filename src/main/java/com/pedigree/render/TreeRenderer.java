@@ -56,7 +56,7 @@ public class TreeRenderer {
         }
 
         // Draw nodes
-        g.setLineWidth(1.5);
+        g.setLineWidth(1.5 * zoom);
         for (String id : layout.getNodeIds()) {
             Point2D p = layout.getPosition(id);
             if (p == null) continue;
@@ -82,10 +82,45 @@ public class TreeRenderer {
                     g.setStrokeColor(70, 80, 90, 1.0);
                 }
                 if (ind != null) {
-                    String fn = ind.getFirstName() != null ? ind.getFirstName() : "";
-                    String ln = ind.getLastName() != null ? ind.getLastName() : "";
-                    String combined = (fn + " " + ln).trim();
-                    label = combined.isEmpty() ? id : combined;
+                    String first = ind.getFirstName() != null ? ind.getFirstName() : "";
+                    String last = ind.getLastName() != null ? ind.getLastName() : "";
+
+                    // Draw background box first
+                    g.fillRect(x, y, w, h);
+                    g.drawRect(x, y, w, h);
+
+                    // Text layout: two lines, centered
+                    double fontSize = 12.0 * 2.0 * Math.max(zoom, 0.1);
+                    g.setFontSize(fontSize);
+                    double lineH = fontSize * com.pedigree.render.TextAwareNodeMetrics.lineSpacing();
+                    double padV = com.pedigree.render.TextAwareNodeMetrics.verticalPadding() * zoom * 2.0;
+                    double cx = x + w / 2.0;
+                    double y1 = y + padV + lineH; // baseline of first line
+                    double y2 = y + padV + lineH * 2.0; // baseline of second line
+
+                    double w1 = com.pedigree.render.TextAwareNodeMetrics.approxTextWidth(first, fontSize);
+                    double w2 = com.pedigree.render.TextAwareNodeMetrics.approxTextWidth(last, fontSize);
+
+                    // Ensure label text is black
+                    g.setFillColor(0, 0, 0, 1.0);
+                    // First line centered
+                    g.drawText(first, cx - w1 / 2.0, y1);
+                    // Second line centered
+                    g.drawText(last, cx - w2 / 2.0, y2);
+
+                    // Draw selection highlight frame if selected (for individuals too)
+                    java.util.Set<String> sel = com.pedigree.render.RenderHighlightState.getSelectedIds();
+                    if (sel != null && sel.contains(id)) {
+                        double baseLW = 1.5 * zoom;
+                        g.setLineWidth(3.0 * zoom);
+                        g.setStrokeColor(0, 180, 80, 1.0);
+                        double pad = 2.0 * zoom;
+                        g.drawRect(x - pad, y - pad, w + pad * 2.0, h + pad * 2.0);
+                        g.setLineWidth(baseLW);
+                    }
+
+                    // Skip the generic label drawing below since we already drew text
+                    continue;
                 }
             } else if (familyIds.contains(id)) {
                 // Do not visualize family nodes on the canvas per requirement
@@ -93,7 +128,16 @@ public class TreeRenderer {
             } else {
                 g.setFillColor(235, 235, 235, 1.0);
                 g.setStrokeColor(60, 60, 60, 1.0);
+                g.fillRect(x, y, w, h);
+                g.drawRect(x, y, w, h);
+
+                // Ensure label text is black
+                g.setFillColor(0, 0, 0, 1.0);
+                g.drawText(label, x + 8 * zoom, y + 20 * zoom);
+                continue;
             }
+
+            // Default fallback (should rarely reach here)
             g.fillRect(x, y, w, h);
             g.drawRect(x, y, w, h);
 
@@ -109,12 +153,12 @@ public class TreeRenderer {
 
             // Ensure label text is black
             g.setFillColor(0, 0, 0, 1.0);
-            g.drawText(label, x + 8, y + 20);
+            g.drawText(label, x + 8 * zoom, y + 20 * zoom);
         }
 
         // Draw family-aligned edges (spouse bar + child stem), like in the reference screenshot
         g.setStrokeColor(60, 60, 60, 1.0);
-        g.setLineWidth(1.0);
+        g.setLineWidth(1.0 * zoom);
 
         // Collect relationships by family
         Map<String, List<String>> spousesByFamily = new HashMap<>(); // familyId -> spouseIds

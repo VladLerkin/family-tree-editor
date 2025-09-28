@@ -73,6 +73,7 @@ public class SvgExporter {
         private double alphaStroke = 1.0;
         private double alphaFill = 1.0;
         private double lineWidth = 1.0;
+        private double fontSize = 12.0;
 
         public String getContent() {
             return sb.toString();
@@ -118,10 +119,15 @@ public class SvgExporter {
         }
 
         @Override
+        public void setFontSize(double size) {
+            this.fontSize = size > 0 ? size : 12.0;
+        }
+
+        @Override
         public void drawText(String text, double x, double y) {
             sb.append("<text x=\"").append(x).append("\" y=\"").append(y)
               .append("\" fill=\"").append(stroke).append("\" fill-opacity=\"").append(alphaStroke)
-              .append("\" font-family=\"Sans-Serif\" font-size=\"12\">")
+              .append("\" font-family=\"Sans-Serif\" font-size=\"").append(fontSize).append("\">")
               .append(escape(text)).append("</text>\n");
         }
 

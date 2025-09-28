@@ -33,8 +33,8 @@ public class MainWindow {
     private final PropertiesInspector propertiesInspector = new PropertiesInspector();
 
     private final PedigreeLayoutEngine layoutEngine = new PedigreeLayoutEngine();
-    private final TreeRenderer renderer = new TreeRenderer();
-    private final NodeMetrics metrics = new NodeMetrics();
+    private final com.pedigree.render.TextAwareNodeMetrics metrics = new com.pedigree.render.TextAwareNodeMetrics();
+    private final TreeRenderer renderer = new TreeRenderer(metrics);
 
     private final Label statusBar = new Label("Ready");
 
@@ -53,19 +53,18 @@ public class MainWindow {
             if (data == null || data.families == null) return;
             // Find the family and collect all member ids (husband, wife, children)
             data.families.stream().filter(f -> familyId.equals(f.getId())).findFirst().ifPresent(fam -> {
-                var sel = canvasView.getSelectionModel();
-                sel.clear();
-                if (fam.getHusbandId() != null && !fam.getHusbandId().isBlank()) sel.addToSelection(fam.getHusbandId());
-                if (fam.getWifeId() != null && !fam.getWifeId().isBlank()) sel.addToSelection(fam.getWifeId());
+                java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+                if (fam.getHusbandId() != null && !fam.getHusbandId().isBlank()) ids.add(fam.getHusbandId());
+                if (fam.getWifeId() != null && !fam.getWifeId().isBlank()) ids.add(fam.getWifeId());
                 if (fam.getChildrenIds() != null) {
                     for (String cid : fam.getChildrenIds()) {
-                        if (cid != null && !cid.isBlank()) sel.addToSelection(cid);
+                        if (cid != null && !cid.isBlank()) ids.add(cid);
                     }
                 }
+                // Highlight all family members on the canvas and publish first for UI sync
+                canvasPane.selectAndHighlight(ids);
                 // Update properties inspector to show the selected family's own properties (tags/notes/media)
                 propertiesInspector.setSelection(java.util.Set.of(familyId));
-                // Redraw canvas with highlighted family members
-                canvasPane.draw();
             });
         });
         relationshipsList.setOnSelect(rel -> { /* optional: select both ends */ canvasPane.draw(); });
@@ -188,6 +187,7 @@ public class MainWindow {
                 this::saveProjectAs,
                 this::exitApp,
                 this::importGedcom,
+                this::importRel,
                 this::exportGedcom,
                 this::exportHtml,
                 this::exportSvg,
@@ -319,6 +319,22 @@ public class MainWindow {
             statusBar.setText("Imported GEDCOM: " + path);
         } catch (Exception ex) {
             Dialogs.showError("Import GEDCOM Failed", ex.getMessage());
+        }
+    }
+
+    private void importRel() {
+        Path path = Dialogs.chooseOpenRelPath();
+        if (path == null) return;
+        try {
+            var importer = new com.pedigree.rel.RelImporter();
+            ProjectRepository.ProjectData imported = importer.importFromFileWithLayout(path, projectService.getCurrentLayout());
+            projectService.getCurrentData().individuals.addAll(imported.individuals);
+            projectService.getCurrentData().families.addAll(imported.families);
+            projectService.getCurrentData().relationships.addAll(imported.relationships);
+            refreshAll();
+            statusBar.setText("Imported REL: " + path);
+        } catch (Exception ex) {
+            Dialogs.showError("Import REL Failed", ex.getMessage());
         }
     }
 
@@ -518,6 +534,8 @@ public class MainWindow {
         ProjectRepository.ProjectData data = projectService.getCurrentData();
         canvasView.setProjectData(data);
         canvasView.setRenderer(renderer);
+        canvasView.setNodeMetrics(metrics);
+        metrics.setData(data);
 
         // Compute base layout
         var computed = layoutEngine.computeLayout(data);
@@ -525,11 +543,60 @@ public class MainWindow {
         // Apply persisted positions and viewport if available
         var persisted = projectService.getCurrentLayout();
         if (persisted != null && persisted.getNodePositions() != null) {
+            boolean centers = false;
+            try { centers = persisted.isPositionsAreCenters(); } catch (Throwable ignore) {}
             for (var e : persisted.getNodePositions().entrySet()) {
                 var np = e.getValue();
                 if (np != null) {
-                    computed.setPosition(e.getKey(), np.x, np.y);
+                    double x = np.x;
+                    double y = np.y;
+                    if (centers) {
+                        double w = metrics.getWidth(e.getKey());
+                        double h = metrics.getHeight(e.getKey());
+                        x -= w / 2.0;
+                        y -= h / 2.0;
+                    }
+                    computed.setPosition(e.getKey(), x, y);
                 }
+            }
+            if (centers) {
+                // Optionally scale coordinates to reduce overlap if source nodes were smaller
+                var map = persisted.getNodePositions();
+                java.util.List<Double> xs = new java.util.ArrayList<>();
+                for (var v : map.values()) if (v != null) xs.add(v.x);
+                double minDx = Double.POSITIVE_INFINITY;
+                for (int i = 0; i < xs.size(); i++) {
+                    for (int j = i + 1; j < xs.size(); j++) {
+                        double dx = Math.abs(xs.get(i) - xs.get(j));
+                        if (dx > 0 && dx < minDx) minDx = dx;
+                    }
+                }
+                double scale = 1.0;
+                double targetWidth = 0.0;
+                // Use average width as target
+                for (var id : map.keySet()) targetWidth += metrics.getWidth(id);
+                if (!map.isEmpty()) targetWidth /= map.size();
+                if (minDx != Double.POSITIVE_INFINITY && minDx > 0.0 && targetWidth > 0.0) {
+                    // gentle extra space 5%
+                    scale = Math.max(1.0, Math.min(3.0, (targetWidth * 1.05) / minDx));
+                }
+
+                // Convert stored positions to top-left and apply scale so we don't adjust again next refresh
+                for (var e : map.entrySet()) {
+                    var np = e.getValue();
+                    if (np != null) {
+                        double w = metrics.getWidth(e.getKey());
+                        double h = metrics.getHeight(e.getKey());
+                        np.x = np.x * scale - w / 2.0;
+                        np.y = np.y * scale - h / 2.0;
+                    }
+                }
+                // Re-apply with converted positions
+                for (var e : map.entrySet()) {
+                    var np = e.getValue();
+                    if (np != null) computed.setPosition(e.getKey(), np.x, np.y);
+                }
+                persisted.setPositionsAreCenters(false);
             }
             // Apply zoom and pan
             canvasView.setZoom(persisted.getZoom());

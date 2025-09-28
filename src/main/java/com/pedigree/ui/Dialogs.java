@@ -33,6 +33,14 @@ public class Dialogs {
         return file != null ? file.toPath() : null;
     }
 
+    public static Path chooseOpenRelPath() {
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Import REL");
+        fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Relatives (*.rel)", "*.rel"));
+        var file = fc.showOpenDialog(getActiveWindow());
+        return file != null ? file.toPath() : null;
+    }
+
     public static Path chooseSaveGedcomPath() {
         FileChooser fc = new FileChooser();
         fc.setTitle("Export GEDCOM");
