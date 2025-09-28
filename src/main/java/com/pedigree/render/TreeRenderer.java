@@ -211,18 +211,28 @@ public class TreeRenderer {
                     double childBarY = minTopY - childBarGap;
 
                     if (childAnchors.size() == 1) {
-                        // Special-case: single child. Draw a short stub bar centered at the child so it remains visible.
+                        // Single child: route the stem toward the child's center so it looks correct even if child is offset.
                         double cx = childAnchors.get(0)[0];
                         double ct = childAnchors.get(0)[1];
-                        // vertical from spouses' bar midpoint to children bar level
-                        g.drawLine(barMidX, barY, barMidX, childBarY);
-                        // horizontal from the stem to the child's x
-                        g.drawLine(Math.min(barMidX, cx), childBarY, Math.max(barMidX, cx), childBarY);
+                        double midY = (barY + childBarY) / 2.0;
+                        // vertical from spouses' bar midpoint to mid level
+                        g.drawLine(barMidX, barY, barMidX, midY);
+                        // horizontal at mid level toward the child center
+                        g.drawLine(Math.min(barMidX, cx), midY, Math.max(barMidX, cx), midY);
+                        // vertical from child center down to children bar level
+                        g.drawLine(cx, midY, cx, childBarY);
                         // vertical down to the child
                         g.drawLine(cx, childBarY, cx, ct);
                     } else {
-                        // vertical from spouses' bar midpoint to children bar
-                        g.drawLine(barMidX, barY, barMidX, childBarY);
+                        // Multiple children: route stem to the center of the children range, then span the children bar.
+                        double childMidX = (minChildX + maxChildX) / 2.0;
+                        double midY = (barY + childBarY) / 2.0;
+                        // vertical from spouses' bar midpoint to mid level
+                        g.drawLine(barMidX, barY, barMidX, midY);
+                        // horizontal at mid level toward the children range center
+                        g.drawLine(Math.min(barMidX, childMidX), midY, Math.max(barMidX, childMidX), midY);
+                        // vertical from children range center down to the children bar level
+                        g.drawLine(childMidX, midY, childMidX, childBarY);
                         // horizontal children bar spanning children range
                         g.drawLine(minChildX, childBarY, maxChildX, childBarY);
                         // verticals from children bar down to each child top
