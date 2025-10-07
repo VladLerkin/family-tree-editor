@@ -50,6 +50,7 @@ public class MenuBarFactory {
     private final Runnable onDistributeV;
 
     private final Runnable onQuickSearch;
+    private final Runnable onDebugExportRelSection;
 
     // Recent files support
     private final Supplier<List<Path>> recentSupplier;
@@ -64,6 +65,7 @@ public class MenuBarFactory {
             Runnable onAlignLeft, Runnable onAlignCenter, Runnable onAlignRight,
             Runnable onDistributeH, Runnable onDistributeV,
             Runnable onQuickSearch,
+            Runnable onDebugExportRelSection,
             Supplier<List<Path>> recentSupplier,
             Consumer<Path> onOpenRecent
     ) {
@@ -102,6 +104,7 @@ public class MenuBarFactory {
         this.onDistributeV = onDistributeV;
 
         this.onQuickSearch = onQuickSearch;
+        this.onDebugExportRelSection = onDebugExportRelSection;
 
         this.recentSupplier = recentSupplier;
         this.onOpenRecent = onOpenRecent;
@@ -200,7 +203,8 @@ public class MenuBarFactory {
         // Tools
         Menu tools = new Menu("Tools");
         tools.getItems().addAll(
-                item("Quick Search...", "Shortcut+F", onQuickSearch)
+                item("Quick Search...", "Shortcut+F", onQuickSearch),
+                item("Debug: Export REL Section...", null, onDebugExportRelSection)
         );
 
         mb.getMenus().addAll(file, edit, view, tools);

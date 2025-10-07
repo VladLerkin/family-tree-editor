@@ -202,6 +202,10 @@ public class PropertiesInspector {
         } else {
             clearDetails();
         }
+        // Auto-expand media pane when there are imported attachments; collapse if none
+        try {
+            mediaPane.setExpanded(!mediaList.getItems().isEmpty());
+        } catch (Throwable ignore) { }
         mediaList.setCellFactory(list -> new MediaCell(projectFilePath));
         tagList.setCellFactory(list -> new ListCell<>() {
             @Override protected void updateItem(Tag item, boolean empty) {
@@ -382,8 +386,11 @@ public class PropertiesInspector {
                 setGraphic(null);
                 return;
             }
-            name.setText(item.getFileName() != null ? item.getFileName() : item.getRelativePath());
+            String display = item.getFileName() != null && !item.getFileName().isBlank()
+                    ? item.getFileName()
+                    : (item.getRelativePath() != null ? item.getRelativePath() : "(media)");
             iv.setImage(null);
+            boolean missing = false;
             try {
                 Path p = MediaManager.resolveAttachmentPath(projectFilePath, item);
                 if (p != null && Files.exists(p)) {
@@ -392,8 +399,16 @@ public class PropertiesInspector {
                         Image img = new Image(p.toUri().toString(), 128, 128, true, true, true);
                         iv.setImage(img);
                     }
+                } else {
+                    missing = true;
                 }
-            } catch (IOException ignored) { }
+            } catch (IOException ex) {
+                missing = true;
+            }
+            if (missing) {
+                display = display + " (missing)";
+            }
+            name.setText(display);
             setGraphic(root);
         }
     }

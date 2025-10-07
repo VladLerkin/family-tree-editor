@@ -85,7 +85,16 @@ public class RelImporter {
             PersonRec r = e.getValue();
             String first;
             String last;
-            if ((r.given != null && !r.given.isBlank()) || (r.surname != null && !r.surname.isBlank())) {
+            // Prefer NAME field if it looks well-structured (e.g., contains /Surname/ or non-ASCII letters like Cyrillic)
+            boolean nameLooksStructured = (r.name != null && !r.name.isBlank()) && (
+                    r.name.indexOf('/') >= 0 ||
+                    r.name.chars().anyMatch(ch -> (ch & 0x80) != 0)
+            );
+            if (nameLooksStructured) {
+                String[] nm = splitName(r.name);
+                first = nm[0];
+                last = nm[1];
+            } else if ((r.given != null && !r.given.isBlank()) || (r.surname != null && !r.surname.isBlank())) {
                 first = (r.given != null && !r.given.isBlank()) ? cleanToken(r.given) : "?";
                 last = (r.surname != null) ? cleanToken(r.surname) : "";
             } else {
@@ -93,6 +102,14 @@ public class RelImporter {
                 first = nm[0];
                 last = nm[1];
             }
+            // Final defensive cleanup: ensure names don’t contain glued tags like OBJE/TITL/FILE/NOTE
+            first = cleanNameValue(first);
+            last = cleanNameValue(last);
+            // Remove parenthetical/bracketed commentary and surrounding quotes from names
+            first = stripParensQuotes(first);
+            last = stripParensQuotes(last);
+            if (first == null || first.isBlank()) first = "?";
+            if (last == null) last = "";
             // Skip obviously empty/garbage persons if they are not referenced by any family.
             // Be conservative: if the source NAME field exists (even if parsing to first/last failed), keep the person.
             boolean nameBlank = (first == null || first.isBlank() || first.equals("?")) && (last == null || last.isBlank());
@@ -112,6 +129,21 @@ public class RelImporter {
                         n.setText(nt.trim());
                         ind.getNotes().add(n);
                     }
+                }
+            }
+            // Attach optional media parsed from OBJE/FORM/TITL/FILE
+            if (r.media != null && !r.media.isEmpty()) {
+                for (MediaTmp mt : r.media) {
+                    String file = mt.file != null ? mt.file.strip() : null;
+                    String titl = mt.title != null ? mt.title.strip() : null;
+                    if ((file == null || file.isBlank()) && (titl == null || titl.isBlank())) continue;
+                    com.pedigree.model.MediaAttachment ma = new com.pedigree.model.MediaAttachment();
+                    if (file != null && !file.isBlank()) {
+                        ma.setRelativePath(file);
+                    }
+                    String fileName = (titl != null && !titl.isBlank()) ? titl : baseName(file);
+                    if (fileName != null && !fileName.isBlank()) ma.setFileName(fileName);
+                    ind.getMedia().add(ma);
                 }
             }
             data.individuals.add(ind);
@@ -134,6 +166,21 @@ public class RelImporter {
                 if (rf.marrDate != null) ev.setDate(rf.marrDate);
                 if (rf.marrPlace != null) ev.setPlace(rf.marrPlace);
                 fam.setMarriage(ev);
+            }
+            // Attach optional media parsed for family OBJE blocks
+            if (rf.media != null && !rf.media.isEmpty()) {
+                for (MediaTmp mt : rf.media) {
+                    String file = mt.file != null ? mt.file.strip() : null;
+                    String titl = mt.title != null ? mt.title.strip() : null;
+                    if ((file == null || file.isBlank()) && (titl == null || titl.isBlank())) continue;
+                    com.pedigree.model.MediaAttachment ma = new com.pedigree.model.MediaAttachment();
+                    if (file != null && !file.isBlank()) {
+                        ma.setRelativePath(file);
+                    }
+                    String fileName = (titl != null && !titl.isBlank()) ? titl : baseName(file);
+                    if (fileName != null && !fileName.isBlank()) ma.setFileName(fileName);
+                    fam.getMedia().add(ma);
+                }
             }
             data.families.add(fam);
             famIdMap.put(e.getKey(), fam.getId());
@@ -234,9 +281,9 @@ public class RelImporter {
 
     // Accept M/F as well as digits (1=male, 2=female) and Cyrillic (М/Ж); optional parentheses/spaces
     private static final Pattern SEX_RE = Pattern.compile("SEX\\P{L}*([MFmf12МЖмж])");
-    private static final Pattern NAME_RE = Pattern.compile("NAME\\s*([\\s\\S]+?)\\s*(?=(SEX|BIRT|DEAT|FAMC|FAMS|NOTE|TITL|SUBM|SOUR|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern NAME_RE = Pattern.compile("NAME\\s*([\\s\\S]+?)\\s*(?=(SEX|BIRT|DEAT|FAMC|FAMS|NOTE|TITL|OBJE|SUBM|SOUR|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     // Some files show a corrupted first letter in NAME (e.g., '\u044EAME' instead of 'NAME').
-    private static final Pattern NAME_ALT_RE = Pattern.compile("(?:NAME|.AME)\\s*([\\s\\S]+?)\\s*(?=(SEX|BIRT|DEAT|FAMC|FAMS|NOTE|TITL|SUBM|SOUR|P\\d+|F\\d+)|$)", Pattern.DOTALL);
+    private static final Pattern NAME_ALT_RE = Pattern.compile("(?:NAME|.AME)\\s*([\\s\\S]+?)\\s*(?=(SEX|BIRT|DEAT|FAMC|FAMS|NOTE|TITL|OBJE|SUBM|SOUR|P\\d+|F\\d+)|$)", Pattern.DOTALL);
     private static final Pattern GIVN_RE = Pattern.compile("GIVN\\P{L}*([^\\r\\n]+)");
     private static final Pattern SURN_RE = Pattern.compile("SURN\\P{L}*([^\\r\\n]+)");
     // Russian localized tokens (Имя, Фамилия, Отчество, Пол)
@@ -251,35 +298,44 @@ public class RelImporter {
     private static final Pattern POS_X_RE = Pattern.compile("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
     private static final Pattern POS_Y_RE = Pattern.compile("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
     // Fallback: inline GEDCOM-like "Given /Surname/" anywhere before SEX
-    private static final Pattern INLINE_GEDCOM_NAME = Pattern.compile("([\\p{L} .]+?/[^/]+/)");
+    // Inline GEDCOM-like name: require a space before first slash to avoid matching URLs; capture Given and /Surname/
+    private static final Pattern INLINE_GEDCOM_NAME = Pattern.compile("[\\p{L} .]+?\\s+/[^/]+/", Pattern.UNICODE_CASE);
     private static final Pattern NOTE_BLOCK_RE = Pattern.compile("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    // Multimedia: OBJE blocks possibly containing FORM/TITL/FILE
+    // Do NOT terminate at TITL — TITL/FILE/FORM belong inside OBJE
+    private static final Pattern OBJE_BLOCK_RE = Pattern.compile("OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    private static final Pattern FORM_INNER_RE = Pattern.compile("FORM\\s*([^\\r\\n\\s]+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TITL_INNER_RE = Pattern.compile("TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE|NOTE|NOTES|SOUR|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    private static final Pattern FILE_INNER_RE = Pattern.compile("FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE|NOTE|NOTES|SOUR|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
 
     private static PersonRec parsePerson(Section s) {
         PersonRec r = new PersonRec();
         r.id = s.id;
         String body = sanitize(s.body);
-        r.name = find(NAME_RE, body);
+        // For name extraction, pre-strip OBJE and NOTE(S) blocks to avoid contamination
+        String bodyForName = NOTE_BLOCK_RE.matcher(OBJE_BLOCK_RE.matcher(body).replaceAll("")).replaceAll("");
+        r.name = find(NAME_RE, bodyForName);
         // Fallback if regex failed: try alternative corrupted tag pattern or slice between tokens
         if (r.name == null || r.name.isBlank()) {
-            String alt = find(NAME_ALT_RE, body);
+            String alt = find(NAME_ALT_RE, bodyForName);
             if (alt != null && !alt.isBlank()) {
                 r.name = alt;
             } else {
-                String sliced = extractAfterToken("NAME", body);
+                String sliced = extractAfterToken("NAME", bodyForName);
                 if (sliced != null && !sliced.isBlank()) r.name = sliced;
                 else {
-                    // Final fallback: scan for inline GEDCOM-like name before SEX
-                    String preSex = body;
-                    int sexAt = body.indexOf("SEX");
-                    if (sexAt > 0) preSex = body.substring(0, sexAt);
+                    // Final fallback: scan for inline GEDCOM-like name before SEX, using the already cleaned body (no OBJE/NOTES)
+                    String preSex = bodyForName;
+                    int sexAt = preSex.indexOf("SEX");
+                    if (sexAt > 0) preSex = preSex.substring(0, sexAt);
                     String inline = find(INLINE_GEDCOM_NAME, preSex);
                     if (inline != null && !inline.isBlank()) r.name = inline;
                 }
             }
         }
         // Some REL exports store names as separate GIVN/SURN tokens
-        String givn = find(GIVN_RE, body);
-        String surn = find(SURN_RE, body);
+        String givn = find(GIVN_RE, bodyForName);
+        String surn = find(SURN_RE, bodyForName);
         if (givn != null) r.given = cleanToken(givn);
         if (surn != null) r.surname = cleanToken(surn);
         String sx = find(SEX_RE, body);
@@ -311,6 +367,14 @@ public class RelImporter {
                 }
             }
         }
+        // Final cleanup of NAME to avoid trailing embedded tags or media fragments
+        if (r.name != null && !r.name.isBlank()) {
+            r.name = cleanNameValue(r.name);
+        } else {
+            // Ultra-robust fallback: extract after raw 'NAME' token until next known tag
+            String nm2 = extractNameSimple(body);
+            if (nm2 != null && !nm2.isBlank()) r.name = nm2;
+        }
         r.birth = parseDate(find(BIRT_RE, body));
         r.death = parseDate(find(DEAT_RE, body));
         String xs = find(POS_X_RE, body);
@@ -339,6 +403,82 @@ public class RelImporter {
                 if (!note.isEmpty()) r.notes.add(note);
             }
         }
+        // Extract optional multimedia OBJE blocks
+        Matcher objeM = OBJE_BLOCK_RE.matcher(body);
+        while (objeM.find()) {
+            String chunk = objeM.group(1);
+            if (chunk == null) continue;
+            String form = find(FORM_INNER_RE, chunk);
+            String titl = find(TITL_INNER_RE, chunk);
+            String file = find(FILE_INNER_RE, chunk);
+            if (titl != null) {
+                titl = titl.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+            }
+            if (file != null) {
+                file = file.replaceAll("[\\p{Cntrl}]", "").trim();
+            }
+            if (form != null) {
+                form = form.replaceAll("[\\p{Cntrl}]", "").trim();
+            }
+            if ((titl != null && !titl.isBlank()) || (file != null && !file.isBlank()) || (form != null && !form.isBlank())) {
+                MediaTmp mt = new MediaTmp();
+                mt.form = (form != null && !form.isBlank()) ? form : null;
+                mt.title = (titl != null && !titl.isBlank()) ? titl : null;
+                mt.file = (file != null && !file.isBlank()) ? file : null;
+                r.media.add(mt);
+            }
+        }
+        // Fallback: some REL exports omit OBJE and place FILE/TITL/FORM directly in the section
+        if (r.media.isEmpty()) {
+            String bodyNoObje = OBJE_BLOCK_RE.matcher(body).replaceAll(" ");
+            // Find multiple FILE entries and pair with nearest preceding TITL within 200 chars
+            Matcher mf = FILE_INNER_RE.matcher(bodyNoObje);
+            int created = 0;
+            while (mf.find()) {
+                String file = mf.group(1);
+                if (file != null) file = file.replaceAll("[\\p{Cntrl}]", "").trim();
+                String titl = null;
+                String form = null;
+                // search backwards up to 200 chars for TITL
+                int start = Math.max(0, mf.start() - 200);
+                String window = bodyNoObje.substring(start, mf.start());
+                String titlWin = find(TITL_INNER_RE, window);
+                if (titlWin != null) {
+                    titl = titlWin.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                    titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+                }
+                // search forwards up to 100 chars for FORM
+                int end = Math.min(bodyNoObje.length(), mf.end() + 100);
+                String windowF = bodyNoObje.substring(mf.end(), end);
+                String formWin = find(FORM_INNER_RE, windowF);
+                if (formWin != null) form = formWin.replaceAll("[\\p{Cntrl}]", "").trim();
+                if ((file != null && !file.isBlank()) || (titl != null && !titl.isBlank())) {
+                    MediaTmp mt = new MediaTmp();
+                    mt.file = (file != null && !file.isBlank()) ? file : null;
+                    mt.title = (titl != null && !titl.isBlank()) ? titl : null;
+                    mt.form = (form != null && !form.isBlank()) ? form : null;
+                    r.media.add(mt);
+                    created++;
+                }
+            }
+            // If there were TITL tokens but no FILEs, add title-only entries
+            if (created == 0) {
+                Matcher mt = TITL_INNER_RE.matcher(bodyNoObje);
+                while (mt.find()) {
+                    String titl = mt.group(1);
+                    if (titl != null) {
+                        titl = titl.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                        titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+                        if (!titl.isBlank()) {
+                            MediaTmp m = new MediaTmp();
+                            m.title = titl;
+                            r.media.add(m);
+                        }
+                    }
+                }
+            }
+        }
         return r;
     }
 
@@ -362,6 +502,78 @@ public class RelImporter {
         f.marrDate = parseDate(find(MARR_DATE_RE, body));
         String plac = find(MARR_PLAC_RE, body);
         if (plac != null) f.marrPlace = plac.strip();
+        // Extract optional multimedia OBJE blocks for family
+        Matcher objeM = OBJE_BLOCK_RE.matcher(body);
+        while (objeM.find()) {
+            String chunk = objeM.group(1);
+            if (chunk == null) continue;
+            String form = find(FORM_INNER_RE, chunk);
+            String titl = find(TITL_INNER_RE, chunk);
+            String file = find(FILE_INNER_RE, chunk);
+            if (titl != null) {
+                titl = titl.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+            }
+            if (file != null) {
+                file = file.replaceAll("[\\p{Cntrl}]", "").trim();
+            }
+            if (form != null) {
+                form = form.replaceAll("[\\p{Cntrl}]", "").trim();
+            }
+            if ((titl != null && !titl.isBlank()) || (file != null && !file.isBlank()) || (form != null && !form.isBlank())) {
+                MediaTmp mt = new MediaTmp();
+                mt.form = (form != null && !form.isBlank()) ? form : null;
+                mt.title = (titl != null && !titl.isBlank()) ? titl : null;
+                mt.file = (file != null && !file.isBlank()) ? file : null;
+                f.media.add(mt);
+            }
+        }
+        // Fallback: standalone FILE/TITL/FORM tokens outside OBJE
+        if (f.media.isEmpty()) {
+            String bodyNoObje = OBJE_BLOCK_RE.matcher(body).replaceAll(" ");
+            Matcher mf2 = FILE_INNER_RE.matcher(bodyNoObje);
+            int created = 0;
+            while (mf2.find()) {
+                String file = mf2.group(1);
+                if (file != null) file = file.replaceAll("[\\p{Cntrl}]", "").trim();
+                String titl = null;
+                String form = null;
+                int start = Math.max(0, mf2.start() - 200);
+                String window = bodyNoObje.substring(start, mf2.start());
+                String titlWin = find(TITL_INNER_RE, window);
+                if (titlWin != null) {
+                    titl = titlWin.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                    titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+                }
+                int end = Math.min(bodyNoObje.length(), mf2.end() + 100);
+                String windowF = bodyNoObje.substring(mf2.end(), end);
+                String formWin = find(FORM_INNER_RE, windowF);
+                if (formWin != null) form = formWin.replaceAll("[\\p{Cntrl}]", "").trim();
+                if ((file != null && !file.isBlank()) || (titl != null && !titl.isBlank())) {
+                    MediaTmp mt = new MediaTmp();
+                    mt.file = (file != null && !file.isBlank()) ? file : null;
+                    mt.title = (titl != null && !titl.isBlank()) ? titl : null;
+                    mt.form = (form != null && !form.isBlank()) ? form : null;
+                    f.media.add(mt);
+                    created++;
+                }
+            }
+            if (created == 0) {
+                Matcher mt2 = TITL_INNER_RE.matcher(bodyNoObje);
+                while (mt2.find()) {
+                    String titl = mt2.group(1);
+                    if (titl != null) {
+                        titl = titl.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").strip();
+                        titl = titl.replace("\uFEFF", "").replace("\uFFFD", "");
+                        if (!titl.isBlank()) {
+                            MediaTmp m = new MediaTmp();
+                            m.title = titl;
+                            f.media.add(m);
+                        }
+                    }
+                }
+            }
+        }
         return f;
     }
 
@@ -397,6 +609,8 @@ public class RelImporter {
         String src = full.strip();
         // Remove control chars introduced by TLV markers
         src = src.replaceAll("[\\p{Cntrl}]", "");
+        // Defensive: cut off at any embedded tag/marker if the raw string contains them
+        src = cleanNameValue(src);
         // Drop any leading non-letter junk (length counters, etc.), but keep '/' and '^' if present later
         src = src.replaceFirst("^[^\\p{L}/^]+", "");
         // Handle caret-separated format typical for REL: Surname^First^Middle^
@@ -408,20 +622,32 @@ public class RelImporter {
             if (parts.length >= 2) {
                 String surname = cleanToken(parts[0]);
                 String given = cleanToken(parts[1]);
+                // Strip commentary/quotes
+                given = stripParensQuotes(given);
+                surname = stripParensQuotes(surname);
                 return new String[]{given, surname};
             } else if (parts.length == 1) {
                 // Only one token: assume it's a surname
-                return new String[]{"?", cleanToken(parts[0])};
+                String lone = stripParensQuotes(cleanToken(parts[0]));
+                return new String[]{"?", lone};
             }
         }
         String given = src;
         String surname = "";
         int a = src.indexOf('/');
-        int b = src.indexOf('/', a + 1);
-        if (a >= 0 && b > a) {
-            surname = cleanToken(src.substring(a + 1, b).strip());
-            given = cleanToken((src.substring(0, a) + src.substring(b + 1)).strip());
-        } else {
+        int b = (a >= 0) ? src.indexOf('/', a + 1) : -1;
+        boolean usedSlash = false;
+        if (a > 0 && b > a) {
+            boolean whitespaceBefore = Character.isWhitespace(src.charAt(a - 1));
+            String between = src.substring(a + 1, b);
+            boolean urlLike = between.contains(":") || src.indexOf("//", a) == a + 1;
+            if (whitespaceBefore && !urlLike) {
+                surname = cleanToken(between.strip());
+                given = cleanToken((src.substring(0, a) + src.substring(b + 1)).strip());
+                usedSlash = true;
+            }
+        }
+        if (!usedSlash) {
             // fallback: split last token as surname if looks like two or more parts
             String[] parts = src.split("\\s+");
             if (parts.length >= 2) {
@@ -432,6 +658,9 @@ public class RelImporter {
                 surname = cleanToken(surname);
             }
         }
+        // Strip commentary/quotes from both
+        given = stripParensQuotes(given);
+        surname = stripParensQuotes(surname);
         return new String[]{given, surname};
     }
 
@@ -440,6 +669,50 @@ public class RelImporter {
         String t = s.strip();
         // Remove leading non-letter characters (digits, punctuation). Keep letters in any script.
         t = t.replaceFirst("^[^\\p{L}]+", "");
+        return t;
+    }
+
+    // Remove parenthetical/bracketed commentary and surrounding quotes; normalize spaces
+    private static String stripParensQuotes(String s) {
+        if (s == null) return null;
+        String t = s;
+        // Remove (...) segments
+        t = t.replaceAll("\\s*\\([\\s\\S]*?\\)\\s*", " ");
+        // Remove [...] segments
+        t = t.replaceAll("\\s*\\[[\\s\\S]*?\\]\\s*", " ");
+        // Remove {...} segments
+        t = t.replaceAll("\\s*\\{[\\s\\S]*?\\}\\s*", " ");
+        // Trim surrounding quotes and special quote marks
+        t = t.replaceAll("^[\"'“”„«»]+|[\"'“”„«»]+$", "");
+        // Collapse spaces
+        t = t.replaceAll("\\s{2,}", " ").trim();
+        return t;
+    }
+
+    // Clean up NAME value by stripping control chars and cutting off at the first embedded tag/record marker
+    private static String cleanNameValue(String s) {
+        if (s == null) return null;
+        String t = s.replaceAll("[\\p{Cntrl}]", " ");
+        // Remove stray BOM and replacement characters early
+        t = t.replace("\uFEFF", "").replace("\uFFFD", "");
+        // Trim and drop leading punctuation/junk (e.g., $, #, :, etc.)
+        t = t.replaceFirst("^[\\p{Punct}]+", "").trim();
+        if (t.isEmpty()) return t;
+        String up = t.toUpperCase(java.util.Locale.ROOT);
+        String[] toks = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "OBJE", "TITL", "FILE", "FORM", "SOUR", "SUBM", "_X", "_Y"};
+        int cut = t.length();
+        for (String tok : toks) {
+            int idx = up.indexOf(tok);
+            if (idx >= 0 && idx < cut) cut = idx;
+        }
+        // Also cut at record markers like P123/F45 if accidentally stuck to the name
+        java.util.regex.Matcher mp = java.util.regex.Pattern.compile("(?i)(?:^|[^A-Z])P\\d{1,5}").matcher(up);
+        if (mp.find()) cut = Math.min(cut, mp.start());
+        java.util.regex.Matcher mf = java.util.regex.Pattern.compile("(?i)(?:^|[^A-Z])F\\d{1,5}").matcher(up);
+        if (mf.find()) cut = Math.min(cut, mf.start());
+        t = t.substring(0, cut).trim();
+        // Collapse internal excessive spaces
+        t = t.replaceAll("\\s{2,}", " ");
         return t;
     }
 
@@ -477,6 +750,13 @@ public class RelImporter {
         Double x; // optional parsed position
         Double y;
         List<String> notes = new ArrayList<>();
+        List<MediaTmp> media = new ArrayList<>();
+    }
+
+    private static class MediaTmp {
+        String form;
+        String title;
+        String file;
     }
 
     private static class FamRec {
@@ -486,6 +766,7 @@ public class RelImporter {
         List<String> children = new ArrayList<>();
         LocalDate marrDate;
         String marrPlace;
+        List<MediaTmp> media = new ArrayList<>();
     }
 
     private static String sanitize(String s) {
@@ -497,7 +778,7 @@ public class RelImporter {
     private static int indexOfNextTag(String s, int from) {
         if (s == null) return -1;
         int min = -1;
-        String[] tags = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "SOUR", "TITL", "P", "F"};
+        String[] tags = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "SOUR", "TITL", "OBJE", "P", "F"};
         for (String t : tags) {
             int i = s.indexOf(t, from);
             if (i >= 0 && (min < 0 || i < min)) min = i;
@@ -507,9 +788,11 @@ public class RelImporter {
 
     private static String extractAfterToken(String token, String body) {
         if (body == null || token == null) return null;
-        int i = body.indexOf(token);
-        if (i < 0) return null;
-        int start = i + token.length();
+        // Match full token with non-letter boundaries to avoid matching SURNAME/FILENAME, case-insensitive
+        String regex = "(?i)(?:^|[^\\p{L}])" + java.util.regex.Pattern.quote(token) + "(?![\\p{L}])";
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(regex).matcher(body);
+        if (!m.find()) return null;
+        int start = m.end();
         // skip whitespace and punctuation/control chars
         while (start < body.length()) {
             char ch = body.charAt(start);
@@ -545,6 +828,21 @@ public class RelImporter {
             if ((b & 0x80) != 0) return true;
         }
         return false;
+    }
+
+    private static String baseName(String path) {
+        if (path == null || path.isBlank()) return null;
+        String p = path.strip();
+        // Normalize backslashes
+        p = p.replace('\\', '/');
+        int q = p.lastIndexOf('/');
+        String name = (q >= 0) ? p.substring(q + 1) : p;
+        // If URL with query, strip it
+        int qi = name.indexOf('?');
+        if (qi >= 0) name = name.substring(0, qi);
+        // If still blank, return original path
+        if (name.isBlank()) return p;
+        return name;
     }
 
     /**
@@ -583,6 +881,33 @@ public class RelImporter {
             }
         }
         return new ParseBundle(persons, fams);
+    }
+
+    // Ultra-robust: directly slice after raw NAME until next known tag (case-insensitive)
+    private static String extractNameSimple(String body) {
+        if (body == null || body.isEmpty()) return null;
+        String up = body.toUpperCase(java.util.Locale.ROOT);
+        int i = up.indexOf("NAME");
+        if (i < 0) return null;
+        int start = i + 4;
+        // skip any separators/control
+        while (start < body.length()) {
+            char ch = body.charAt(start);
+            if (!Character.isWhitespace(ch)
+                    && ch != ':' && ch != '=' && ch != '"' && ch != '\'' && ch != '\\'
+                    && ch != '$' && ch != ';' && ch != ',' && ch != 0x00) break;
+            start++;
+        }
+        // find next tag boundary
+        String[] toks = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "OBJE", "TITL", "FILE", "FORM", "SOUR", "SUBM", "_X", "_Y", "P", "F"};
+        int end = body.length();
+        for (String t : toks) {
+            int idx = up.indexOf(t, start);
+            if (idx >= 0 && idx < end) end = idx;
+        }
+        String raw = body.substring(start, Math.max(start, end));
+        raw = raw.replaceAll("[\\p{Cntrl}]", " ").trim();
+        return raw;
     }
 
     private static class ParseBundle {

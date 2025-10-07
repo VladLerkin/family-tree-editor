@@ -211,6 +211,7 @@ public class MainWindow {
                 () -> distribute(AlignAndDistributeController.Distribution.HORIZONTAL),
                 () -> distribute(AlignAndDistributeController.Distribution.VERTICAL),
                 this::openQuickSearch,
+                this::debugExportRelSection,
                 projectService::getRecentProjects,
                 this::openProject
         );
@@ -528,6 +529,142 @@ public class MainWindow {
             canvasView.select(id);
             canvasPane.draw();
         }).show();
+    }
+
+    private void debugExportRelSection() {
+        java.nio.file.Path path = Dialogs.chooseOpenRelPath();
+        if (path == null) return;
+        javafx.scene.control.TextInputDialog idDialog = new javafx.scene.control.TextInputDialog("P123");
+        idDialog.setTitle("Debug: Export REL Section");
+        idDialog.setHeaderText("Введите идентификатор персоны (например, P266)");
+        idDialog.setContentText("P-id:");
+        java.util.Optional<String> res = idDialog.showAndWait();
+        if (res.isEmpty()) return;
+        String pid = res.get().trim().toUpperCase(java.util.Locale.ROOT);
+        if (!pid.matches("P\\d{1,5}")) {
+            Dialogs.showError("Debug: Export REL Section", "Неверный формат идентификатора. Ожидается P и число, например P266.");
+            return;
+        }
+        try {
+            byte[] raw = java.nio.file.Files.readAllBytes(path);
+            byte[] cleaned = dropZeroBytes(raw);
+            String text = new String(cleaned, java.nio.charset.StandardCharsets.UTF_8);
+            int startIdx = text.indexOf(pid);
+            if (startIdx < 0) {
+                Dialogs.showError("Debug: Export REL Section", "Не найден раздел " + pid + " в выбранном файле.");
+                return;
+            }
+            int searchFrom = startIdx + pid.length();
+            java.util.regex.Pattern secRe = java.util.regex.Pattern.compile("(P\\d{1,5}|F\\d{1,5})");
+            java.util.regex.Matcher m = secRe.matcher(text);
+            int endIdx = text.length();
+            while (m.find()) {
+                int idx = m.start(1);
+                if (idx > startIdx) { endIdx = idx; break; }
+            }
+            String section = text.substring(startIdx, Math.max(startIdx, endIdx));
+            // sanitize: keep CR/LF
+            section = section.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "");
+
+            // Additionally parse multimedia blocks (OBJE) and summarize FORM/TITL/FILE
+            StringBuilder out = new StringBuilder();
+            out.append(section);
+            try {
+                java.util.regex.Pattern OBJE_BLOCK_RE = java.util.regex.Pattern.compile("(?i)OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", java.util.regex.Pattern.DOTALL);
+                java.util.regex.Pattern FORM_INNER_RE = java.util.regex.Pattern.compile("(?i)FORM\\s*([^\\r\\n\\s]+)");
+                java.util.regex.Pattern TITL_INNER_RE = java.util.regex.Pattern.compile("(?i)TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE|NOTE|NOTES|SOUR|P\\d+|F\\d+|_X|_Y)|$)", java.util.regex.Pattern.DOTALL);
+                java.util.regex.Pattern FILE_INNER_RE = java.util.regex.Pattern.compile("(?i)FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE|NOTE|NOTES|SOUR|P\\d+|F\\d+|_X|_Y)|$)", java.util.regex.Pattern.DOTALL);
+                java.util.regex.Matcher mOb = OBJE_BLOCK_RE.matcher(section);
+                int count = 0;
+                StringBuilder mediaSummary = new StringBuilder();
+                while (mOb.find()) {
+                    String chunk = mOb.group(1);
+                    if (chunk == null) continue;
+                    String form = null, titl = null, file = null;
+                    java.util.regex.Matcher mf = FORM_INNER_RE.matcher(chunk);
+                    if (mf.find()) form = mf.group(1);
+                    java.util.regex.Matcher mt = TITL_INNER_RE.matcher(chunk);
+                    if (mt.find()) titl = mt.group(1);
+                    java.util.regex.Matcher mfile = FILE_INNER_RE.matcher(chunk);
+                    if (mfile.find()) file = mfile.group(1);
+                    count++;
+                    mediaSummary.append("#").append(count).append(": ");
+                    if (titl != null) mediaSummary.append("TITL=\"").append(titl.replaceAll("[\\\\p{Cntrl}&&[^\\r\\n]]", "").trim()).append("\" ");
+                    if (form != null) mediaSummary.append("FORM=").append(form.replaceAll("[\\\\p{Cntrl}]", "").trim()).append(" ");
+                    if (file != null) mediaSummary.append("FILE=").append(file.replaceAll("[\\\\p{Cntrl}]", "").trim());
+                    mediaSummary.append("\n");
+                }
+                out.append("\n\n--- Parsed Media (OBJE) ---\n");
+                if (count == 0) {
+                    out.append("(none found)\n");
+                } else {
+                    out.append(mediaSummary);
+                    out.append("Total: ").append(count).append("\n");
+                }
+
+                // Also look for standalone FILE/TITL/FORM tokens outside OBJE
+                try {
+                    String withoutObje = OBJE_BLOCK_RE.matcher(section).replaceAll(" ");
+                    java.util.regex.Matcher mf2 = FILE_INNER_RE.matcher(withoutObje);
+                    int fileCount = 0;
+                    StringBuilder stand = new StringBuilder();
+                    while (mf2.find()) {
+                        String file = mf2.group(1);
+                        if (file != null) file = file.replaceAll("[\\p{Cntrl}]", "").trim();
+                        // Backward small window for TITL
+                        int start = Math.max(0, mf2.start() - 200);
+                        String win = withoutObje.substring(start, mf2.start());
+                        String titl = null;
+                        java.util.regex.Matcher mt2 = TITL_INNER_RE.matcher(win);
+                        if (mt2.find()) titl = mt2.group(1);
+                        if (titl != null) titl = titl.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "").trim();
+                        // Forward small window for FORM
+                        int end = Math.min(withoutObje.length(), mf2.end() + 100);
+                        String winF = withoutObje.substring(mf2.end(), end);
+                        String form = null;
+                        java.util.regex.Matcher mfForm = FORM_INNER_RE.matcher(winF);
+                        if (mfForm.find()) form = mfForm.group(1);
+                        if (form != null) form = form.replaceAll("[\\p{Cntrl}]", "").trim();
+
+                        fileCount++;
+                        stand.append("#").append(fileCount).append(": ");
+                        if (titl != null && !titl.isBlank()) stand.append("TITL=\"").append(titl).append("\" ");
+                        if (form != null && !form.isBlank()) stand.append("FORM=").append(form).append(" ");
+                        if (file != null && !file.isBlank()) stand.append("FILE=").append(file);
+                        stand.append("\n");
+                    }
+                    out.append("\n--- Standalone Media Tokens ---\n");
+                    if (fileCount == 0) {
+                        out.append("(none found)\n");
+                    } else {
+                        out.append(stand);
+                        out.append("Total FILE tokens: ").append(fileCount).append("\n");
+                    }
+                } catch (Throwable ignore2) { }
+            } catch (Throwable ignore) { }
+
+            // Show in a scrollable dialog
+            javafx.scene.control.TextArea ta = new javafx.scene.control.TextArea(out.toString());
+            ta.setEditable(false);
+            ta.setWrapText(false);
+            ta.setPrefColumnCount(80);
+            ta.setPrefRowCount(30);
+            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(javafx.scene.control.Alert.AlertType.INFORMATION);
+            alert.setTitle("REL Section: " + pid);
+            alert.setHeaderText("Очищенный текстовый фрагмент секции " + pid + " (сводка медиа)");
+            alert.getDialogPane().setContent(ta);
+            alert.showAndWait();
+        } catch (Exception ex) {
+            Dialogs.showError("Debug: Export REL Section", ex.getMessage());
+        }
+    }
+
+    private static byte[] dropZeroBytes(byte[] in) {
+        if (in == null) return new byte[0];
+        byte[] out = new byte[in.length];
+        int p = 0;
+        for (byte b : in) if (b != 0) out[p++] = b;
+        return java.util.Arrays.copyOf(out, p);
     }
 
     private void refreshAll() {
