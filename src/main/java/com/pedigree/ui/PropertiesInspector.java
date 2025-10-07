@@ -47,6 +47,8 @@ public class PropertiesInspector {
     // Media
     private final ListView<MediaAttachment> mediaList = new ListView<>();
     private final Button addMediaBtn = new Button("Add Media...");
+    private final Button editMediaBtn = new Button("Edit...");
+    private final Button openMediaBtn = new Button("Open");
     private final Button removeMediaBtn = new Button("Remove Selected Media");
 
     // Layout helpers
@@ -80,6 +82,36 @@ public class PropertiesInspector {
         removeTagBtn.disableProperty().bind(tagList.getSelectionModel().selectedItemProperty().isNull());
         removeNoteBtn.disableProperty().bind(noteList.getSelectionModel().selectedItemProperty().isNull());
         removeMediaBtn.disableProperty().bind(mediaList.getSelectionModel().selectedItemProperty().isNull());
+        editMediaBtn.disableProperty().bind(mediaList.getSelectionModel().selectedItemProperty().isNull());
+        openMediaBtn.disableProperty().bind(mediaList.getSelectionModel().selectedItemProperty().isNull());
+
+        // Open link on double click if external; otherwise open edit dialog
+        mediaList.setOnMouseClicked(evt -> {
+            if (evt.getClickCount() == 2) {
+                MediaAttachment sel = mediaList.getSelectionModel().getSelectedItem();
+                if (sel != null) {
+                    String rel = sel.getRelativePath();
+                    if (com.pedigree.services.MediaManager.isExternalLink(rel)) {
+                        var uri = com.pedigree.services.MediaManager.toExternalUri(rel);
+                        if (uri != null) {
+                            try {
+                                if (java.awt.Desktop.isDesktopSupported()) {
+                                    java.awt.Desktop.getDesktop().browse(uri);
+                                }
+                            } catch (Exception ex) {
+                                Dialogs.showError("Open Link", ex.getMessage());
+                            }
+                        }
+                    } else {
+                        MediaPropertiesDialog dlg = new MediaPropertiesDialog(projectFilePath, sel);
+                        var res = dlg.showAndWait();
+                        if (res.isPresent() && Boolean.TRUE.equals(res.get())) {
+                            mediaList.refresh();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     public Node getView() {
@@ -202,9 +234,14 @@ public class PropertiesInspector {
         } else {
             clearDetails();
         }
-        // Auto-expand media pane when there are imported attachments; collapse if none
+        // Auto-expand sections that have content; collapse those that are empty
         try {
-            mediaPane.setExpanded(!mediaList.getItems().isEmpty());
+            boolean hasTags = !tagList.getItems().isEmpty();
+            boolean hasNotes = !noteList.getItems().isEmpty();
+            boolean hasMedia = !mediaList.getItems().isEmpty();
+            tagsPane.setExpanded(hasTags);
+            notesPane.setExpanded(hasNotes);
+            mediaPane.setExpanded(hasMedia);
         } catch (Throwable ignore) { }
         mediaList.setCellFactory(list -> new MediaCell(projectFilePath));
         tagList.setCellFactory(list -> new ListCell<>() {
@@ -268,9 +305,12 @@ public class PropertiesInspector {
     private Pane buildNotesPane() {
         VBox box = new VBox(6);
         noteEditor.setPromptText("Note text...");
+        noteEditor.setWrapText(true);
+        noteEditor.setPrefRowCount(8);
+        noteEditor.setMinHeight(120);
         HBox actions = new HBox(6, addNoteBtn, removeNoteBtn);
-        VBox.setVgrow(noteList, Priority.ALWAYS);
-        VBox.setVgrow(noteEditor, Priority.SOMETIMES);
+        VBox.setVgrow(noteList, Priority.SOMETIMES);
+        VBox.setVgrow(noteEditor, Priority.ALWAYS);
         box.getChildren().addAll(noteList, noteEditor, actions);
 
         addNoteBtn.setOnAction(e -> {
@@ -311,7 +351,7 @@ public class PropertiesInspector {
 
     private Pane buildMediaPane() {
         VBox box = new VBox(6);
-        HBox actions = new HBox(6, addMediaBtn, removeMediaBtn);
+        HBox actions = new HBox(6, addMediaBtn, editMediaBtn, openMediaBtn, removeMediaBtn);
         VBox.setVgrow(mediaList, Priority.ALWAYS);
         box.getChildren().addAll(mediaList, actions);
 
@@ -333,6 +373,51 @@ public class PropertiesInspector {
                 populateDetails();
             } catch (IOException ex) {
                 Dialogs.showError("Add Media Failed", ex.getMessage());
+            }
+        });
+
+        editMediaBtn.setOnAction(e -> {
+            MediaAttachment sel = mediaList.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            MediaPropertiesDialog dlg = new MediaPropertiesDialog(projectFilePath, sel);
+            var res = dlg.showAndWait();
+            if (res.isPresent() && Boolean.TRUE.equals(res.get())) {
+                mediaList.refresh();
+            }
+        });
+
+        openMediaBtn.setOnAction(e -> {
+            MediaAttachment sel = mediaList.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            String rel = sel.getRelativePath();
+            if (com.pedigree.services.MediaManager.isExternalLink(rel)) {
+                var uri = com.pedigree.services.MediaManager.toExternalUri(rel);
+                if (uri == null) {
+                    Dialogs.showError("Open Link", "Неверная ссылка: " + rel);
+                    return;
+                }
+                try {
+                    if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().browse(uri);
+                    } else {
+                        Dialogs.showError("Open Link", "Desktop API не поддерживается на этой платформе");
+                    }
+                } catch (Exception ex) {
+                    Dialogs.showError("Open Link", ex.getMessage());
+                }
+            } else {
+                try {
+                    java.nio.file.Path p = com.pedigree.services.MediaManager.resolveAttachmentPath(projectFilePath, sel);
+                    if (p != null && java.nio.file.Files.exists(p)) {
+                        if (java.awt.Desktop.isDesktopSupported()) {
+                            java.awt.Desktop.getDesktop().open(p.toFile());
+                        }
+                    } else {
+                        Dialogs.showError("Open Media", "Файл не найден");
+                    }
+                } catch (Exception ex) {
+                    Dialogs.showError("Open Media", ex.getMessage());
+                }
             }
         });
 
@@ -386,10 +471,17 @@ public class PropertiesInspector {
                 setGraphic(null);
                 return;
             }
+            String rel = item.getRelativePath();
+            boolean isLink = MediaManager.isExternalLink(rel);
             String display = item.getFileName() != null && !item.getFileName().isBlank()
                     ? item.getFileName()
-                    : (item.getRelativePath() != null ? item.getRelativePath() : "(media)");
+                    : (rel != null ? rel : "(media)");
             iv.setImage(null);
+            if (isLink) {
+                name.setText(display + " (link)");
+                setGraphic(root);
+                return;
+            }
             boolean missing = false;
             try {
                 Path p = MediaManager.resolveAttachmentPath(projectFilePath, item);

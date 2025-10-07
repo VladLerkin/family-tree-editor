@@ -3,6 +3,7 @@ package com.pedigree.services;
 import com.pedigree.model.MediaAttachment;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -48,11 +49,39 @@ public class MediaManager {
     }
 
     /**
+     * Determines if the provided path string looks like an external URL.
+     */
+    public static boolean isExternalLink(String path) {
+        if (path == null) return false;
+        String p = path.trim().toLowerCase();
+        return p.startsWith("http://") || p.startsWith("https://") || p.startsWith("www.");
+    }
+
+    /**
+     * Returns a normalized URI for external links (adds https:// to bare www.).
+     * Returns null if the path is not an external link.
+     */
+    public static URI toExternalUri(String path) {
+        if (!isExternalLink(path)) return null;
+        String p = path.trim();
+        if (p.toLowerCase().startsWith("www.")) {
+            p = "https://" + p;
+        }
+        try {
+            return URI.create(p);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
      * Resolves the absolute path of a media attachment within the project container.
+     * For external links, returns null.
      */
     public static Path resolveAttachmentPath(Path projectFile, MediaAttachment attachment) throws IOException {
-        Path mediaRoot = getMediaRoot(projectFile);
         String rel = attachment.getRelativePath();
+        if (isExternalLink(rel)) return null;
+        Path mediaRoot = getMediaRoot(projectFile);
         if (rel == null || rel.isBlank()) {
             rel = attachment.getFileName();
         }

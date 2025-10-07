@@ -735,11 +735,19 @@ public class MainWindow {
                 }
                 persisted.setPositionsAreCenters(false);
             }
-            // Apply zoom and pan
-            canvasView.setZoom(persisted.getZoom());
-            double dx = persisted.getViewOriginX() - canvasView.getZoomAndPan().getPanX();
-            double dy = persisted.getViewOriginY() - canvasView.getZoomAndPan().getPanY();
-            if (dx != 0 || dy != 0) canvasView.panBy(dx, dy);
+            // Apply zoom and pan (open at minimum zoom unless a meaningful viewport was persisted)
+            boolean hasViewport = persisted.getZoom() != 1.0
+                    || persisted.getViewOriginX() != 0.0
+                    || persisted.getViewOriginY() != 0.0;
+            if (hasViewport) {
+                canvasView.setZoom(persisted.getZoom());
+                double dx = persisted.getViewOriginX() - canvasView.getZoomAndPan().getPanX();
+                double dy = persisted.getViewOriginY() - canvasView.getZoomAndPan().getPanY();
+                if (dx != 0 || dy != 0) canvasView.panBy(dx, dy);
+            } else {
+                // No meaningful persisted viewport: start at minimal zoom
+                canvasView.setZoom(canvasView.getZoomAndPan().getMinZoom());
+            }
         }
 
         canvasView.setLayout(computed);
