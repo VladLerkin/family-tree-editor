@@ -104,6 +104,16 @@ public class RelImporter {
             Individual ind = new Individual(first, last, r.sex);
             if (r.birth != null) ind.setBirthDate(r.birth);
             if (r.death != null) ind.setDeathDate(r.death);
+            // Attach optional notes parsed from NOTE/NOTES
+            if (r.notes != null && !r.notes.isEmpty()) {
+                for (String nt : r.notes) {
+                    if (nt != null && !nt.isBlank()) {
+                        com.pedigree.model.Note n = new com.pedigree.model.Note();
+                        n.setText(nt.trim());
+                        ind.getNotes().add(n);
+                    }
+                }
+            }
             data.individuals.add(ind);
             idMap.put(e.getKey(), ind.getId());
         }
@@ -242,6 +252,7 @@ public class RelImporter {
     private static final Pattern POS_Y_RE = Pattern.compile("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
     // Fallback: inline GEDCOM-like "Given /Surname/" anywhere before SEX
     private static final Pattern INLINE_GEDCOM_NAME = Pattern.compile("([\\p{L} .]+?/[^/]+/)");
+    private static final Pattern NOTE_BLOCK_RE = Pattern.compile("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
 
     private static PersonRec parsePerson(Section s) {
         PersonRec r = new PersonRec();
@@ -306,6 +317,28 @@ public class RelImporter {
         String ys = find(POS_Y_RE, body);
         if (xs != null) try { r.x = Double.parseDouble(xs.trim()); } catch (NumberFormatException ignored) {}
         if (ys != null) try { r.y = Double.parseDouble(ys.trim()); } catch (NumberFormatException ignored) {}
+        // Extract optional NOTE/NOTES blocks (until next tag like SOUR/SEX/...)
+        Matcher noteM = NOTE_BLOCK_RE.matcher(body);
+        while (noteM.find()) {
+            String note = noteM.group(1);
+            if (note != null) {
+                // Keep CR/LF to preserve multi-line notes; strip other control chars
+                note = note.replaceAll("[\\p{Cntrl}&&[^\\r\\n]]", "");
+                note = note.strip();
+                // Remove BOM and Unicode replacement characters that sometimes leak at the start
+                note = note.replace("\uFEFF", "");
+                note = note.replace("\uFFFD", "");
+                // Remove repeated garbage prefixes like 'r', 'q' optionally followed by punctuation/spaces
+                note = note.replaceFirst("^(?:[rqRQ]{1,3}[\\s:;,-]*)+", "");
+                // Also handle solitary leading r/q without separator if followed by a letter or digit
+                note = note.replaceFirst("^[rqRQ](?=\\p{L}|\\p{N})", "");
+                // Heuristic: some REL exports leave a stray ASCII letter before a leading number (e.g., 'r13-')
+                if (note.matches("^[A-Za-z](?=\\d).*") ) {
+                    note = note.substring(1).stripLeading();
+                }
+                if (!note.isEmpty()) r.notes.add(note);
+            }
+        }
         return r;
     }
 
@@ -443,6 +476,7 @@ public class RelImporter {
         LocalDate death;
         Double x; // optional parsed position
         Double y;
+        List<String> notes = new ArrayList<>();
     }
 
     private static class FamRec {
@@ -463,7 +497,7 @@ public class RelImporter {
     private static int indexOfNextTag(String s, int from) {
         if (s == null) return -1;
         int min = -1;
-        String[] tags = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "TITL", "P", "F"};
+        String[] tags = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "SOUR", "TITL", "P", "F"};
         for (String t : tags) {
             int i = s.indexOf(t, from);
             if (i >= 0 && (min < 0 || i < min)) min = i;
