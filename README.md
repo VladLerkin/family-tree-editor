@@ -1,4 +1,4 @@
-# Pedigree Chart Editor — как запустить проект
+# Family Tree Editor — как запустить проект
 
 Ниже — самый короткий путь, чтобы запустить приложение локально и (при желании) упаковать установщик.
 
@@ -33,21 +33,21 @@
 - Откройте проект (pom.xml) как Maven-проект.
 - Создайте конфигурацию "Application":
   - Main class: `com.pedigree.app.MainApplication`
-  - Use classpath of module: `pedigree-editor`
+  - Use classpath of module: `family-tree-editor`
 - Запустите конфигурацию. Если на машине несколько JDK, убедитесь, что выбрана JDK 25 (Project SDK и Run configuration JRE).
 
 Сборка установщика
 - Windows (MSI):
   .\mvnw.cmd -Pwindows clean package
-  Готовый MSI будет в `target/dist/Pedigree Chart Editor-${project.version}.msi`.
+  Готовый MSI будет в `target/dist/Family Tree Editor-${project.version}.msi`.
 
 - macOS (DMG):
   mvn -Pmac clean package
-  Готовый DMG будет в `target/dist/Pedigree Chart Editor-${project.version}.dmg`.
+  Готовый DMG будет в `target/dist/Family Tree Editor-${project.version}.dmg`.
 
 - Linux (DEB, c ярлыком в меню):
   mvn -Plinux clean package
-  Готовый пакет будет в `target/dist/Pedigree Chart Editor-${project.version}.deb`.
+  Готовый пакет будет в `target/dist/Family Tree Editor-${project.version}.deb`.
   Требуется пакет fakeroot (используется jpackage). Установите его через пакетный менеджер: apt/dnf/pacman. Если fakeroot отсутствует, сборка не упадёт, но шаг упаковки DEB будет пропущен.
   Рекомендуется установить binutils (даёт `objcopy`) для более компактного рантайма. Если binutils отсутствует, сборка всё равно пройдёт: мы отключаем соответствующий плагин jlink по умолчанию.
 

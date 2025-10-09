@@ -20,9 +20,9 @@ public class FamiliesListView {
     private final BorderPane root = new BorderPane();
     private final HBox header = new HBox(6);
     private final TextField tagFilter = new TextField();
-    private final Button btnAdd = new Button("Add");
+    private final Button btnAdd = new Button("+");
     private final Button btnEdit = new Button("Edit");
-    private final Button btnDelete = new Button("Delete");
+    private final Button btnDelete = new Button("-");
     private final TableView<Family> table = new TableView<>();
 
     private Consumer<String> onSelect;
@@ -190,7 +190,36 @@ public class FamiliesListView {
             String f = filter.toLowerCase(Locale.ROOT);
             items = FXCollections.observableArrayList(
                     data.families.stream()
-                            .filter(fam -> fam.getTags().stream().anyMatch(t -> t.getName() != null && t.getName().toLowerCase(Locale.ROOT).contains(f)))
+                            .filter(fam -> {
+                                // Match by tag
+                                boolean tagMatch = fam.getTags().stream().anyMatch(t -> t.getName() != null && t.getName().toLowerCase(Locale.ROOT).contains(f));
+                                
+                                // Match by husband's name
+                                boolean husbandMatch = false;
+                                if (fam.getHusbandId() != null && data.individuals != null) {
+                                    for (com.pedigree.model.Individual ind : data.individuals) {
+                                        if (fam.getHusbandId().equals(ind.getId())) {
+                                            husbandMatch = (ind.getFirstName() != null && ind.getFirstName().toLowerCase(Locale.ROOT).contains(f)) ||
+                                                          (ind.getLastName() != null && ind.getLastName().toLowerCase(Locale.ROOT).contains(f));
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                // Match by wife's name
+                                boolean wifeMatch = false;
+                                if (fam.getWifeId() != null && data.individuals != null) {
+                                    for (com.pedigree.model.Individual ind : data.individuals) {
+                                        if (fam.getWifeId().equals(ind.getId())) {
+                                            wifeMatch = (ind.getFirstName() != null && ind.getFirstName().toLowerCase(Locale.ROOT).contains(f)) ||
+                                                       (ind.getLastName() != null && ind.getLastName().toLowerCase(Locale.ROOT).contains(f));
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                return tagMatch || husbandMatch || wifeMatch;
+                            })
                             .collect(Collectors.toList())
             );
         }

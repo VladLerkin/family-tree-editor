@@ -1,8 +1,8 @@
-### **Technical Specification for the Software "Pedigree Chart Editor"**
+### **Technical Specification for the Software "Family Tree Editor"**
 
 **1. General Information**
 
-* **Project Name:** "Pedigree Chart Editor"
+* **Project Name:** "Family Tree Editor"
 * **Basis for Development:** Analysis of existing documentation (`help.chm` file) for the purpose of recreating or developing a similar software product.
 * **Purpose:** The software is intended for creating, editing, visualizing, storing, and exporting genealogical data (family trees).
 

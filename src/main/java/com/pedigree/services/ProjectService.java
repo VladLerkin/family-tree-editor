@@ -108,7 +108,7 @@ public class ProjectService {
 
     private static Path recentStorePath() {
         String home = System.getProperty("user.home");
-        Path dir = Paths.get(home, ".pedigree-editor");
+        Path dir = Paths.get(home, ".family-tree-editor");
         return dir.resolve("recent-projects.txt");
     }
 

@@ -20,9 +20,9 @@ public class IndividualsListView {
     private final BorderPane root = new BorderPane();
     private final HBox header = new HBox(6);
     private final TextField tagFilter = new TextField();
-    private final Button btnAdd = new Button("Add");
+    private final Button btnAdd = new Button("+");
     private final Button btnEdit = new Button("Edit");
-    private final Button btnDelete = new Button("Delete");
+    private final Button btnDelete = new Button("-");
     private final TableView<Individual> table = new TableView<>();
 
     private Consumer<String> onSelect;
@@ -130,7 +130,15 @@ public class IndividualsListView {
             String f = filter.toLowerCase(Locale.ROOT);
             items = FXCollections.observableArrayList(
                     data.individuals.stream()
-                            .filter(i -> i.getTags().stream().anyMatch(t -> t.getName() != null && t.getName().toLowerCase(Locale.ROOT).contains(f)))
+                            .filter(i -> {
+                                // Match by tag
+                                boolean tagMatch = i.getTags().stream().anyMatch(t -> t.getName() != null && t.getName().toLowerCase(Locale.ROOT).contains(f));
+                                // Match by first name
+                                boolean firstNameMatch = i.getFirstName() != null && i.getFirstName().toLowerCase(Locale.ROOT).contains(f);
+                                // Match by last name
+                                boolean lastNameMatch = i.getLastName() != null && i.getLastName().toLowerCase(Locale.ROOT).contains(f);
+                                return tagMatch || firstNameMatch || lastNameMatch;
+                            })
                             .collect(Collectors.toList())
             );
         }

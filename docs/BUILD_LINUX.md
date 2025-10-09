@@ -27,12 +27,12 @@ Build DEB installer with desktop integration:
 1. From the project root, run:
    mvn -Plinux clean package
 2. The `.deb` package will be created under:
-   target/dist/Pedigree Chart Editor-${project.version}.deb
+   target/dist/Family Tree Editor-${project.version}.deb
 
 What the installer does:
 - Uses `jpackage` to create a self-contained app with the required JavaFX modules.
 - Installs a desktop entry (.desktop) and menu shortcut via `--linux-shortcut`.
-- Registers category as "Utility" and menu group "Pedigree" so the app appears in the desktop environment's application menu.
+- Registers category as "Utility" and menu group "FamilyTree" so the app appears in the desktop environment's application menu.
 
 Notes:
 - The Linux packaging profile targets DEB by default. If you need RPM, you can change `--type deb` to `--type rpm` in the `pom.xml` under the `linux` profile and ensure `rpmbuild` is installed.

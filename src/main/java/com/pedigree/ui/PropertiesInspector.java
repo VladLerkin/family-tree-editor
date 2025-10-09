@@ -35,21 +35,21 @@ public class PropertiesInspector {
     // Tags
     private final ListView<Tag> tagList = new ListView<>();
     private final TextField tagInput = new TextField();
-    private final Button addTagBtn = new Button("Add Tag");
-    private final Button removeTagBtn = new Button("Remove Selected Tag");
+    private final Button addTagBtn = new Button("+");
+    private final Button removeTagBtn = new Button("-");
 
     // Notes
     private final ListView<Note> noteList = new ListView<>();
     private final TextArea noteEditor = new TextArea();
-    private final Button addNoteBtn = new Button("Add Note");
-    private final Button removeNoteBtn = new Button("Remove Selected Note");
+    private final Button addNoteBtn = new Button("+");
+    private final Button removeNoteBtn = new Button("-");
 
     // Media
     private final ListView<MediaAttachment> mediaList = new ListView<>();
-    private final Button addMediaBtn = new Button("Add Media...");
+    private final Button addMediaBtn = new Button("+");
     private final Button editMediaBtn = new Button("Edit...");
     private final Button openMediaBtn = new Button("Open");
-    private final Button removeMediaBtn = new Button("Remove Selected Media");
+    private final Button removeMediaBtn = new Button("-");
 
     // Layout helpers
     private final TitledPane tagsPane = new TitledPane("Tags", buildTagsPane());
@@ -280,13 +280,20 @@ public class PropertiesInspector {
             if (data == null || currentId == null) return;
             String name = tagInput.getText();
             if (name == null || name.isBlank()) return;
-            Tag tag = new Tag();
-            tag.setName(name.trim());
-            TagService ts = new TagService(data);
-            if (isIndividual(currentId)) ts.assignTagToIndividual(currentId, tag);
-            else if (isFamily(currentId)) ts.assignTagToFamily(currentId, tag);
-            tagInput.clear();
-            populateDetails();
+            try {
+                Tag tag = new Tag();
+                tag.setName(name.trim());
+                TagService ts = new TagService(data);
+                if (isIndividual(currentId)) {
+                    ts.assignTagToIndividual(currentId, tag);
+                } else if (isFamily(currentId)) {
+                    ts.assignTagToFamily(currentId, tag);
+                }
+                tagInput.clear();
+                populateDetails();
+            } catch (Exception ex) {
+                Dialogs.showError("Add Tag Failed", ex.getMessage());
+            }
         });
 
         removeTagBtn.setOnAction(e -> {

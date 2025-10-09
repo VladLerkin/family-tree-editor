@@ -32,7 +32,7 @@ Build MSI installer:
 1. From the project root, run:
    .\mvnw.cmd -Pwindows clean package
 2. The MSI will be created under:
-   target/dist/Pedigree Chart Editor-${project.version}.msi
+   target/dist/Family Tree Editor-${project.version}.msi
 
 Notes:
 - The Windows packaging profile uses jpackage to create a custom runtime image with the required JavaFX modules (non-modular app).

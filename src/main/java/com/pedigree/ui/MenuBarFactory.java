@@ -52,6 +52,8 @@ public class MenuBarFactory {
     private final Runnable onQuickSearch;
     private final Runnable onDebugExportRelSection;
 
+    private final Runnable onAbout;
+
     // Recent files support
     private final Supplier<List<Path>> recentSupplier;
     private final Consumer<Path> onOpenRecent;
@@ -66,6 +68,7 @@ public class MenuBarFactory {
             Runnable onDistributeH, Runnable onDistributeV,
             Runnable onQuickSearch,
             Runnable onDebugExportRelSection,
+            Runnable onAbout,
             Supplier<List<Path>> recentSupplier,
             Consumer<Path> onOpenRecent
     ) {
@@ -106,6 +109,8 @@ public class MenuBarFactory {
         this.onQuickSearch = onQuickSearch;
         this.onDebugExportRelSection = onDebugExportRelSection;
 
+        this.onAbout = onAbout;
+
         this.recentSupplier = recentSupplier;
         this.onOpenRecent = onOpenRecent;
     }
@@ -121,8 +126,7 @@ public class MenuBarFactory {
                 openRecentMenu(),
                 item("Save", "Shortcut+S", onSave),
                 item("Save As...", null, onSaveAs),
-                item("Import GEDCOM...", null, onImportGedcom),
-                item("Import REL...", null, onImportRel),
+                importMenu(),
                 exportMenu(),
                 item("Print...", "Shortcut+P", onPrint),
                 item("Close Project", null, () -> {
@@ -207,7 +211,13 @@ public class MenuBarFactory {
                 item("Debug: Export REL Section...", null, onDebugExportRelSection)
         );
 
-        mb.getMenus().addAll(file, edit, view, tools);
+        // Help
+        Menu help = new Menu("Help");
+        help.getItems().addAll(
+                item("About", null, onAbout)
+        );
+
+        mb.getMenus().addAll(file, edit, view, tools, help);
         return mb;
     }
 
@@ -239,6 +249,15 @@ public class MenuBarFactory {
             mi.setOnAction(a -> { if (onOpenRecent != null) onOpenRecent.accept(p); });
             recent.getItems().add(mi);
         }
+    }
+
+    private Menu importMenu() {
+        Menu importMenu = new Menu("Import");
+        importMenu.getItems().addAll(
+                item("From GEDCOM...", null, onImportGedcom),
+                item("From REL...", null, onImportRel)
+        );
+        return importMenu;
     }
 
     private Menu exportMenu() {

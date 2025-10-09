@@ -212,18 +212,15 @@ public class MainWindow {
                 () -> distribute(AlignAndDistributeController.Distribution.VERTICAL),
                 this::openQuickSearch,
                 this::debugExportRelSection,
+                this::showAbout,
                 projectService::getRecentProjects,
                 this::openProject
         );
         root.setTop(menuFactory.create());
 
         ToolbarFactory toolbarFactory = new ToolbarFactory(
-                this::newProject,
-                this::openProject,
-                this::saveProject,
                 this::zoomIn,
-                this::zoomOut,
-                this::resetZoom
+                this::zoomOut
         );
         root.setLeft(null);
         root.setBottom(statusBar);
@@ -248,7 +245,7 @@ public class MainWindow {
         root.setCenter(centerPane);
 
         Scene scene = new Scene(root, 1200, 800);
-        stage.setTitle("Pedigree Chart Editor");
+        stage.setTitle("Family Tree Editor");
         stage.setScene(scene);
         stage.show();
 
@@ -529,6 +526,10 @@ public class MainWindow {
             canvasView.select(id);
             canvasPane.draw();
         }).show();
+    }
+
+    private void showAbout() {
+        AboutDialog.show();
     }
 
     private void debugExportRelSection() {
