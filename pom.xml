@@ -189,48 +189,43 @@
 
                     <!-- Build DMG by invoking the JDK's jpackage directly -->
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
                         <version>3.1.0</version>
                         <executions>
                             <execution>
                                 <id>package-macos-dmg</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>exec</goal>
+                                    <goal>run</goal>
                                 </goals>
                                 <configuration>
-                                    <executable>${java.home}/bin/jpackage</executable>
-                                    <arguments>
-                                        <argument>--type</argument>
-                                        <argument>dmg</argument>
-                                        <argument>--name</argument>
-                                        <argument>Pedigree Chart Editor</argument>
-                                        <argument>--app-version</argument>
-                                        <argument>${app.version.mac.effective}</argument>
-                                        <argument>--vendor</argument>
-                                        <argument>Pedigree</argument>
-
-                                        <argument>--dest</argument>
-                                        <argument>${project.build.directory}/dist</argument>
-
-                                        <argument>--input</argument>
-                                        <argument>${project.build.directory}/jpackage/input</argument>
-                                        <argument>--main-jar</argument>
-                                        <argument>${project.build.finalName}.jar</argument>
-                                        <argument>--main-class</argument>
-                                        <argument>com.pedigree.app.MainApplication</argument>
-
-                                        <!-- Build a minimal runtime using JavaFX modules present in input -->
-                                        <argument>--module-path</argument>
-                                        <argument>${project.build.directory}/jpackage/input</argument>
-                                        <argument>--add-modules</argument>
-                                        <argument>javafx.controls,javafx.swing</argument>
-
-                                        <!-- macOS specific identifier -->
-                                        <argument>--mac-package-identifier</argument>
-                                        <argument>com.pedigree.editor</argument>
-                                    </arguments>
+                                    <target>
+                                        <exec executable="${java.home}/bin/jpackage">
+                                            <arg value="--type"/>
+                                            <arg value="dmg"/>
+                                            <arg value="--name"/>
+                                            <arg value="Pedigree Chart Editor"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${app.version.mac.effective}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Pedigree"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/dist"/>
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="--module-path"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--add-modules"/>
+                                            <arg value="javafx.controls,javafx.swing"/>
+                                            <arg value="--mac-package-identifier"/>
+                                            <arg value="com.pedigree.editor"/>
+                                        </exec>
+                                    </target>
                                 </configuration>
                             </execution>
                         </executions>
@@ -495,51 +490,46 @@
 
                     <!-- Вызываем jpackage для сборки MSI -->
                     <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
                         <version>3.1.0</version>
                         <executions>
                             <execution>
                                 <id>package-windows-msi</id>
                                 <phase>package</phase>
                                 <goals>
-                                    <goal>exec</goal>
+                                    <goal>run</goal>
                                 </goals>
                                 <configuration>
-                                    <executable>${java.home}/bin/jpackage</executable>
-                                    <arguments>
-                                        <argument>--type</argument>
-                                        <argument>msi</argument>
-                                        <argument>--name</argument>
-                                        <argument>Pedigree Chart Editor</argument>
-                                        <argument>--app-version</argument>
-                                        <argument>${app.version.win.effective}</argument>
-                                        <argument>--vendor</argument>
-                                        <argument>Pedigree</argument>
-
-                                        <argument>--dest</argument>
-                                        <argument>${project.build.directory}/dist</argument>
-
-                                        <argument>--input</argument>
-                                        <argument>${project.build.directory}/jpackage/input</argument>
-                                        <argument>--main-jar</argument>
-                                        <argument>${project.build.finalName}.jar</argument>
-                                        <argument>--main-class</argument>
-                                        <argument>com.pedigree.app.MainApplication</argument>
-
-                                        <!-- Минимальный рантайм на базе JavaFX -->
-                                        <argument>--module-path</argument>
-                                        <argument>${project.build.directory}/jpackage/input</argument>
-                                        <argument>--add-modules</argument>
-                                        <argument>javafx.controls,javafx.swing</argument>
-
-                                        <!-- Опции Windows -->
-                                        <argument>--win-menu</argument>
-                                        <argument>--win-menu-group</argument>
-                                        <argument>Pedigree</argument>
-                                        <argument>--win-dir-chooser</argument>
-                                        <argument>--win-shortcut</argument>
-                                    </arguments>
+                                    <target>
+                                        <exec executable="${java.home}/bin/jpackage">
+                                            <arg value="--type"/>
+                                            <arg value="msi"/>
+                                            <arg value="--name"/>
+                                            <arg value="Pedigree Chart Editor"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${app.version.win.effective}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Pedigree"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/dist"/>
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="--module-path"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--add-modules"/>
+                                            <arg value="javafx.controls,javafx.swing"/>
+                                            <arg value="--win-menu"/>
+                                            <arg value="--win-menu-group"/>
+                                            <arg value="Pedigree"/>
+                                            <arg value="--win-dir-chooser"/>
+                                            <arg value="--win-shortcut"/>
+                                        </exec>
+                                    </target>
                                 </configuration>
                             </execution>
                         </executions>
