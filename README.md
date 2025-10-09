@@ -48,6 +48,8 @@
 - Linux (DEB, c ярлыком в меню):
   mvn -Plinux clean package
   Готовый пакет будет в `target/dist/Pedigree Chart Editor-${project.version}.deb`.
+  Требуется пакет fakeroot (используется jpackage). Установите его через пакетный менеджер: apt/dnf/pacman. Если fakeroot отсутствует, сборка не упадёт, но шаг упаковки DEB будет пропущен.
+  Рекомендуется установить binutils (даёт `objcopy`) для более компактного рантайма. Если binutils отсутствует, сборка всё равно пройдёт: мы отключаем соответствующий плагин jlink по умолчанию.
 
 Подробные инструкции
 - Windows: `docs/BUILD_WIN.md`

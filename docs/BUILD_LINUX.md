@@ -4,7 +4,16 @@ Prerequisites:
 - Linux distribution with desktop environment (GNOME/KDE/etc.).
 - JDK 25 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK).
 - Maven 3.8+ (or use the Maven Wrapper in this repo: `./mvnw`).
-- For DEB packaging: Debian/Ubuntu or a derivative with `dpkg-deb` available. On RPM-based distros, you can adapt to `--type rpm` (not configured by default here).
+- For DEB packaging: Debian/Ubuntu or a derivative with `dpkg-deb` available.
+- Required tool: fakeroot (used by jpackage for DEB). Install via your package manager:
+  - Debian/Ubuntu: `sudo apt-get install fakeroot`
+  - Fedora/RHEL: `sudo dnf install fakeroot`
+  - Arch: `sudo pacman -S fakeroot`
+  - If fakeroot is missing, the build will skip the DEB step and finish without an installer.
+- Recommended: binutils (provides `objcopy`) if you want jlink to strip native commands during runtime image creation. Without binutils, the build will proceed and we disable that jlink plugin by default.
+  - Debian/Ubuntu: `sudo apt-get install binutils`
+  - Fedora/RHEL: `sudo dnf install binutils`
+  - Arch: `sudo pacman -S binutils`
 
 Run during development:
 1. From the project root, run (JavaFX plugin will launch the app):

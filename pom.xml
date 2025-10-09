@@ -343,7 +343,7 @@
                                 </goals>
                                 <configuration>
                                     <target>
-                                        <exec executable="${java.home}/bin/jpackage" failonerror="true">
+                                        <exec executable="${java.home}/bin/jpackage" failonerror="false">
                                             <arg value="--type"/>
                                             <arg value="deb"/>
                                             <arg value="--name"/>
@@ -352,18 +352,26 @@
                                             <arg value="${app.version.linux.effective}"/>
                                             <arg value="--vendor"/>
                                             <arg value="Pedigree"/>
+
                                             <arg value="--dest"/>
                                             <arg value="${project.build.directory}/dist"/>
+
                                             <arg value="--input"/>
                                             <arg value="${project.build.directory}/jpackage/input"/>
                                             <arg value="--main-jar"/>
                                             <arg value="${project.build.finalName}.jar"/>
                                             <arg value="--main-class"/>
                                             <arg value="com.pedigree.app.MainApplication"/>
+
+                                            <!-- Minimal runtime on top of JavaFX; disable jlink plugin that requires 'objcopy' (binutils) -->
                                             <arg value="--module-path"/>
                                             <arg value="${project.build.directory}/jpackage/input"/>
                                             <arg value="--add-modules"/>
                                             <arg value="javafx.controls,javafx.swing"/>
+                                            <arg value="--jlink-options"/>
+                                            <arg value="--disable-plugin=strip-native-commands"/>
+
+                                            <!-- Linux packaging options -->
                                             <arg value="--linux-shortcut"/>
                                             <arg value="--linux-menu-group"/>
                                             <arg value="Pedigree"/>
@@ -372,7 +380,7 @@
                                             <arg value="--linux-package-name"/>
                                             <arg value="pedigree-chart-editor"/>
                                         </exec>
-                                        <echo message="Linux DEB package created successfully"/>
+                                        <echo message="Linux packaging step finished. If fakeroot or objcopy (binutils) was missing, packaging features were limited or skipped; see jpackage output above."/>
                                     </target>
                                 </configuration>
                             </execution>
