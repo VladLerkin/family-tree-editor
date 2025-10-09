@@ -239,6 +239,149 @@
             </build>
         </profile>
         <profile>
+            <id>linux</id>
+            <activation>
+                <os>
+                    <family>unix</family>
+                    <name>Linux</name>
+                </os>
+            </activation>
+            <properties>
+                <app.version.linux.effective>1.0.0</app.version.linux.effective>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <version>3.6.1</version>
+                        <executions>
+                            <execution>
+                                <id>copy-dependencies-for-jpackage-linux</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/jpackage/input</outputDirectory>
+                                    <includeScope>runtime</includeScope>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-main-jar-for-jpackage-linux</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>${project.groupId}</groupId>
+                                            <artifactId>${project.artifactId}</artifactId>
+                                            <version>${project.version}</version>
+                                            <outputDirectory>${project.build.directory}/jpackage/input</outputDirectory>
+                                            <destFileName>${project.build.finalName}.jar</destFileName>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>3.5.0</version>
+                        <executions>
+                            <execution>
+                                <id>parse-version-linux</id>
+                                <phase>initialize</phase>
+                                <goals>
+                                    <goal>parse-version</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>set-linux-effective-version</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>regex-property</goal>
+                                </goals>
+                                <configuration>
+                                    <name>app.version.linux.effective</name>
+                                    <value>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</value>
+                                    <regex>^0\.</regex>
+                                    <replacement>1.</replacement>
+                                    <failIfNoMatch>false</failIfNoMatch>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>prepare-dist-dir-linux</id>
+                                <phase>validate</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <mkdir dir="${project.build.directory}/dist"/>
+                                        <mkdir dir="${project.build.directory}/jpackage/input"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>package-linux-deb</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target>
+                                        <exec executable="${java.home}/bin/jpackage" failonerror="true">
+                                            <arg value="--type"/>
+                                            <arg value="deb"/>
+                                            <arg value="--name"/>
+                                            <arg value="Pedigree Chart Editor"/>
+                                            <arg value="--app-version"/>
+                                            <arg value="${app.version.linux.effective}"/>
+                                            <arg value="--vendor"/>
+                                            <arg value="Pedigree"/>
+                                            <arg value="--dest"/>
+                                            <arg value="${project.build.directory}/dist"/>
+                                            <arg value="--input"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--main-jar"/>
+                                            <arg value="${project.build.finalName}.jar"/>
+                                            <arg value="--main-class"/>
+                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="--module-path"/>
+                                            <arg value="${project.build.directory}/jpackage/input"/>
+                                            <arg value="--add-modules"/>
+                                            <arg value="javafx.controls,javafx.swing"/>
+                                            <arg value="--linux-shortcut"/>
+                                            <arg value="--linux-menu-group"/>
+                                            <arg value="Pedigree"/>
+                                            <arg value="--linux-app-category"/>
+                                            <arg value="Utility"/>
+                                            <arg value="--linux-package-name"/>
+                                            <arg value="pedigree-chart-editor"/>
+                                        </exec>
+                                        <echo message="Linux DEB package created successfully"/>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>windows</id>
             <activation>
                 <os>

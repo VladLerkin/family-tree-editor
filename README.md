@@ -45,9 +45,14 @@
   mvn -Pmac clean package
   Готовый DMG будет в `target/dist/Pedigree Chart Editor-${project.version}.dmg`.
 
+- Linux (DEB, c ярлыком в меню):
+  mvn -Plinux clean package
+  Готовый пакет будет в `target/dist/Pedigree Chart Editor-${project.version}.deb`.
+
 Подробные инструкции
 - Windows: `docs/BUILD_WIN.md`
 - macOS: `docs/BUILD_MAC.md`
+- Linux: `docs/BUILD_LINUX.md`
 
 Типичные проблемы
 - "Cannot find wrapperUrl in .mvn\\wrapper\\maven-wrapper.properties":
