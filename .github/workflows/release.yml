@@ -99,27 +99,14 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Download macOS artifact
+      - name: Download all available build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macos-dmg
           path: artifacts
+          pattern: '*'
+          merge-multiple: true
 
-      - name: Download Windows artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: windows-msi
-          path: artifacts
-
-      - name: Try download Linux artifact (optional)
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: linux-deb
-          path: artifacts
-
-      - name: Generate release notes
-        id: notes
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
