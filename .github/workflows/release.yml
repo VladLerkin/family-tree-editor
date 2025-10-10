@@ -9,117 +9,123 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  build-macos:
+  build_macos:
+    name: Build macOS (DMG)
     runs-on: macos-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
 
-      - name: Build macOS DMG
-        run: mvn -Pmac clean package
+      - name: Build (mac profile)
+        run: mvn -B -Pmac -DskipTests clean package
 
-      - name: List build artifacts
-        run: ls -lh target/dist/
-
-      - name: Upload macOS DMG
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: target/dist/*.dmg
+          path: |
+            target/dist/*.dmg
           if-no-files-found: error
 
-  build-windows:
+  build_windows:
+    name: Build Windows (MSI)
     runs-on: windows-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
 
-      - name: Build Windows MSI
-        run: mvn -Pwindows clean package
+      - name: Build (windows profile)
+        run: mvn -B -Pwindows -DskipTests clean package
+        shell: bash
 
-      - name: List build artifacts
-        run: dir target\dist\
-
-      - name: Upload Windows MSI
+      - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi
-          path: target/dist/*.msi
+          path: |
+            target/dist/*.msi
           if-no-files-found: error
 
-  build-linux:
+  build_linux:
+    name: Build Linux (DEB)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up JDK 25
+      - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
 
-      - name: Install Linux packaging tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fakeroot binutils
+      - name: Install packaging tools
+        run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
 
-      - name: Build Linux DEB
-        run: mvn -Plinux clean package
+      - name: Build (linux profile)
+        run: mvn -B -Plinux -DskipTests clean package
 
-      - name: List build artifacts
-        run: ls -lh target/dist/
-
-      - name: Upload Linux DEB
+      - name: Upload DEB artifact (optional)
         uses: actions/upload-artifact@v4
         with:
           name: linux-deb
-          path: target/dist/*.deb
+          path: |
+            target/dist/*.deb
           if-no-files-found: warn
 
-  create-release:
-    needs: [build-macos, build-windows, build-linux]
-    runs-on: ubuntu-latest
+  create_release:
+    name: Create GitHub Release
+    needs: [build_macos, build_windows, build_linux]
     if: startsWith(github.ref, 'refs/tags/')
-    permissions:
-      contents: write
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download all artifacts
+      - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
+          name: macos-dmg
           path: artifacts
 
-      - name: List downloaded artifacts
-        run: |
-          echo "=== Downloaded artifacts ==="
-          find artifacts -type f
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
+          path: artifacts
 
-      - name: Create Release
+      - name: Try download Linux artifact (optional)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: linux-deb
+          path: artifacts
+
+      - name: Generate release notes
+        id: notes
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            artifacts/macos-dmg/*.dmg
-            artifacts/windows-msi/*.msi
-            artifacts/linux-deb/*.deb
           draft: false
           prerelease: false
           generate_release_notes: true
+          files: |
+            artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
