@@ -9,110 +9,105 @@ on:
 permissions:
   contents: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
-  build_macos:
+  build-macos:
     name: Build macOS (DMG)
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
           cache: 'maven'
-
-      - name: Build (mac profile)
-        run: mvn -B -Pmac -DskipTests clean package
-
+      - name: Build DMG
+        run: mvn -B -V -e -Pmac clean package
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-dmg
-          path: |
-            target/dist/*.dmg
+          path: target/dist/*.dmg
           if-no-files-found: error
 
-  build_windows:
+  build-windows:
     name: Build Windows (MSI)
     runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
           cache: 'maven'
-
-      - name: Build (windows profile)
-        run: mvn -B -Pwindows -DskipTests clean package
-        shell: bash
-
+      - name: Build MSI
+        run: mvn -B -V -e -Pwindows clean package
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi
-          path: |
-            target/dist/*.msi
+          path: target/dist/*.msi
           if-no-files-found: error
 
-  build_linux:
+  build-linux:
     name: Build Linux (DEB)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '25'
           cache: 'maven'
-
-      - name: Install packaging tools
-        run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
-
-      - name: Build (linux profile)
-        run: mvn -B -Plinux -DskipTests clean package
-
-      - name: Upload DEB artifact (optional)
+      - name: Install packaging prerequisites (fakeroot, binutils)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fakeroot binutils
+      - name: Build DEB
+        run: mvn -B -V -e -Plinux clean package
+      - name: Upload DEB artifact (required)
         uses: actions/upload-artifact@v4
         with:
           name: linux-deb
-          path: |
-            target/dist/*.deb
-          if-no-files-found: warn
+          path: target/dist/*.deb
+          if-no-files-found: error
 
-  create_release:
+  release:
     name: Create GitHub Release
-    needs: [build_macos, build_windows, build_linux]
-    if: startsWith(github.ref, 'refs/tags/')
+    needs:
+      - build-macos
+      - build-windows
+      - build-linux
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: Download all available build artifacts
+      - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
-          pattern: '*'
-          merge-multiple: true
-
-      - name: Create GitHub Release
+          name: macos-dmg
+          path: macos-dmg
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-msi
+          path: windows-msi
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-deb
+          path: linux-deb
+      - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
+          files: |
+            macos-dmg/**
+            windows-msi/**
+            linux-deb/**
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: |
-            artifacts/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

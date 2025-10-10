@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.8-SNAPSHOT</version>
+    <version>1.2.9-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -16,6 +16,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
+        <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
+        <app.version.effective>1.2.9</app.version.effective>
     </properties>
 
     <dependencies>
@@ -76,6 +78,36 @@
                     <mainClass>com.pedigree.app.MainApplication</mainClass>
                 </configuration>
             </plugin>
+
+            <!-- Compute a unified effective app version (X.Y.Z, no qualifiers, non-zero major) for all platforms -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>parse-version-global</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>parse-version</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>set-effective-app-version</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>regex-property</goal>
+                        </goals>
+                        <configuration>
+                            <name>app.version.effective</name>
+                            <value>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</value>
+                            <regex>^0\.</regex>
+                            <replacement>1.</replacement>
+                            <failIfNoMatch>false</failIfNoMatch>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -87,10 +119,6 @@
                     <family>mac</family>
                 </os>
             </activation>
-            <properties>
-                <!-- Fallback to ensure non-zero major version even if regex-property doesn't run -->
-                <app.version.mac.effective>1.2.8</app.version.mac.effective>
-            </properties>
             <build>
                 <plugins>
                     <!-- Using jpackage to create the runtime image; no separate jlink step needed for non-modular app. -->
@@ -133,35 +161,6 @@
                         </executions>
                     </plugin>
 
-                    <!-- Parse project version into major/minor/incremental for a valid macOS app version -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>3.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>parse-version</id>
-                                <phase>initialize</phase>
-                                <goals>
-                                    <goal>parse-version</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>fix-mac-major-version</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>regex-property</goal>
-                                </goals>
-                                <configuration>
-                                    <name>app.version.mac.effective</name>
-                                    <value>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</value>
-                                    <regex>^0\.</regex>
-                                    <replacement>1.</replacement>
-                                    <failIfNoMatch>false</failIfNoMatch>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
 
 
 
@@ -207,7 +206,7 @@
                                             <arg value="--name"/>
                                             <arg value="Family Tree Editor"/>
                                             <arg value="--app-version"/>
-                                            <arg value="${app.version.mac.effective}"/>
+                                            <arg value="${app.version.effective}"/>
                                             <arg value="--vendor"/>
                                             <arg value="FamilyTree"/>
                                             <arg value="--dest"/>
@@ -226,8 +225,8 @@
                                             <arg value="com.familytree.editor"/>
                                         </exec>
                                         <!-- Rename DMG to include OS name -->
-                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.mac.effective}.dmg"
-                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.mac.effective}-macos.dmg"
+                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.dmg"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-macos.dmg"
                                               failonerror="false"/>
                                     </target>
                                 </configuration>
@@ -245,9 +244,6 @@
                     <name>Linux</name>
                 </os>
             </activation>
-            <properties>
-                <app.version.linux.effective>1.2.8</app.version.linux.effective>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -287,34 +283,6 @@
                         </executions>
                     </plugin>
 
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>3.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>parse-version-linux</id>
-                                <phase>initialize</phase>
-                                <goals>
-                                    <goal>parse-version</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>set-linux-effective-version</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>regex-property</goal>
-                                </goals>
-                                <configuration>
-                                    <name>app.version.linux.effective</name>
-                                    <value>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</value>
-                                    <regex>^0\.</regex>
-                                    <replacement>1.</replacement>
-                                    <failIfNoMatch>false</failIfNoMatch>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
 
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
@@ -348,7 +316,7 @@
                                             <arg value="--name"/>
                                             <arg value="Family Tree Editor"/>
                                             <arg value="--app-version"/>
-                                            <arg value="${app.version.linux.effective}"/>
+                                            <arg value="${app.version.effective}"/>
                                             <arg value="--vendor"/>
                                             <arg value="FamilyTree"/>
 
@@ -380,8 +348,8 @@
                                             <arg value="family-tree-editor"/>
                                         </exec>
                                         <!-- Rename DEB to include OS name and use hyphens instead of underscores -->
-                                        <move file="${project.build.directory}/dist/family-tree-editor_${app.version.linux.effective}_amd64.deb"
-                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.linux.effective}-linux-amd64.deb"
+                                        <move file="${project.build.directory}/dist/family-tree-editor_${app.version.effective}_amd64.deb"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-linux-amd64.deb"
                                               failonerror="false"/>
                                         <echo message="Linux packaging step finished. If fakeroot or objcopy (binutils) was missing, packaging features were limited or skipped; see jpackage output above."/>
                                     </target>
@@ -399,9 +367,6 @@
                     <family>windows</family>
                 </os>
             </activation>
-            <properties>
-                <app.version.win.effective>1.2.8</app.version.win.effective>
-            </properties>
             <build>
                 <plugins>
                     <!-- Собираем зависимости и основной JAR для jpackage -->
@@ -442,37 +407,6 @@
                         </executions>
                     </plugin>
 
-                    <!-- Разбираем версию и убираем квалификаторы для Windows MSI -->
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>3.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>parse-version-win</id>
-                                <phase>initialize</phase>
-                                <goals>
-                                    <goal>parse-version</goal>
-                                </goals>
-                            </execution>
-                            <execution>
-                                <id>set-windows-effective-version</id>
-                                <phase>validate</phase>
-                                <goals>
-                                    <goal>regex-property</goal>
-                                </goals>
-                                <configuration>
-                                    <!-- Формируем X.Y.Z для MSI, без -SNAPSHOT -->
-                                    <name>app.version.win.effective</name>
-                                    <value>${parsedVersion.majorVersion}.${parsedVersion.minorVersion}.${parsedVersion.incrementalVersion}</value>
-                                    <!-- На случай, если major==0, поднимем до 1 -->
-                                    <regex>^0\.</regex>
-                                    <replacement>1.</replacement>
-                                    <failIfNoMatch>false</failIfNoMatch>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
 
                     <!-- Готовим каталоги -->
                     <plugin>
@@ -516,7 +450,7 @@
                                             <arg value="--name"/>
                                             <arg value="Family Tree Editor"/>
                                             <arg value="--app-version"/>
-                                            <arg value="${app.version.win.effective}"/>
+                                            <arg value="${app.version.effective}"/>
                                             <arg value="--vendor"/>
                                             <arg value="FamilyTree"/>
                                             <arg value="--dest"/>
@@ -538,8 +472,8 @@
                                             <arg value="--win-shortcut"/>
                                         </exec>
                                         <!-- Rename MSI to include OS name -->
-                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.win.effective}.msi"
-                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.win.effective}-windows.msi"
+                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.msi"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-windows.msi"
                                               failonerror="false"/>
                                     </target>
                                 </configuration>
