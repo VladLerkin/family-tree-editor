@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.12-SNAPSHOT</version>
+    <version>1.2.14-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -17,7 +17,7 @@
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.12</app.version.effective>
+        <app.version.effective>1.2.14</app.version.effective>
     </properties>
 
     <dependencies>
@@ -482,55 +482,36 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>package-linux-deb</id>
+                                <id>package-linux-portable</id>
                                 <phase>package</phase>
                                 <goals>
                                     <goal>run</goal>
                                 </goals>
                                 <configuration>
                                     <target>
-                                        <exec executable="jpackage">
-                                            <arg value="--type"/>
-                                            <arg value="deb"/>
-                                            <arg value="--name"/>
-                                            <arg value="Family Tree Editor"/>
-                                            <arg value="--app-version"/>
-                                            <arg value="${app.version.effective}"/>
-                                            <arg value="--vendor"/>
-                                            <arg value="FamilyTree"/>
-
-                                            <arg value="--dest"/>
-                                            <arg value="${project.build.directory}/dist"/>
-
-                                            <arg value="--input"/>
-                                            <arg value="${project.build.directory}/jpackage/input"/>
-                                            <arg value="--main-jar"/>
-                                            <arg value="${project.build.finalName}.jar"/>
-                                            <arg value="--main-class"/>
-                                            <arg value="com.pedigree.app.MainApplication"/>
-
-                                            <!-- Minimal runtime on top of JavaFX; disable jlink plugin that requires 'objcopy' (binutils) -->
-                                            <arg value="--module-path"/>
-                                            <arg value="${project.build.directory}/jpackage/input"/>
-                                            <arg value="--add-modules"/>
-                                            <arg value="javafx.controls,javafx.swing"/>
-                                            <arg value="--jlink-options"/>
-                                            <arg value="--disable-plugin=strip-native-commands"/>
-
-                                            <!-- Linux packaging options -->
-                                            <arg value="--linux-shortcut"/>
-                                            <arg value="--linux-menu-group"/>
-                                            <arg value="FamilyTree"/>
-                                            <arg value="--linux-app-category"/>
-                                            <arg value="Utility"/>
-                                            <arg value="--linux-package-name"/>
-                                            <arg value="family-tree-editor"/>
-                                        </exec>
-                                        <!-- Rename DEB to include OS name and use hyphens instead of underscores -->
-                                        <move file="${project.build.directory}/dist/family-tree-editor_${app.version.effective}_amd64.deb"
-                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-linux-amd64.deb"
-                                              failonerror="false"/>
-                                        <echo message="Linux packaging step finished. If fakeroot or objcopy (binutils) was missing, packaging features were limited or skipped; see jpackage output above."/>
+                                        <delete dir="${project.build.directory}/portable-linux" failonerror="false"/>
+                                        <mkdir dir="${project.build.directory}/portable-linux/lib"/>
+                                        <!-- Copy all runtime jars -->
+                                        <copy todir="${project.build.directory}/portable-linux/lib" flatten="true">
+                                            <fileset dir="${project.build.directory}/jpackage/input">
+                                                <include name="*.jar"/>
+                                            </fileset>
+                                        </copy>
+                                        <!-- Create launcher script -->
+                                        <echo file="${project.build.directory}/portable-linux/run.sh"><![CDATA[#!/usr/bin/env bash
+DIR="$(cd "$(dirname "$0")" >/dev/null && pwd)"
+JAVA_CMD="java"
+MP="$DIR/lib"
+$JAVA_CMD --module-path "$MP" --add-modules javafx.controls,javafx.swing -cp "$DIR/lib/*" com.pedigree.app.MainApplication "$@"
+]]></echo>
+                                        <chmod file="${project.build.directory}/portable-linux/run.sh" perm="755"/>
+                                        <!-- Create archives into dist (tar.gz and zip) -->
+                                        <tar destfile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-linux-portable.tar.gz" compression="gzip">
+                                            <tarfileset dir="${project.build.directory}/portable-linux" prefix="family-tree-editor"/>
+                                        </tar>
+                                        <zip destfile="${project.build.directory}/dist/family-tree-editor-${app.version.effective}-linux-portable.zip">
+                                            <fileset dir="${project.build.directory}/portable-linux"/>
+                                        </zip>
                                     </target>
                                 </configuration>
                             </execution>
