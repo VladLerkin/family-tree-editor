@@ -19,11 +19,11 @@
 Workflow запускает три параллельные задачи для создания дистрибутивов:
 
 ### 1. macOS (DMG)
-- Использует runner: `macos-latest`
+- Использует runner: `macos-14` (arm64) и `macos-13` (x64)
 - Устанавливает JDK 25 (Temurin)
-- Собирает DMG с помощью Maven профиля `-Pmac`
-- Результат: `family-tree-editor-{version}-macos.dmg`
-- **Предустановлено**: Все необходимые инструменты (Xcode CLI, hdiutil)
+- Собирает DMG с помощью Maven профилей `-Pmac-aarch64` и `-Pmac-x64`
+- Результат: `family-tree-editor-{version}-macos*.dmg`
+- При наличии секретов (см. ниже) артефакт будет автоматически подписан (codesign), отправлен на нотарификацию (notarytool) и прошит (staple), чтобы избежать предупреждения Gatekeeper
 
 ### 2. Windows (MSI)
 - Использует runner: `windows-latest`

@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.14-SNAPSHOT</version>
+    <version>1.2.15-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -17,7 +17,14 @@
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.14</app.version.effective>
+        <app.version.effective>1.2.15</app.version.effective>
+        <!-- macOS packaging/signing properties (safe defaults for local builds) -->
+        <mac.package.identifier>com.familytree.editor</mac.package.identifier>
+        <mac.sign>false</mac.sign>
+        <!-- Developer ID Application: Your Name (TEAMID) -->
+        <mac.signing.user></mac.signing.user>
+        <!-- Optional entitlements file path -->
+        <mac.entitlements></mac.entitlements>
     </properties>
 
     <dependencies>
@@ -227,7 +234,14 @@
                                             <arg value="--add-modules"/>
                                             <arg value="javafx.controls,javafx.swing"/>
                                             <arg value="--mac-package-identifier"/>
-                                            <arg value="com.familytree.editor"/>
+                                            <arg value="${mac.package.identifier}"/>
+                                            <!-- Conditional signing (enabled when -Dmac.sign=true) -->
+                                            <arg value="--mac-sign" if="mac.sign"/>
+                                            <arg value="--mac-signing-key-user-name" if="mac.sign"/>
+                                            <arg value="${mac.signing.user}" if="mac.sign"/>
+                                            <!-- Optional entitlements if provided via -Dmac.entitlements=... -->
+                                            <arg value="--mac-entitlements" if="mac.entitlements"/>
+                                            <arg value="${mac.entitlements}" if="mac.entitlements"/>
                                         </exec>
                                         <!-- Rename DMG to include OS name -->
                                         <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.dmg"
@@ -375,7 +389,14 @@
                                             <arg value="--add-modules"/>
                                             <arg value="javafx.controls,javafx.swing"/>
                                             <arg value="--mac-package-identifier"/>
-                                            <arg value="com.familytree.editor"/>
+                                            <arg value="${mac.package.identifier}"/>
+                                            <!-- Conditional signing (enabled when -Dmac.sign=true) -->
+                                            <arg value="--mac-sign" if="mac.sign"/>
+                                            <arg value="--mac-signing-key-user-name" if="mac.sign"/>
+                                            <arg value="${mac.signing.user}" if="mac.sign"/>
+                                            <!-- Optional entitlements if provided via -Dmac.entitlements=... -->
+                                            <arg value="--mac-entitlements" if="mac.entitlements"/>
+                                            <arg value="${mac.entitlements}" if="mac.entitlements"/>
                                         </exec>
                                         <!-- Rename DMG to include OS name -->
                                         <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.dmg"

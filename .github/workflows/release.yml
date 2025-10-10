@@ -45,9 +45,44 @@ jobs:
           mvn -v
         shell: bash
 
-      - name: Build with Maven (profile ${{ matrix.os.profile }})
-        run: mvn -B -DskipTests -P${{ matrix.os.profile }} clean package
+      - name: Configure Apple codesigning (if secrets provided)
+        if: startsWith(matrix.os.runner, 'macos') && secrets.MAC_SIGNING_IDENTITY && secrets.MAC_CERT_BASE64 && secrets.MAC_CERT_PASSWORD
         shell: bash
+        run: |
+          KEYCHAIN=build.keychain
+          security create-keychain -p "$KEYCHAIN" "$KEYCHAIN"
+          security default-keychain -s "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN" "$KEYCHAIN"
+          echo "${{ secrets.MAC_CERT_BASE64 }}" | base64 --decode > developer_id.p12
+          security import developer_id.p12 -k "$KEYCHAIN" -P "${{ secrets.MAC_CERT_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN" "$KEYCHAIN"
+          echo "SIGNING_IDENTITY=${{ secrets.MAC_SIGNING_IDENTITY }}" >> $GITHUB_ENV
+      
+      - name: Build with Maven (profile ${{ matrix.os.profile }})
+        shell: bash
+        run: |
+          if [[ "${{ matrix.os.runner }}" == macos-* && -n "${{ secrets.MAC_SIGNING_IDENTITY }}" ]]; then
+            mvn -B -DskipTests -P${{ matrix.os.profile }} -Dmac.sign=true -Dmac.signing.user="${{ secrets.MAC_SIGNING_IDENTITY }}" clean package
+          else
+            mvn -B -DskipTests -P${{ matrix.os.profile }} clean package
+          fi
+      
+      - name: Notarize and staple DMG (if on macOS and secrets provided)
+        if: startsWith(matrix.os.runner, 'macos') && secrets.NOTARY_API_KEY_ID && secrets.NOTARY_API_KEY_ISSUER && secrets.NOTARY_API_KEY_P8
+        shell: bash
+        run: |
+          DMG=$(ls target/dist/*.dmg | head -n1)
+          echo "Submitting $DMG for notarization..."
+          # Write API key to file
+          echo "${{ secrets.NOTARY_API_KEY_P8 }}" > notary_api_key.p8
+          xcrun notarytool submit "$DMG" \
+            --key-id "${{ secrets.NOTARY_API_KEY_ID }}" \
+            --issuer "${{ secrets.NOTARY_API_KEY_ISSUER }}" \
+            --key notary_api_key.p8 \
+            --wait
+          echo "Stapling notarization ticket..."
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
 
       - name: Upload native package artifact
         uses: actions/upload-artifact@v4
