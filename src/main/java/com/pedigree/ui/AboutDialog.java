@@ -20,7 +20,7 @@ import java.net.URISyntaxException;
 public class AboutDialog {
 
     private static final String APP_NAME = "Family Tree Editor";
-    private static final String APP_VERSION = "v1.2.18";
+    private static final String APP_VERSION = "v1.2.19";
     private static final String AUTHOR_EMAIL = "domfindus@gmail.com";
 
     public static void show() {
