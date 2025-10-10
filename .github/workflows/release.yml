@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release (JavaFX)
 
 on:
   push:
@@ -10,104 +10,84 @@ permissions:
   contents: write
 
 jobs:
-  build-macos:
-    name: Build macOS (DMG)
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Temurin JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: 'maven'
-      - name: Build DMG
-        run: mvn -B -V -e -Pmac clean package
-      - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-dmg
-          path: target/dist/*.dmg
-          if-no-files-found: error
+  build-matrix:
+    name: Build on ${{ matrix.os.name }}
+    runs-on: ${{ matrix.os.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - { runner: 'macos-14',   name: 'macOS (arm64)', profile: 'mac-aarch64', artifact_suffix: 'macos-arm64' }
+          - { runner: 'macos-13',   name: 'macOS (x64)',   profile: 'mac-x64',     artifact_suffix: 'macos-x64' }
+          - { runner: 'ubuntu-latest', name: 'Linux',      profile: 'linux',       artifact_suffix: 'linux' }
+          - { runner: 'windows-latest', name: 'Windows',   profile: 'windows',     artifact_suffix: 'windows' }
 
-  build-windows:
-    name: Build Windows (MSI)
-    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Temurin JDK 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: 'maven'
-      - name: Build MSI
-        run: mvn -B -V -e -Pwindows clean package
-      - name: Upload MSI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-msi
-          path: target/dist/*.msi
-          if-no-files-found: error
 
-  build-linux:
-    name: Build Linux (DEB)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Set up Temurin JDK 25
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
-      - name: Install packaging prerequisites (fakeroot, binutils, desktop-file-utils)
+
+      - name: Install Linux packaging prerequisites
+        if: matrix.os.runner == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y fakeroot binutils desktop-file-utils
-      - name: Build DEB
-        run: mvn -B -V -e -Plinux clean package
-      - name: Upload DEB artifact (required)
+
+      - name: Show Java and OS info
+        run: |
+          java -version
+          mvn -v
+        shell: bash
+
+      - name: Build with Maven (profile ${{ matrix.os.profile }})
+        run: mvn -B -DskipTests -P${{ matrix.os.profile }} clean package
+        shell: bash
+
+      - name: Upload native package artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-deb
-          path: target/dist/*.deb
-          if-no-files-found: error
+          name: family-tree-editor-${{ matrix.os.artifact_suffix }}
+          path: |
+            target/dist/*
+          if-no-files-found: warn
 
   release:
     name: Create GitHub Release
-    needs:
-      - build-macos
-      - build-windows
-      - build-linux
+    needs: [build-matrix]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
-      - name: Download macOS artifact
+      - name: Download macOS arm64 package
         uses: actions/download-artifact@v4
         with:
-          name: macos-dmg
-          path: macos-dmg
-      - name: Download Windows artifact
+          name: family-tree-editor-macos-arm64
+          path: artifacts/macos-arm64
+      - name: Download macOS x64 package
         uses: actions/download-artifact@v4
         with:
-          name: windows-msi
-          path: windows-msi
-      - name: Download Linux artifact
+          name: family-tree-editor-macos-x64
+          path: artifacts/macos-x64
+      - name: Download Linux package
         uses: actions/download-artifact@v4
         with:
-          name: linux-deb
-          path: linux-deb
+          name: family-tree-editor-linux
+          path: artifacts/linux
+      - name: Download Windows package
+        uses: actions/download-artifact@v4
+        with:
+          name: family-tree-editor-windows
+          path: artifacts/windows
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            macos-dmg/**
-            windows-msi/**
-            linux-deb/**
+            artifacts/**
           draft: false
           prerelease: false
           generate_release_notes: true
