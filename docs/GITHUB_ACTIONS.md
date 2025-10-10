@@ -1,160 +1,160 @@
-# GitHub Actions: Автоматическая сборка релизов
+# GitHub Actions: Automated Release Builds
 
-## Обзор
+## Overview
 
-Проект настроен для автоматической сборки релизов через GitHub Actions. Workflow файл находится по адресу: `.github/workflows/release.yml`
+The project is configured to build releases automatically using GitHub Actions. The workflow file is located at: `.github/workflows/release.yml`
 
-## Когда срабатывает сборка
+## When the workflow runs
 
-1. **При создании тега версии**: Когда вы пушите тег, начинающийся с `v` (например, `v1.2.0`)
+1. On version tag creation: When you push a tag starting with `v` (e.g., `v1.2.0`)
    ```bash
    git tag v1.2.0
    git push origin v1.2.0
    ```
 
-2. **Вручную**: Через интерфейс GitHub в разделе Actions → Build and Release → Run workflow
+2. Manually: Via the GitHub UI under Actions → Build and Release → Run workflow
 
-## Что происходит при сборке
+## What the workflow does
 
-Workflow запускает три параллельные задачи для создания дистрибутивов:
+The workflow launches three parallel jobs to create distributions:
 
 ### 1. macOS (DMG)
-- Использует runner: `macos-14` (arm64) и `macos-13` (x64)
-- Устанавливает JDK 25 (Temurin)
-- Собирает DMG с помощью Maven профилей `-Pmac-aarch64` и `-Pmac-x64`
-- Результат: `family-tree-editor-{version}-macos*.dmg`
-- При наличии секретов (см. ниже) артефакт будет автоматически подписан (codesign), отправлен на нотарификацию (notarytool) и прошит (staple), чтобы избежать предупреждения Gatekeeper
+- Runners: `macos-14` (arm64) and `macos-13` (x64)
+- Installs JDK 25 (Temurin)
+- Builds DMGs using Maven profiles `-Pmac-aarch64` and `-Pmac-x64`
+- Result: `family-tree-editor-{version}-macos*.dmg`
+- If secrets are configured (see below), the artifact will be automatically code signed (codesign), submitted for notarization (notarytool), and stapled to avoid Gatekeeper warnings
 
 ### 2. Windows (MSI)
-- Использует runner: `windows-latest`
-- Устанавливает JDK 25 (Temurin)
-- Собирает MSI с помощью Maven профиля `-Pwindows`
-- Результат: `family-tree-editor-{version}-windows.msi`
-- **Предустановлено**: WiX Toolset v3.x (уже есть на GitHub runners)
+- Runner: `windows-latest`
+- Installs JDK 25 (Temurin)
+- Builds MSI using Maven profile `-Pwindows`
+- Result: `family-tree-editor-{version}-windows.msi`
+- Preinstalled: WiX Toolset v3.x (available on GitHub runners)
 
 ### 3. Linux (DEB)
-- Использует runner: `ubuntu-latest`
-- Устанавливает JDK 25 (Temurin)
-- **Автоматически устанавливает**: `fakeroot` и `binutils` (требуются для jpackage)
-- Собирает DEB с помощью Maven профиля `-Plinux`
-- Результат: `family-tree-editor-{version}-linux-amd64.deb`
+- Runner: `ubuntu-latest`
+- Installs JDK 25 (Temurin)
+- Automatically installs: `fakeroot` and `binutils` (required by jpackage)
+- Builds DEB using Maven profile `-Plinux`
+- Result: `family-tree-editor-{version}-linux-amd64.deb`
 
-### 4. Создание релиза
-- Запускается только при пуше тега (не при ручном запуске)
-- Скачивает все артефакты со всех трёх платформ
-- Создаёт GitHub Release с:
-  - Автоматически сгенерированными release notes
-  - Всеми собранными файлами (DMG, MSI, DEB)
-  - Не черновик (draft: false)
-  - Не pre-release
+### 4. Release creation
+- Runs only when a tag is pushed (not on manual runs)
+- Downloads all artifacts from all three platforms
+- Creates a GitHub Release with:
+  - Auto-generated release notes
+  - All built files (DMG, MSI, DEB)
+  - Not a draft (draft: false)
+  - Not a pre-release
 
-## Что нужно для работы
+## What is required
 
-### В репозитории GitHub:
+### In the GitHub repository:
 
-1. **Разрешения (Permissions)**: 
-   - Workflow уже настроен с правильными разрешениями (`contents: write`) на уровне всего workflow
-   - GitHub автоматически предоставляет `GITHUB_TOKEN` для создания релизов
+1. Permissions:
+   - The workflow is already set with the correct permissions (`contents: write`) at the workflow level
+   - GitHub automatically provides `GITHUB_TOKEN` for creating releases
 
-2. **Секреты**: 
-   - Не требуются! `GITHUB_TOKEN` создаётся автоматически
+2. Secrets:
+   - Not required for basic release creation. `GITHUB_TOKEN` is provided automatically
 
-3. **Настройки репозитория**:
-   - В Settings → Actions → General → Workflow permissions должно быть:
-     - ✓ "Read and write permissions" (или)
-     - ✓ "Read repository contents and packages permissions" + включён "Allow GitHub Actions to create and approve pull requests"
+3. Repository settings:
+   - In Settings → Actions → General → Workflow permissions:
+     - ✓ "Read and write permissions" (or)
+     - ✓ "Read repository contents and packages permissions" plus "Allow GitHub Actions to create and approve pull requests"
 
-### На вашей локальной машине (для создания тега):
+### On your local machine (to create a tag):
 
 ```bash
-# 1. Убедитесь, что код закоммичен
+# 1. Ensure your code is committed
 git add .
 git commit -m "Release version 1.2.0"
 
-# 2. Создайте и запушьте тег
+# 2. Create and push the tag
 git tag v1.2.0
 git push origin main
 git push origin v1.2.0
 
-# Workflow запустится автоматически!
+# The workflow will start automatically!
 ```
 
-## Проверка статуса сборки
+## Checking build status
 
-1. Перейдите в ваш репозиторий на GitHub
-2. Откройте вкладку **Actions**
-3. Найдите запуск "Build and Release"
-4. Откройте его для просмотра логов каждой задачи
+1. Go to your repository on GitHub
+2. Open the **Actions** tab
+3. Find the "Build and Release" run
+4. Open it to view logs for each job
 
-## Возможные проблемы и решения
+## Common issues and solutions
 
-### ❌ Проблема: JDK 25 недоступен
-**Решение**: GitHub Actions использует Temurin (Eclipse Adoptium), который поддерживает JDK 25. Если возникнут проблемы, можно изменить на `oracle` или `zulu` distribution.
+### ❌ Issue: JDK 25 unavailable
+Solution: GitHub Actions uses Temurin (Eclipse Adoptium), which supports JDK 25. If needed, you can switch the distribution to `oracle` or `zulu`.
 
-### ❌ Проблема: Windows сборка не находит WiX
-**Решение**: WiX Toolset v3.x предустановлен на `windows-latest` runners. Если всё же возникнут проблемы, можно добавить явную установку:
+### ❌ Issue: Windows build cannot find WiX
+Solution: WiX Toolset v3.x is preinstalled on `windows-latest` runners. If issues persist, add explicit installation:
 ```yaml
 - name: Install WiX (if needed)
   run: choco install wixtoolset -y
 ```
 
-### ❌ Проблема: Linux DEB не создаётся
-**Решение**: Workflow устанавливает `fakeroot` и `binutils` перед сборкой. Загрузка артефакта DEB теперь обязательна (`if-no-files-found: error`), поэтому если пакет не был создан, job завершится с ошибкой. Проверьте логи jpackage и убедитесь, что зависимости установлены и профиль `-Plinux` успешно собрал `.deb` в `target/dist/`.
+### ❌ Issue: Linux DEB is not created
+Solution: The workflow installs `fakeroot` and `binutils` before building. Uploading the DEB artifact is now mandatory (`if-no-files-found: error`), so if the package is not created, the job will fail. Check the jpackage logs and ensure dependencies are installed and the `-Plinux` profile produced a `.deb` in `target/dist/`.
 
-### ❌ Проблема: Релиз не создаётся
-**Причина**: Workflow создаёт релиз только при пуше тега, начинающегося с `v`
+### ❌ Issue: Release not created
+Reason: The workflow creates a release only when a tag starting with `v` is pushed.
 
-**Решение**: Проверьте, что вы запушили тег правильно:
+Solution: Verify you pushed the tag correctly:
 ```bash
-git tag -l  # Проверить локальные теги
-git ls-remote --tags origin  # Проверить теги на GitHub
+git tag -l  # List local tags
+git ls-remote --tags origin  # List tags on GitHub
 ```
 
-### ❌ Проблема: Ошибка разрешений при создании релиза
-**Решение**: 
-1. Перейдите в Settings → Actions → General
-2. В разделе "Workflow permissions" выберите "Read and write permissions"
-3. Нажмите "Save"
+### ❌ Issue: Permission error when creating a release
+Solution:
+1. Go to Settings → Actions → General
+2. Under "Workflow permissions" select "Read and write permissions"
+3. Click "Save"
 
-## Ручной запуск (без создания релиза)
+## Manual run (without creating a release)
 
-Если хотите просто протестировать сборку без создания релиза:
+If you want to test the build without creating a release:
 
-1. Перейдите в Actions → Build and Release
-2. Нажмите "Run workflow"
-3. Выберите ветку
-4. Нажмите "Run workflow"
+1. Go to Actions → Build and Release
+2. Click "Run workflow"
+3. Choose the branch
+4. Click "Run workflow"
 
-Это создаст артефакты, но не создаст GitHub Release (релиз создаётся только при тегах).
+This will produce artifacts but will not create a GitHub Release (releases are created only on tags).
 
-## Структура артефактов
+## Artifact structure
 
-После успешной сборки в разделе Artifacts будут доступны:
-- `macos-dmg` - содержит DMG файл
-- `windows-msi` - содержит MSI файл
-- `linux-deb` - содержит DEB файл (если сборка успешна)
+After a successful build, the following artifacts will be available:
+- `macos-dmg` - contains the DMG file
+- `windows-msi` - contains the MSI file
+- `linux-deb` - contains the DEB file (if the build succeeded)
 
-Артефакты хранятся 90 дней (по умолчанию для GitHub).
+Artifacts are retained for 90 days (GitHub default).
 
-## Итоговый чеклист для первого релиза
+## Final checklist for the first release
 
-- [ ] Код закоммичен и запушен в main/master
-- [ ] В Settings → Actions → General разрешения установлены на "Read and write permissions"
-- [ ] Создан и запушен тег версии (например, `v1.2.0`)
-- [ ] Workflow запустился автоматически (проверить во вкладке Actions)
-- [ ] Все три задачи (macOS, Windows, Linux) завершились успешно
-- [ ] GitHub Release создан автоматически с прикреплёнными файлами
+- [ ] Code committed and pushed to main/master
+- [ ] In Settings → Actions → General, permissions set to "Read and write permissions"
+- [ ] Version tag created and pushed (e.g., `v1.2.0`)
+- [ ] Workflow started automatically (check the Actions tab)
+- [ ] All three jobs (macOS, Windows, Linux) completed successfully
+- [ ] GitHub Release created automatically with attached files
 
-## Дополнительно
+## Additional notes
 
-### Версионирование
-Версия берётся из `pom.xml` (`<version>1.2.0-SNAPSHOT</version>`). 
-- Для инсталляторов используется только numeric версия (1.2.0)
-- Суффикс `-SNAPSHOT` автоматически удаляется build-helper-maven-plugin
-- Если major версия = 0, автоматически заменяется на 1 (требование macOS/Windows)
+### Versioning
+The version is taken from `pom.xml` (`<version>1.2.0-SNAPSHOT</version>`).
+- Installer tools use only the numeric version (1.2.0)
+- The `-SNAPSHOT` suffix is automatically removed by build-helper-maven-plugin
+- If the major version is 0, it is automatically replaced with 1 (requirement for macOS/Windows)
 
-### Кэширование
-Workflow использует кэширование Maven dependencies (`cache: 'maven'`), что ускоряет повторные сборки.
+### Caching
+The workflow uses Maven dependency caching (`cache: 'maven'`) to speed up subsequent builds.
 
-### Параллелизм
-Все три платформы собираются параллельно, что сокращает общее время сборки примерно до 10-15 минут (вместо 30-45 минут последовательной сборки).
+### Parallelism
+All three platforms build in parallel, reducing the total build time to about 10–15 minutes (instead of 30–45 minutes sequentially).

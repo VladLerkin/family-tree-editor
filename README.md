@@ -1,70 +1,70 @@
-# Family Tree Editor — как запустить проект
+# Family Tree Editor — How to Run the Project
 
-Ниже — самый короткий путь, чтобы запустить приложение локально и (при желании) упаковать установщик.
+Below is the shortest path to run the app locally and (optionally) build an installer.
 
-Требования
-- JDK 25 (обязательно). Проверьте: `java -version` и переменную `JAVA_HOME`.
-- Интернет для докачки зависимостей Maven'ом.
-- Ничего ставить дополнительно не нужно: в репозитории есть Maven Wrapper (`mvnw`, `mvnw.cmd`).
+Requirements
+- JDK 25 (mandatory). Check with `java -version` and ensure the `JAVA_HOME` environment variable points to it.
+- Internet access so Maven can download dependencies.
+- Nothing extra to install: the repository includes the Maven Wrapper (`mvnw`, `mvnw.cmd`).
 
-Быстрый старт (Windows)
-1) Откройте терминал в корне проекта.
-2) Выполните:
+Quick Start (Windows)
+1) Open a terminal in the project root.
+2) Run:
    PowerShell:
    .\mvnw.cmd "-Dprism.order=sw" javafx:run
    
-   Альтернативы:
+   Alternatives:
    - PowerShell (stop-parsing):
      .\mvnw.cmd --% -Dprism.order=sw javafx:run
    - CMD.exe:
      .\mvnw.cmd -Dprism.order=sw javafx:run
    
-   Пояснения:
-   - В PowerShell обязательно заключайте системные свойства -D в кавычки ("-Dимя=значение") или используйте `--%`. Иначе PowerShell разобьёт аргумент, и Maven выдаст ошибку вида: Unknown lifecycle phase '.order=sw'.
-   - JavaFX-плагин запустит приложение (MainApplication).
-   - Флаг `-Dprism.order=sw` включает софт‑рендеринг. Можно убрать для аппаратного ускорения.
+   Notes:
+   - In PowerShell, always wrap -D system properties in quotes ("-Dname=value") or use `--%`. Otherwise, PowerShell may split the argument and Maven will fail with an error like: Unknown lifecycle phase '.order=sw'.
+   - The JavaFX Maven plugin will launch the application (MainApplication).
+   - The `-Dprism.order=sw` flag forces software rendering. You can remove it to use hardware acceleration.
 
-Быстрый старт (macOS/Linux)
-1) Откройте терминал в корне проекта.
-2) Выполните:
+Quick Start (macOS/Linux)
+1) Open a terminal in the project root.
+2) Run:
    ./mvnw -Dprism.order=sw javafx:run
 
-Запуск из IntelliJ IDEA
-- Откройте проект (pom.xml) как Maven-проект.
-- Создайте конфигурацию "Application":
+Run from IntelliJ IDEA
+- Open the project (pom.xml) as a Maven project.
+- Create an "Application" run configuration:
   - Main class: `com.pedigree.app.MainApplication`
   - Use classpath of module: `family-tree-editor`
-- Запустите конфигурацию. Если на машине несколько JDK, убедитесь, что выбрана JDK 25 (Project SDK и Run configuration JRE).
+- Run the configuration. If you have multiple JDKs installed, make sure JDK 25 is selected (Project SDK and Run configuration JRE).
 
-Сборка установщика
+Build an Installer
 - Windows (MSI):
   .\mvnw.cmd -Pwindows clean package
-  Готовый MSI будет в `target/dist/family-tree-editor-${project.version}-windows.msi`.
+  The MSI will be created at `target/dist/family-tree-editor-${project.version}-windows.msi`.
 
 - macOS (DMG):
   mvn -Pmac clean package
-  Готовый DMG будет в `target/dist/family-tree-editor-${project.version}-macos.dmg`.
+  The DMG will be created at `target/dist/family-tree-editor-${project.version}-macos.dmg`.
 
-- Linux (DEB, c ярлыком в меню):
+- Linux (DEB, with a menu shortcut):
   mvn -Plinux clean package
-  Готовый пакет будет в `target/dist/family-tree-editor-${project.version}-linux-amd64.deb`.
-  Требуется пакет fakeroot (используется jpackage). Установите его через пакетный менеджер: apt/dnf/pacman. Если fakeroot отсутствует, сборка не упадёт, но шаг упаковки DEB будет пропущен.
-  Рекомендуется установить binutils (даёт `objcopy`) для более компактного рантайма. Если binutils отсутствует, сборка всё равно пройдёт: мы отключаем соответствующий плагин jlink по умолчанию.
+  The package will be created at `target/dist/family-tree-editor-${project.version}-linux-amd64.deb`.
+  The `fakeroot` package is required (used by jpackage). Install it via your package manager: apt/dnf/pacman. If `fakeroot` is missing, the build will not fail, but the DEB packaging step will be skipped.
+  It is recommended to install `binutils` (provides `objcopy`) for a more compact runtime. If `binutils` is absent, the build will still succeed: we disable the corresponding jlink plugin by default.
 
-Подробные инструкции
+Detailed instructions
 - Windows: `docs/BUILD_WIN.md`
 - macOS: `docs/BUILD_MAC.md`
 - Linux: `docs/BUILD_LINUX.md`
 
-Типичные проблемы
+Common issues
 - "Cannot find wrapperUrl in .mvn\\wrapper\\maven-wrapper.properties":
-  Обновите репозиторий (git pull). Файл уже должен содержать и `distributionUrl`, и `wrapperUrl`. Вручную можно прописать:
+  Update your repository (git pull). The file should already contain both `distributionUrl` and `wrapperUrl`. Manually, you can set:
   distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.8/apache-maven-3.9.8-bin.zip
   wrapperUrl=https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
 
-- JavaFX/рендеринг не стартует:
-  Попробуйте добавить `-Dprism.order=sw` к команде запуска.
+- JavaFX/rendering does not start:
+  Try adding `-Dprism.order=sw` to the run command.
 
-Версии и окружение
-- Проект собирается Maven'ом, Java 25, JavaFX 24.0.1.
-- Точка входа: `com.pedigree.app.MainApplication`.
+Versions and environment
+- The project builds with Maven, Java 25, JavaFX 24.0.1.
+- Entry point: `com.pedigree.app.MainApplication`.
