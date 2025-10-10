@@ -22,14 +22,14 @@ Workflow запускает три параллельные задачи для 
 - Использует runner: `macos-latest`
 - Устанавливает JDK 25 (Temurin)
 - Собирает DMG с помощью Maven профиля `-Pmac`
-- Результат: `Family Tree Editor-{version}.dmg`
+- Результат: `family-tree-editor-{version}-macos.dmg`
 - **Предустановлено**: Все необходимые инструменты (Xcode CLI, hdiutil)
 
 ### 2. Windows (MSI)
 - Использует runner: `windows-latest`
 - Устанавливает JDK 25 (Temurin)
 - Собирает MSI с помощью Maven профиля `-Pwindows`
-- Результат: `Family Tree Editor-{version}.msi`
+- Результат: `family-tree-editor-{version}-windows.msi`
 - **Предустановлено**: WiX Toolset v3.x (уже есть на GitHub runners)
 
 ### 3. Linux (DEB)
@@ -37,7 +37,7 @@ Workflow запускает три параллельные задачи для 
 - Устанавливает JDK 25 (Temurin)
 - **Автоматически устанавливает**: `fakeroot` и `binutils` (требуются для jpackage)
 - Собирает DEB с помощью Maven профиля `-Plinux`
-- Результат: `family-tree-editor_{version}_amd64.deb`
+- Результат: `family-tree-editor-{version}-linux-amd64.deb`
 
 ### 4. Создание релиза
 - Запускается только при пуше тега (не при ручном запуске)

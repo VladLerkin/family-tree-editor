@@ -39,15 +39,15 @@
 Сборка установщика
 - Windows (MSI):
   .\mvnw.cmd -Pwindows clean package
-  Готовый MSI будет в `target/dist/Family Tree Editor-${project.version}.msi`.
+  Готовый MSI будет в `target/dist/family-tree-editor-${project.version}-windows.msi`.
 
 - macOS (DMG):
   mvn -Pmac clean package
-  Готовый DMG будет в `target/dist/Family Tree Editor-${project.version}.dmg`.
+  Готовый DMG будет в `target/dist/family-tree-editor-${project.version}-macos.dmg`.
 
 - Linux (DEB, c ярлыком в меню):
   mvn -Plinux clean package
-  Готовый пакет будет в `target/dist/Family Tree Editor-${project.version}.deb`.
+  Готовый пакет будет в `target/dist/family-tree-editor-${project.version}-linux-amd64.deb`.
   Требуется пакет fakeroot (используется jpackage). Установите его через пакетный менеджер: apt/dnf/pacman. Если fakeroot отсутствует, сборка не упадёт, но шаг упаковки DEB будет пропущен.
   Рекомендуется установить binutils (даёт `objcopy`) для более компактного рантайма. Если binutils отсутствует, сборка всё равно пройдёт: мы отключаем соответствующий плагин jlink по умолчанию.
 

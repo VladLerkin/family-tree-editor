@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.7-SNAPSHOT</version>
+    <version>1.2.8-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -89,7 +89,7 @@
             </activation>
             <properties>
                 <!-- Fallback to ensure non-zero major version even if regex-property doesn't run -->
-                <app.version.mac.effective>1.2.7</app.version.mac.effective>
+                <app.version.mac.effective>1.2.8</app.version.mac.effective>
             </properties>
             <build>
                 <plugins>
@@ -225,6 +225,10 @@
                                             <arg value="--mac-package-identifier"/>
                                             <arg value="com.familytree.editor"/>
                                         </exec>
+                                        <!-- Rename DMG to include OS name -->
+                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.mac.effective}.dmg"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.mac.effective}-macos.dmg"
+                                              failonerror="false"/>
                                     </target>
                                 </configuration>
                             </execution>
@@ -242,7 +246,7 @@
                 </os>
             </activation>
             <properties>
-                <app.version.linux.effective>1.2.7</app.version.linux.effective>
+                <app.version.linux.effective>1.2.8</app.version.linux.effective>
             </properties>
             <build>
                 <plugins>
@@ -375,6 +379,10 @@
                                             <arg value="--linux-package-name"/>
                                             <arg value="family-tree-editor"/>
                                         </exec>
+                                        <!-- Rename DEB to include OS name and use hyphens instead of underscores -->
+                                        <move file="${project.build.directory}/dist/family-tree-editor_${app.version.linux.effective}_amd64.deb"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.linux.effective}-linux-amd64.deb"
+                                              failonerror="false"/>
                                         <echo message="Linux packaging step finished. If fakeroot or objcopy (binutils) was missing, packaging features were limited or skipped; see jpackage output above."/>
                                     </target>
                                 </configuration>
@@ -392,7 +400,7 @@
                 </os>
             </activation>
             <properties>
-                <app.version.win.effective>1.2.7</app.version.win.effective>
+                <app.version.win.effective>1.2.8</app.version.win.effective>
             </properties>
             <build>
                 <plugins>
@@ -529,6 +537,10 @@
                                             <arg value="--win-dir-chooser"/>
                                             <arg value="--win-shortcut"/>
                                         </exec>
+                                        <!-- Rename MSI to include OS name -->
+                                        <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.win.effective}.msi"
+                                              tofile="${project.build.directory}/dist/family-tree-editor-${app.version.win.effective}-windows.msi"
+                                              failonerror="false"/>
                                     </target>
                                 </configuration>
                             </execution>

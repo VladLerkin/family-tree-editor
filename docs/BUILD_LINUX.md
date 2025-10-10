@@ -27,7 +27,7 @@ Build DEB installer with desktop integration:
 1. From the project root, run:
    mvn -Plinux clean package
 2. The `.deb` package will be created under:
-   target/dist/Family Tree Editor-${project.version}.deb
+   target/dist/family-tree-editor-${project.version}-linux-amd64.deb
 
 What the installer does:
 - Uses `jpackage` to create a self-contained app with the required JavaFX modules.

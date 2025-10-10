@@ -9,7 +9,7 @@ Build steps:
 1. From the project root, run:
    mvn -Pmac clean package
 2. The DMG will be created under:
-   target/dist/Family Tree Editor-${project.version}.dmg
+   target/dist/family-tree-editor-${project.version}-macos.dmg
 
 Notes:
 - Code signing and notarization are not configured here. The resulting DMG is suitable for development/testing.
