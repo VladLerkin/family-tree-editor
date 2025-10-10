@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.9-SNAPSHOT</version>
+    <version>1.2.10-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -17,7 +17,7 @@
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.9</app.version.effective>
+        <app.version.effective>1.2.10</app.version.effective>
     </properties>
 
     <dependencies>
@@ -310,7 +310,7 @@
                                 </goals>
                                 <configuration>
                                     <target>
-                                        <exec executable="${java.home}/bin/jpackage" failonerror="false">
+                                        <exec executable="${java.home}/bin/jpackage">
                                             <arg value="--type"/>
                                             <arg value="deb"/>
                                             <arg value="--name"/>

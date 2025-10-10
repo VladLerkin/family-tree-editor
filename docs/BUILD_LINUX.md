@@ -5,7 +5,7 @@ Prerequisites:
 - JDK 25 installed and `JAVA_HOME` pointing to it (jpackage is included with the JDK).
 - Maven 3.8+ (or use the Maven Wrapper in this repo: `./mvnw`).
 - For DEB packaging: Debian/Ubuntu or a derivative with `dpkg-deb` available.
-- Required tool: fakeroot (used by jpackage for DEB). Install via your package manager:
+- Required tools: fakeroot and desktop-file-utils (used by jpackage for DEB). Install via your package manager:
   - Debian/Ubuntu: `sudo apt-get install fakeroot`
   - Fedora/RHEL: `sudo dnf install fakeroot`
   - Arch: `sudo pacman -S fakeroot`

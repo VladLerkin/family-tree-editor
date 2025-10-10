@@ -64,10 +64,10 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: 'maven'
-      - name: Install packaging prerequisites (fakeroot, binutils)
+      - name: Install packaging prerequisites (fakeroot, binutils, desktop-file-utils)
         run: |
           sudo apt-get update
-          sudo apt-get install -y fakeroot binutils
+          sudo apt-get install -y fakeroot binutils desktop-file-utils
       - name: Build DEB
         run: mvn -B -V -e -Plinux clean package
       - name: Upload DEB artifact (required)
