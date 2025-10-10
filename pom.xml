@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.17-SNAPSHOT</version>
+    <version>1.2.18-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -17,14 +17,14 @@
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.17</app.version.effective>
+        <app.version.effective>1.2.18</app.version.effective>
         <!-- macOS packaging/signing properties (safe defaults for local builds) -->
         <mac.package.identifier>com.familytree.editor</mac.package.identifier>
         <mac.sign>false</mac.sign>
         <!-- Developer ID Application: Your Name (TEAMID) -->
-        <mac.signing.user></mac.signing.user>
+        <mac.signing.user>false</mac.signing.user>
         <!-- Optional entitlements file path -->
-        <mac.entitlements></mac.entitlements>
+        <mac.entitlements>false</mac.entitlements>
     </properties>
 
     <dependencies>
@@ -212,6 +212,18 @@
                                 </goals>
                                 <configuration>
                                     <target>
+                                        <!-- Build optional argument strings since <arg> doesn't support if/unless -->
+                                        <condition property="sign.args" value="--mac-sign --mac-signing-key-user-name ${mac.signing.user}" else="">
+                                            <istrue value="${mac.sign}"/>
+                                        </condition>
+                                        <condition property="entitlements.args" value="--mac-entitlements ${mac.entitlements}" else="">
+                                            <and>
+                                                <isset property="mac.entitlements"/>
+                                                <not>
+                                                    <equals arg1="${mac.entitlements}" arg2="false"/>
+                                                </not>
+                                            </and>
+                                        </condition>
                                         <exec executable="jpackage">
                                             <arg value="--type"/>
                                             <arg value="dmg"/>
@@ -235,13 +247,9 @@
                                             <arg value="javafx.controls,javafx.swing"/>
                                             <arg value="--mac-package-identifier"/>
                                             <arg value="${mac.package.identifier}"/>
-                                            <!-- Conditional signing (enabled when -Dmac.sign=true) -->
-                                            <arg value="--mac-sign" if="mac.sign"/>
-                                            <arg value="--mac-signing-key-user-name" if="mac.sign"/>
-                                            <arg value="${mac.signing.user}" if="mac.sign"/>
-                                            <!-- Optional entitlements if provided via -Dmac.entitlements=... -->
-                                            <arg value="--mac-entitlements" if="mac.entitlements"/>
-                                            <arg value="${mac.entitlements}" if="mac.entitlements"/>
+                                            <!-- Inject optional arguments when properties are set -->
+                                            <arg line="${sign.args}"/>
+                                            <arg line="${entitlements.args}"/>
                                         </exec>
                                         <!-- Rename DMG to include OS name -->
                                         <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.dmg"
@@ -367,6 +375,18 @@
                                 </goals>
                                 <configuration>
                                     <target>
+                                        <!-- Build optional argument strings since <arg> doesn't support if/unless -->
+                                        <condition property="sign.args" value="--mac-sign --mac-signing-key-user-name ${mac.signing.user}" else="">
+                                            <istrue value="${mac.sign}"/>
+                                        </condition>
+                                        <condition property="entitlements.args" value="--mac-entitlements ${mac.entitlements}" else="">
+                                            <and>
+                                                <isset property="mac.entitlements"/>
+                                                <not>
+                                                    <equals arg1="${mac.entitlements}" arg2="false"/>
+                                                </not>
+                                            </and>
+                                        </condition>
                                         <exec executable="jpackage">
                                             <arg value="--type"/>
                                             <arg value="dmg"/>
@@ -390,13 +410,9 @@
                                             <arg value="javafx.controls,javafx.swing"/>
                                             <arg value="--mac-package-identifier"/>
                                             <arg value="${mac.package.identifier}"/>
-                                            <!-- Conditional signing (enabled when -Dmac.sign=true) -->
-                                            <arg value="--mac-sign" if="mac.sign"/>
-                                            <arg value="--mac-signing-key-user-name" if="mac.sign"/>
-                                            <arg value="${mac.signing.user}" if="mac.sign"/>
-                                            <!-- Optional entitlements if provided via -Dmac.entitlements=... -->
-                                            <arg value="--mac-entitlements" if="mac.entitlements"/>
-                                            <arg value="${mac.entitlements}" if="mac.entitlements"/>
+                                            <!-- Inject optional arguments when properties are set -->
+                                            <arg line="${sign.args}"/>
+                                            <arg line="${entitlements.args}"/>
                                         </exec>
                                         <!-- Rename DMG to include OS name -->
                                         <move file="${project.build.directory}/dist/Family Tree Editor-${app.version.effective}.dmg"
