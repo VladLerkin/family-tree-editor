@@ -55,4 +55,12 @@ public class JavaFxGraphicsContext implements GraphicsContext {
     public void drawText(String text, double x, double y) {
         gc.fillText(text, x, y);
     }
+
+    @Override
+    public double measureTextWidth(String text) {
+        if (text == null || text.isEmpty()) return 0.0;
+        javafx.scene.text.Text textNode = new javafx.scene.text.Text(text);
+        textNode.setFont(gc.getFont());
+        return textNode.getBoundsInLocal().getWidth();
+    }
 }

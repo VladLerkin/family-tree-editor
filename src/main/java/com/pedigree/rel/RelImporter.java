@@ -375,8 +375,8 @@ public class RelImporter {
             String nm2 = extractNameSimple(body);
             if (nm2 != null && !nm2.isBlank()) r.name = nm2;
         }
-        r.birth = parseDate(find(BIRT_RE, body));
-        r.death = parseDate(find(DEAT_RE, body));
+        r.birth = parsePersonDate(find(BIRT_RE, body));
+        r.death = parsePersonDate(find(DEAT_RE, body));
         String xs = find(POS_X_RE, body);
         String ys = find(POS_Y_RE, body);
         if (xs != null) try { r.x = Double.parseDouble(xs.trim()); } catch (NumberFormatException ignored) {}
@@ -499,7 +499,7 @@ public class RelImporter {
         while (mc.find()) {
             f.children.add(mc.group(1));
         }
-        f.marrDate = parseDate(find(MARR_DATE_RE, body));
+        f.marrDate = parseDateLocal(find(MARR_DATE_RE, body));
         String plac = find(MARR_PLAC_RE, body);
         if (plac != null) f.marrPlace = plac.strip();
         // Extract optional multimedia OBJE blocks for family
@@ -585,7 +585,14 @@ public class RelImporter {
         return null;
     }
 
-    private static LocalDate parseDate(String s) {
+    private static String parsePersonDate(String s) {
+        if (s == null) return null;
+        String t = s.replaceAll("[\\p{Cntrl}]", "").trim();
+        if (t.isEmpty()) return null;
+        return t;
+    }
+
+    private static LocalDate parseDateLocal(String s) {
         if (s == null) return null;
         s = s.trim();
         // Normalize dots and remove extraneous characters
@@ -745,8 +752,8 @@ public class RelImporter {
         String given;
         String surname;
         Gender sex = Gender.UNKNOWN;
-        LocalDate birth;
-        LocalDate death;
+        String birth;
+        String death;
         Double x; // optional parsed position
         Double y;
         List<String> notes = new ArrayList<>();

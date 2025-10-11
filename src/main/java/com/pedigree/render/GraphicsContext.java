@@ -9,4 +9,5 @@ public interface GraphicsContext {
     void fillRect(double x, double y, double w, double h);
     void drawRect(double x, double y, double w, double h);
     void drawText(String text, double x, double y);
+    double measureTextWidth(String text);
 }

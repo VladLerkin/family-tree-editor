@@ -4,9 +4,9 @@ import com.pedigree.model.Individual;
 import com.pedigree.storage.ProjectRepository;
 
 /**
- * Node metrics that size person rectangles based on their name split into two lines:
- * first name on the first line, last name on the second line, both centered.
- * Width is the max of line widths plus horizontal padding; height accounts for two lines.
+ * Node metrics that size person rectangles based on their name and dates split into three lines:
+ * first name on the first line, last name on the second line, dates on the third line, all centered.
+ * Width is the max of line widths plus horizontal padding; height accounts for three lines.
  *
  * Measurements are approximate and independent of zoom; TreeRenderer applies zoom.
  */
@@ -35,11 +35,20 @@ public class TextAwareNodeMetrics extends NodeMetrics {
     @Override
     public double getWidth(String nodeId) {
         if (data != null && nodeId != null && isIndividual(nodeId)) {
-            NameParts np = nameParts(nodeId);
+            Individual ind = getIndividual(nodeId);
+            if (ind == null) return super.getWidth(nodeId);
+            
+            String first = ind.getFirstName() != null ? ind.getFirstName() : "";
+            String last = ind.getLastName() != null ? ind.getLastName() : "";
             double font = baseFontSize * SCALE;
-            double w1 = approxTextWidth(np.first, font);
-            double w2 = approxTextWidth(np.last, font);
-            double w = Math.max(w1, w2) + (H_PAD * SCALE) * 2.0;
+            double w1 = approxTextWidth(first, font);
+            double w2 = approxTextWidth(last, font);
+            
+            // Also consider date text width
+            String dateText = formatDatesForWidth(ind.getBirthDate(), ind.getDeathDate(), first, last);
+            double w3 = approxTextWidth(dateText, font);
+            
+            double w = Math.max(Math.max(w1, w2), w3) + (H_PAD * SCALE) * 2.0;
             // Minimum width fallback
             return Math.max(w, 80.0 * SCALE);
         }
@@ -50,8 +59,8 @@ public class TextAwareNodeMetrics extends NodeMetrics {
     public double getHeight(String nodeId) {
         if (data != null && nodeId != null && isIndividual(nodeId)) {
             double lineH = baseFontSize * LINE_SPACING * SCALE;
-            double h = (V_PAD * SCALE) * 2.0 + lineH * 2.0;
-            return Math.max(h, 40.0 * SCALE);
+            double h = (V_PAD * SCALE) * 2.0 + lineH * 3.0;
+            return Math.max(h, 60.0 * SCALE);
         }
         return super.getHeight(nodeId);
     }
@@ -63,6 +72,13 @@ public class TextAwareNodeMetrics extends NodeMetrics {
         return false;
     }
 
+    private Individual getIndividual(String nodeId) {
+        for (Individual i : data.individuals) {
+            if (nodeId.equals(i.getId())) return i;
+        }
+        return null;
+    }
+
     private NameParts nameParts(String nodeId) {
         for (Individual i : data.individuals) {
             if (nodeId.equals(i.getId())) {
@@ -72,6 +88,37 @@ public class TextAwareNodeMetrics extends NodeMetrics {
             }
         }
         return new NameParts("", "");
+    }
+
+    private boolean isCyrillic(String text) {
+        if (text == null || text.isEmpty()) return false;
+        for (char c : text.toCharArray()) {
+            if (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CYRILLIC) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String formatDatesForWidth(String birthDate, String deathDate, String firstName, String lastName) {
+        boolean hasBirth = birthDate != null && !birthDate.trim().isEmpty();
+        boolean hasDeath = deathDate != null && !deathDate.trim().isEmpty();
+        
+        if (!hasBirth && !hasDeath) {
+            return "";
+        }
+        
+        boolean isCyrillicText = isCyrillic(firstName) || isCyrillic(lastName);
+        
+        if (hasBirth && hasDeath) {
+            return birthDate.trim() + " - " + deathDate.trim();
+        } else if (hasBirth) {
+            String prefix = isCyrillicText ? "род.:" : "b.:";
+            return prefix + birthDate.trim();
+        } else {
+            String prefix = isCyrillicText ? "ум.:" : "d.:";
+            return prefix + deathDate.trim();
+        }
     }
 
     public static double approxTextWidth(String s, double fontSize) {

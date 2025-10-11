@@ -45,12 +45,12 @@ public class GedcomExporter {
                 writeln(w, "1 SEX " + GedcomMapper.sexCode(ind.getGender()));
                 if (ind.getBirthDate() != null || (ind.getBirthPlace() != null && !ind.getBirthPlace().isBlank())) {
                     writeln(w, "1 BIRT");
-                    if (ind.getBirthDate() != null) writeln(w, "2 DATE " + GedcomMapper.formatDate(ind.getBirthDate()));
+                    if (ind.getBirthDate() != null) writeln(w, "2 DATE " + ind.getBirthDate());
                     if (ind.getBirthPlace() != null && !ind.getBirthPlace().isBlank()) writeln(w, "2 PLAC " + ind.getBirthPlace());
                 }
                 if (ind.getDeathDate() != null || (ind.getDeathPlace() != null && !ind.getDeathPlace().isBlank())) {
                     writeln(w, "1 DEAT");
-                    if (ind.getDeathDate() != null) writeln(w, "2 DATE " + GedcomMapper.formatDate(ind.getDeathDate()));
+                    if (ind.getDeathDate() != null) writeln(w, "2 DATE " + ind.getDeathDate());
                     if (ind.getDeathPlace() != null && !ind.getDeathPlace().isBlank()) writeln(w, "2 PLAC " + ind.getDeathPlace());
                 }
                 // Family child/spouse links

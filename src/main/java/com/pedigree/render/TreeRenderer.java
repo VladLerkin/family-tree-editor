@@ -89,7 +89,7 @@ public class TreeRenderer {
                     g.fillRect(x, y, w, h);
                     g.drawRect(x, y, w, h);
 
-                    // Text layout: two lines, centered
+                    // Text layout: three lines, centered
                     double fontSize = 12.0 * 2.0 * Math.max(zoom, 0.1);
                     g.setFontSize(fontSize);
                     double lineH = fontSize * com.pedigree.render.TextAwareNodeMetrics.lineSpacing();
@@ -97,16 +97,25 @@ public class TreeRenderer {
                     double cx = x + w / 2.0;
                     double y1 = y + padV + lineH; // baseline of first line
                     double y2 = y + padV + lineH * 2.0; // baseline of second line
-
-                    double w1 = com.pedigree.render.TextAwareNodeMetrics.approxTextWidth(first, fontSize);
-                    double w2 = com.pedigree.render.TextAwareNodeMetrics.approxTextWidth(last, fontSize);
+                    double y3 = y + padV + lineH * 3.0; // baseline of third line (dates)
 
                     // Ensure label text is black
                     g.setFillColor(0, 0, 0, 1.0);
-                    // First line centered
+                    
+                    // First line centered - measure actual width
+                    double w1 = g.measureTextWidth(first);
                     g.drawText(first, cx - w1 / 2.0, y1);
-                    // Second line centered
+                    
+                    // Second line centered - measure actual width
+                    double w2 = g.measureTextWidth(last);
                     g.drawText(last, cx - w2 / 2.0, y2);
+                    
+                    // Third line: dates with appropriate formatting - measure actual width
+                    String dateText = formatDates(ind.getBirthDate(), ind.getDeathDate(), first, last);
+                    if (dateText != null && !dateText.isEmpty()) {
+                        double w3 = g.measureTextWidth(dateText);
+                        g.drawText(dateText, cx - w3 / 2.0, y3);
+                    }
 
                     // Draw selection highlight frame if selected (for individuals too)
                     java.util.Set<String> sel = com.pedigree.render.RenderHighlightState.getSelectedIds();
@@ -286,6 +295,51 @@ public class TreeRenderer {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Detects if the text contains Cyrillic characters.
+     */
+    private boolean isCyrillic(String text) {
+        if (text == null || text.isEmpty()) return false;
+        for (char c : text.toCharArray()) {
+            if (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CYRILLIC) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Formats birth and death dates according to the requirements:
+     * - Both dates: "birthDate - deathDate"
+     * - Only birth: "b.:" or "род.:" prefix
+     * - Only death: "d.:" or "ум.:" prefix
+     * The language is detected from the individual's name.
+     */
+    private String formatDates(String birthDate, String deathDate, String firstName, String lastName) {
+        boolean hasBirth = birthDate != null && !birthDate.trim().isEmpty();
+        boolean hasDeath = deathDate != null && !deathDate.trim().isEmpty();
+        
+        if (!hasBirth && !hasDeath) {
+            return null;
+        }
+        
+        // Detect language from names
+        boolean isCyrillicText = isCyrillic(firstName) || isCyrillic(lastName);
+        
+        if (hasBirth && hasDeath) {
+            // Both dates: show as "birthDate - deathDate"
+            return birthDate.trim() + " - " + deathDate.trim();
+        } else if (hasBirth) {
+            // Only birth date
+            String prefix = isCyrillicText ? "род.:" : "b.:";
+            return prefix + birthDate.trim();
+        } else {
+            // Only death date
+            String prefix = isCyrillicText ? "ум.:" : "d.:";
+            return prefix + deathDate.trim();
         }
     }
 }

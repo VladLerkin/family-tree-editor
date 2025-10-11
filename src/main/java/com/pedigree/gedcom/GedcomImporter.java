@@ -78,11 +78,11 @@ public class GedcomImporter {
                     if (ctx == null) continue;
                     switch (ctx) {
                         case "BIRT" -> {
-                            if ("DATE".equals(tag)) curInd.birthDate = GedcomMapper.parseDate(value);
+                            if ("DATE".equals(tag)) curInd.birthDate = value;
                             else if ("PLAC".equals(tag)) curInd.birthPlace = value;
                         }
                         case "DEAT" -> {
-                            if ("DATE".equals(tag)) curInd.deathDate = GedcomMapper.parseDate(value);
+                            if ("DATE".equals(tag)) curInd.deathDate = value;
                             else if ("PLAC".equals(tag)) curInd.deathPlace = value;
                         }
                         default -> { /* ignore */ }
@@ -181,9 +181,9 @@ public class GedcomImporter {
         String given;
         String surname;
         Gender sex;
-        LocalDate birthDate;
+        String birthDate;
         String birthPlace;
-        LocalDate deathDate;
+        String deathDate;
         String deathPlace;
         List<String> famcXrefs = new ArrayList<>();
         List<String> famsXrefs = new ArrayList<>();

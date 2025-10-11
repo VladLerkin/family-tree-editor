@@ -131,6 +131,13 @@ public class SvgExporter {
               .append(escape(text)).append("</text>\n");
         }
 
+        @Override
+        public double measureTextWidth(String text) {
+            if (text == null || text.isEmpty()) return 0.0;
+            // Use same approximation as TextAwareNodeMetrics
+            return text.length() * fontSize * 0.6;
+        }
+
         private static String escape(String s) {
             if (s == null) return "";
             return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");

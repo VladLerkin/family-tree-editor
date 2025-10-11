@@ -3,7 +3,6 @@ package com.pedigree.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -13,9 +12,10 @@ public class Individual {
     private String firstName;
     private String lastName;
     private Gender gender;
-    private LocalDate birthDate;
+    // Dates are stored as free-form phrases (e.g., "ABT 1900", "BET 1890 AND 1895", "6 MAY 1981", etc.)
+    private String birthDate;
     private String birthPlace;
-    private LocalDate deathDate;
+    private String deathDate;
     private String deathPlace;
     private final List<Note> notes;
     private final List<MediaAttachment> media;
@@ -41,9 +41,9 @@ public class Individual {
             @JsonProperty("firstName") String firstName,
             @JsonProperty("lastName") String lastName,
             @JsonProperty("gender") Gender gender,
-            @JsonProperty("birthDate") LocalDate birthDate,
+            @JsonProperty("birthDate") String birthDate,
             @JsonProperty("birthPlace") String birthPlace,
-            @JsonProperty("deathDate") LocalDate deathDate,
+            @JsonProperty("deathDate") String deathDate,
             @JsonProperty("deathPlace") String deathPlace,
             @JsonProperty("notes") List<Note> notes,
             @JsonProperty("media") List<MediaAttachment> media,
@@ -69,12 +69,12 @@ public class Individual {
     public void setLastName(String lastName) { this.lastName = lastName; com.pedigree.util.DirtyFlag.setModified(); }
     public Gender getGender() { return gender; }
     public void setGender(Gender gender) { this.gender = gender; com.pedigree.util.DirtyFlag.setModified(); }
-    public LocalDate getBirthDate() { return birthDate; }
-    public void setBirthDate(LocalDate birthDate) { this.birthDate = birthDate; com.pedigree.util.DirtyFlag.setModified(); }
+    public String getBirthDate() { return birthDate; }
+    public void setBirthDate(String birthDate) { this.birthDate = birthDate; com.pedigree.util.DirtyFlag.setModified(); }
     public String getBirthPlace() { return birthPlace; }
     public void setBirthPlace(String birthPlace) { this.birthPlace = birthPlace; com.pedigree.util.DirtyFlag.setModified(); }
-    public LocalDate getDeathDate() { return deathDate; }
-    public void setDeathDate(LocalDate deathDate) { this.deathDate = deathDate; com.pedigree.util.DirtyFlag.setModified(); }
+    public String getDeathDate() { return deathDate; }
+    public void setDeathDate(String deathDate) { this.deathDate = deathDate; com.pedigree.util.DirtyFlag.setModified(); }
     public String getDeathPlace() { return deathPlace; }
     public void setDeathPlace(String deathPlace) { this.deathPlace = deathPlace; com.pedigree.util.DirtyFlag.setModified(); }
     public List<Note> getNotes() { return notes; }
