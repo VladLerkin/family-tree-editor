@@ -120,7 +120,9 @@ public class RelImporter {
             }
             Individual ind = new Individual(first, last, r.sex);
             if (r.birth != null) ind.setBirthDate(r.birth);
+            if (r.birthPlace != null) ind.setBirthPlace(r.birthPlace);
             if (r.death != null) ind.setDeathDate(r.death);
+            if (r.deathPlace != null) ind.setDeathPlace(r.deathPlace);
             // Attach optional notes parsed from NOTE/NOTES
             if (r.notes != null && !r.notes.isEmpty()) {
                 for (String nt : r.notes) {
@@ -293,7 +295,9 @@ public class RelImporter {
     private static final Pattern RUS_SEX_LETTER_RE = Pattern.compile("ПОЛ\\P{L}*([МЖ])", RU_FLAGS);
     private static final Pattern RUS_SEX_WORD_RE = Pattern.compile("(Муж(ской)?|Жен(ский)?)", RU_FLAGS);
     private static final Pattern BIRT_RE = Pattern.compile("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern BIRT_PLAC_RE = Pattern.compile("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final Pattern DEAT_RE = Pattern.compile("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern DEAT_PLAC_RE = Pattern.compile("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final int POS_FLAGS = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
     private static final Pattern POS_X_RE = Pattern.compile("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
     private static final Pattern POS_Y_RE = Pattern.compile("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
@@ -377,6 +381,10 @@ public class RelImporter {
         }
         r.birth = parsePersonDate(find(BIRT_RE, body));
         r.death = parsePersonDate(find(DEAT_RE, body));
+        String birthPlac = find(BIRT_PLAC_RE, body);
+        if (birthPlac != null) r.birthPlace = birthPlac.strip();
+        String deathPlac = find(DEAT_PLAC_RE, body);
+        if (deathPlac != null) r.deathPlace = deathPlac.strip();
         String xs = find(POS_X_RE, body);
         String ys = find(POS_Y_RE, body);
         if (xs != null) try { r.x = Double.parseDouble(xs.trim()); } catch (NumberFormatException ignored) {}
@@ -755,7 +763,9 @@ public class RelImporter {
         String surname;
         Gender sex = Gender.UNKNOWN;
         String birth;
+        String birthPlace;
         String death;
+        String deathPlace;
         Double x; // optional parsed position
         Double y;
         List<String> notes = new ArrayList<>();
