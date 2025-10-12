@@ -84,10 +84,10 @@ public class GedcomExporter {
                     String ix = indXref.get(cid);
                     if (ix != null) writeln(w, "1 CHIL " + ix);
                 }
-                if (fam.getMarriage() != null) {
+                if (fam.getMarriageDate() != null || (fam.getMarriagePlace() != null && !fam.getMarriagePlace().isBlank())) {
                     writeln(w, "1 MARR");
-                    if (fam.getMarriage().getDate() != null) writeln(w, "2 DATE " + GedcomMapper.formatDate(fam.getMarriage().getDate()));
-                    if (fam.getMarriage().getPlace() != null && !fam.getMarriage().getPlace().isBlank()) writeln(w, "2 PLAC " + fam.getMarriage().getPlace());
+                    if (fam.getMarriageDate() != null) writeln(w, "2 DATE " + fam.getMarriageDate());
+                    if (fam.getMarriagePlace() != null && !fam.getMarriagePlace().isBlank()) writeln(w, "2 PLAC " + fam.getMarriagePlace());
                 }
             }
 

@@ -12,7 +12,8 @@ public class Family {
     private String husbandId;
     private String wifeId;
     private final List<String> childrenIds;
-    private Event marriage;
+    private String marriageDate;
+    private String marriagePlace;
     private final List<Note> notes;
     private final List<MediaAttachment> media;
     private final List<Tag> tags;
@@ -35,6 +36,8 @@ public class Family {
             @JsonProperty("husbandId") String husbandId,
             @JsonProperty("wifeId") String wifeId,
             @JsonProperty("childrenIds") List<String> childrenIds,
+            @JsonProperty("marriageDate") String marriageDate,
+            @JsonProperty("marriagePlace") String marriagePlace,
             @JsonProperty("marriage") Event marriage,
             @JsonProperty("notes") List<Note> notes,
             @JsonProperty("media") List<MediaAttachment> media,
@@ -44,7 +47,14 @@ public class Family {
         this.husbandId = husbandId;
         this.wifeId = wifeId;
         this.childrenIds = (childrenIds != null) ? new com.pedigree.util.DirtyObservableList<>(childrenIds) : new com.pedigree.util.DirtyObservableList<>();
-        this.marriage = marriage;
+        // Support backward compatibility: if old Event marriage exists, convert it
+        if (marriage != null) {
+            this.marriageDate = marriage.getDate() != null ? marriage.getDate().toString() : null;
+            this.marriagePlace = marriage.getPlace();
+        } else {
+            this.marriageDate = marriageDate;
+            this.marriagePlace = marriagePlace;
+        }
         this.notes = (notes != null) ? new com.pedigree.util.DirtyObservableList<>(notes) : new com.pedigree.util.DirtyObservableList<>();
         this.media = (media != null) ? new com.pedigree.util.DirtyObservableList<>(media) : new com.pedigree.util.DirtyObservableList<>();
         this.tags = (tags != null) ? new com.pedigree.util.DirtyObservableList<>(tags) : new com.pedigree.util.DirtyObservableList<>();
@@ -70,10 +80,17 @@ public class Family {
 
     public List<String> getChildrenIds() { return childrenIds; }
 
-    public Event getMarriage() { return marriage; }
+    public String getMarriageDate() { return marriageDate; }
 
-    public void setMarriage(Event marriage) {
-        this.marriage = marriage;
+    public void setMarriageDate(String marriageDate) {
+        this.marriageDate = marriageDate;
+        com.pedigree.util.DirtyFlag.setModified();
+    }
+
+    public String getMarriagePlace() { return marriagePlace; }
+
+    public void setMarriagePlace(String marriagePlace) {
+        this.marriagePlace = marriagePlace;
         com.pedigree.util.DirtyFlag.setModified();
     }
 

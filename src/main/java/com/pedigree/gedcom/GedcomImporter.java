@@ -102,7 +102,7 @@ public class GedcomImporter {
                 } else if (level == 2) {
                     String ctx = context.peek();
                     if ("MARR".equals(ctx)) {
-                        if ("DATE".equals(tag)) curFam.marrDate = GedcomMapper.parseDate(value);
+                        if ("DATE".equals(tag)) curFam.marrDate = value;
                         else if ("PLAC".equals(tag)) curFam.marrPlace = value;
                     }
                 }
@@ -137,13 +137,8 @@ public class GedcomImporter {
                 String id = indiIdByXref.get(cx);
                 if (id != null) fam.getChildrenIds().add(id);
             }
-            if (r.marrDate != null || (r.marrPlace != null && !r.marrPlace.isBlank())) {
-                Event ev = new Event();
-                ev.setType("MARRIAGE");
-                if (r.marrDate != null) ev.setDate(r.marrDate);
-                if (r.marrPlace != null) ev.setPlace(r.marrPlace);
-                fam.setMarriage(ev);
-            }
+            if (r.marrDate != null) fam.setMarriageDate(r.marrDate);
+            if (r.marrPlace != null) fam.setMarriagePlace(r.marrPlace);
             data.families.add(fam);
             if (r.xref != null) famIdByXref.put(r.xref, fam.getId());
 
@@ -194,7 +189,7 @@ public class GedcomImporter {
         String husbXref;
         String wifeXref;
         List<String> childXrefs = new ArrayList<>();
-        LocalDate marrDate;
+        String marrDate;
         String marrPlace;
     }
 }

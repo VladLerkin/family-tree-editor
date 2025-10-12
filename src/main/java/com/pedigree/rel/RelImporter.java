@@ -162,13 +162,8 @@ public class RelImporter {
                 String cid = idMap.get(cP);
                 if (cid != null) fam.getChildrenIds().add(cid);
             }
-            if (rf.marrDate != null || (rf.marrPlace != null && !rf.marrPlace.isBlank())) {
-                Event ev = new Event();
-                ev.setType("MARRIAGE");
-                if (rf.marrDate != null) ev.setDate(rf.marrDate);
-                if (rf.marrPlace != null) ev.setPlace(rf.marrPlace);
-                fam.setMarriage(ev);
-            }
+            if (rf.marrDate != null) fam.setMarriageDate(rf.marrDate.toString());
+            if (rf.marrPlace != null && !rf.marrPlace.isBlank()) fam.setMarriagePlace(rf.marrPlace);
             // Attach optional media parsed for family OBJE blocks
             if (rf.media != null && !rf.media.isEmpty()) {
                 for (MediaTmp mt : rf.media) {
