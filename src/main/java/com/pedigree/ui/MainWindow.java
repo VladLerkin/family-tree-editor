@@ -308,6 +308,10 @@ public class MainWindow {
         Path path = Dialogs.chooseOpenGedcomPath();
         if (path == null) return;
         try {
+            // Ensure a project exists before importing
+            if (projectService.getCurrentData() == null) {
+                projectService.createNewProject();
+            }
             var importer = new com.pedigree.gedcom.GedcomImporter();
             ProjectRepository.ProjectData imported = importer.importFromFile(path);
             projectService.getCurrentData().individuals.addAll(imported.individuals);
@@ -324,6 +328,10 @@ public class MainWindow {
         Path path = Dialogs.chooseOpenRelPath();
         if (path == null) return;
         try {
+            // Ensure a project exists before importing
+            if (projectService.getCurrentData() == null) {
+                projectService.createNewProject();
+            }
             var importer = new com.pedigree.rel.RelImporter();
             ProjectRepository.ProjectData imported = importer.importFromFileWithLayout(path, projectService.getCurrentLayout());
             projectService.getCurrentData().individuals.addAll(imported.individuals);
