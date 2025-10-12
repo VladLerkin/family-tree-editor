@@ -13,8 +13,6 @@ import com.pedigree.storage.ProjectRepository;
 public class TextAwareNodeMetrics extends NodeMetrics {
     // Base font size (layout units, at zoom=1)
     private double baseFontSize = 12.0;
-    // Visual scale factor for person boxes/text relative to connector lines
-    private static final double SCALE = 2.0;
     // Approximate average glyph width factor (em to px)
     private static final double AVG_CHAR_FACTOR = 0.6; // ~0.6 * font size per character
     // Padding around text (layout units)
@@ -40,7 +38,7 @@ public class TextAwareNodeMetrics extends NodeMetrics {
             
             String first = ind.getFirstName() != null ? ind.getFirstName() : "";
             String last = ind.getLastName() != null ? ind.getLastName() : "";
-            double font = baseFontSize * SCALE;
+            double font = baseFontSize;
             double w1 = approxTextWidth(first, font);
             double w2 = approxTextWidth(last, font);
             
@@ -48,9 +46,9 @@ public class TextAwareNodeMetrics extends NodeMetrics {
             String dateText = formatDatesForWidth(ind.getBirthDate(), ind.getDeathDate(), first, last);
             double w3 = approxTextWidth(dateText, font);
             
-            double w = Math.max(Math.max(w1, w2), w3) + (H_PAD * SCALE) * 2.0;
+            double w = Math.max(Math.max(w1, w2), w3) + H_PAD * 2.0;
             // Minimum width fallback
-            return Math.max(w, 80.0 * SCALE);
+            return Math.max(w, 80.0);
         }
         return super.getWidth(nodeId);
     }
@@ -58,9 +56,9 @@ public class TextAwareNodeMetrics extends NodeMetrics {
     @Override
     public double getHeight(String nodeId) {
         if (data != null && nodeId != null && isIndividual(nodeId)) {
-            double lineH = baseFontSize * LINE_SPACING * SCALE;
-            double h = (V_PAD * SCALE) * 2.0 + lineH * 3.0;
-            return Math.max(h, 60.0 * SCALE);
+            double lineH = baseFontSize * LINE_SPACING;
+            double h = V_PAD * 2.0 + lineH * 3.0;
+            return Math.max(h, 60.0);
         }
         return super.getHeight(nodeId);
     }

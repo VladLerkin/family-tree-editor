@@ -90,10 +90,10 @@ public class TreeRenderer {
                     g.drawRect(x, y, w, h);
 
                     // Text layout: three lines, centered
-                    double fontSize = 12.0 * 2.0 * Math.max(zoom, 0.1);
+                    double fontSize = 12.0 * Math.max(zoom, 0.1);
                     g.setFontSize(fontSize);
                     double lineH = fontSize * com.pedigree.render.TextAwareNodeMetrics.lineSpacing();
-                    double padV = com.pedigree.render.TextAwareNodeMetrics.verticalPadding() * zoom * 2.0;
+                    double padV = com.pedigree.render.TextAwareNodeMetrics.verticalPadding() * zoom;
                     double cx = x + w / 2.0;
                     double y1 = y + padV + lineH; // baseline of first line
                     double y2 = y + padV + lineH * 2.0; // baseline of second line

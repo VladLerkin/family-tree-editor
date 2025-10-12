@@ -254,7 +254,7 @@ public class MainWindow {
 
     private void newProject() {
         projectService.createNewProject();
-        refreshAll();
+        refreshAll(true);  // true = new project, use 1:1 zoom
         statusBar.setText("New project created");
     }
 
@@ -268,6 +268,8 @@ public class MainWindow {
         try {
             projectService.openProject(path);
             refreshAll();
+            // Fit tree to canvas after opening
+            fitTreeToCanvas();
             statusBar.setText("Opened: " + path);
         } catch (Exception ex) {
             Dialogs.showError("Open Project Failed", ex.getMessage());
@@ -318,6 +320,8 @@ public class MainWindow {
             projectService.getCurrentData().families.addAll(imported.families);
             projectService.getCurrentData().relationships.addAll(imported.relationships);
             refreshAll();
+            // Fit tree to canvas after import
+            fitTreeToCanvas();
             statusBar.setText("Imported GEDCOM: " + path);
         } catch (Exception ex) {
             Dialogs.showError("Import GEDCOM Failed", ex.getMessage());
@@ -338,6 +342,8 @@ public class MainWindow {
             projectService.getCurrentData().families.addAll(imported.families);
             projectService.getCurrentData().relationships.addAll(imported.relationships);
             refreshAll();
+            // Fit tree to canvas after import
+            fitTreeToCanvas();
             statusBar.setText("Imported REL: " + path);
         } catch (Exception ex) {
             Dialogs.showError("Import REL Failed", ex.getMessage());
@@ -677,6 +683,10 @@ public class MainWindow {
     }
 
     private void refreshAll() {
+        refreshAll(false);  // default: not a new project
+    }
+
+    private void refreshAll(boolean isNewProject) {
         ProjectRepository.ProjectData data = projectService.getCurrentData();
         canvasView.setProjectData(data);
         canvasView.setRenderer(renderer);
@@ -744,18 +754,25 @@ public class MainWindow {
                 }
                 persisted.setPositionsAreCenters(false);
             }
-            // Apply zoom and pan (open at minimum zoom unless a meaningful viewport was persisted)
+            // Apply zoom and pan
             boolean hasViewport = persisted.getZoom() != 1.0
                     || persisted.getViewOriginX() != 0.0
                     || persisted.getViewOriginY() != 0.0;
             if (hasViewport) {
+                // Has meaningful persisted viewport: restore it
                 canvasView.setZoom(persisted.getZoom());
                 double dx = persisted.getViewOriginX() - canvasView.getZoomAndPan().getPanX();
                 double dy = persisted.getViewOriginY() - canvasView.getZoomAndPan().getPanY();
                 if (dx != 0 || dy != 0) canvasView.panBy(dx, dy);
             } else {
-                // No meaningful persisted viewport: start at minimal zoom
-                canvasView.setZoom(canvasView.getZoomAndPan().getMinZoom());
+                // No meaningful persisted viewport
+                if (isNewProject) {
+                    // New project: use static 1:1 zoom
+                    canvasView.setZoom(1.0);
+                } else {
+                    // Normal refresh: preserve current zoom (don't re-fit)
+                    // Zoom is already set in canvasView, so do nothing
+                }
             }
         }
 
@@ -771,6 +788,65 @@ public class MainWindow {
 
     private void onSelectionChanged(Set<String> selectedIds) {
         propertiesInspector.setSelection(selectedIds);
+    }
+
+    private void fitTreeToCanvas() {
+        var layout = canvasView.getLayout();
+        if (layout != null && layout.getNodeIds() != null && !layout.getNodeIds().isEmpty()) {
+            double fitZoom = computeFitToCanvasZoom(layout, metrics);
+            canvasView.setZoom(fitZoom);
+            canvasPane.draw();
+        }
+    }
+
+    private double computeFitToCanvasZoom(com.pedigree.layout.LayoutResult layout, NodeMetrics metrics) {
+        // Compute tree bounding box
+        double minX = Double.POSITIVE_INFINITY, minY = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY, maxY = Double.NEGATIVE_INFINITY;
+        Set<String> ids = layout.getNodeIds();
+        for (String id : ids) {
+            java.awt.geom.Point2D p = layout.getPosition(id);
+            if (p == null) continue;
+            double x = p.getX();
+            double y = p.getY();
+            double w = metrics.getWidth(id);
+            double h = metrics.getHeight(id);
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
+            maxX = Math.max(maxX, x + w);
+            maxY = Math.max(maxY, y + h);
+        }
+        
+        // If tree is empty, return 1.0
+        if (ids.isEmpty() || minX == Double.POSITIVE_INFINITY) {
+            return 1.0;
+        }
+        
+        // Get canvas dimensions
+        double canvasWidth = canvasPane.getView().getWidth();
+        double canvasHeight = canvasPane.getView().getHeight();
+        
+        // If canvas not yet sized, return 1.0
+        if (canvasWidth <= 0 || canvasHeight <= 0) {
+            return 1.0;
+        }
+        
+        // Calculate tree dimensions with margin
+        double margin = 40.0;
+        double treeWidth = maxX - minX;
+        double treeHeight = maxY - minY;
+        
+        // Calculate zoom to fit
+        double zoomX = (canvasWidth - 2 * margin) / treeWidth;
+        double zoomY = (canvasHeight - 2 * margin) / treeHeight;
+        double zoom = Math.min(zoomX, zoomY);
+        
+        // Clamp zoom to reasonable bounds
+        double minZoom = canvasView.getZoomAndPan().getMinZoom();
+        double maxZoom = canvasView.getZoomAndPan().getMaxZoom();
+        zoom = Math.max(minZoom, Math.min(maxZoom, zoom));
+        
+        return zoom;
     }
 
     private void markDirty() {
