@@ -1,6 +1,5 @@
 package com.pedigree.gedcom;
 
-import com.pedigree.model.Event;
 import com.pedigree.model.Family;
 import com.pedigree.model.Gender;
 import com.pedigree.model.Individual;
@@ -10,7 +9,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.LocalDate;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -102,7 +100,7 @@ public class GedcomImporter {
                 } else if (level == 2) {
                     String ctx = context.peek();
                     if ("MARR".equals(ctx)) {
-                        if ("DATE".equals(tag)) curFam.marrDate = GedcomMapper.parseDate(value);
+                        if ("DATE".equals(tag)) curFam.marrDate = value;
                         else if ("PLAC".equals(tag)) curFam.marrPlace = value;
                     }
                 }
@@ -137,13 +135,8 @@ public class GedcomImporter {
                 String id = indiIdByXref.get(cx);
                 if (id != null) fam.getChildrenIds().add(id);
             }
-            if (r.marrDate != null || (r.marrPlace != null && !r.marrPlace.isBlank())) {
-                Event ev = new Event();
-                ev.setType("MARRIAGE");
-                if (r.marrDate != null) ev.setDate(r.marrDate);
-                if (r.marrPlace != null) ev.setPlace(r.marrPlace);
-                fam.setMarriage(ev);
-            }
+            if (r.marrDate != null) fam.setMarriageDate(r.marrDate);
+            if (r.marrPlace != null) fam.setMarriagePlace(r.marrPlace);
             data.families.add(fam);
             if (r.xref != null) famIdByXref.put(r.xref, fam.getId());
 
@@ -194,7 +187,7 @@ public class GedcomImporter {
         String husbXref;
         String wifeXref;
         List<String> childXrefs = new ArrayList<>();
-        LocalDate marrDate;
+        String marrDate;
         String marrPlace;
     }
 }
