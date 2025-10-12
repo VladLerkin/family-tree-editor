@@ -292,8 +292,8 @@ public class RelImporter {
     private static final Pattern RUS_SURN_RE = Pattern.compile("ФАМИЛИ[ЯИ]\\P{L}*([^\\r\\n]+)", RU_FLAGS);
     private static final Pattern RUS_SEX_LETTER_RE = Pattern.compile("ПОЛ\\P{L}*([МЖ])", RU_FLAGS);
     private static final Pattern RUS_SEX_WORD_RE = Pattern.compile("(Муж(ской)?|Жен(ский)?)", RU_FLAGS);
-    private static final Pattern BIRT_RE = Pattern.compile("BIRT.*?DATE\\((.+?)\\)", Pattern.DOTALL);
-    private static final Pattern DEAT_RE = Pattern.compile("DEAT.*?DATE\\((.+?)\\)", Pattern.DOTALL);
+    private static final Pattern BIRT_RE = Pattern.compile("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern DEAT_RE = Pattern.compile("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final int POS_FLAGS = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
     private static final Pattern POS_X_RE = Pattern.compile("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
     private static final Pattern POS_Y_RE = Pattern.compile("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
@@ -589,7 +589,9 @@ public class RelImporter {
         if (s == null) return null;
         String t = s.replaceAll("[\\p{Cntrl}]", "").trim();
         if (t.isEmpty()) return null;
-        return t;
+        // Remove leading length markers (digits) from binary TLV format before date content
+        t = t.replaceFirst("^[\\d\\s]+(?=[A-Z@(])", "");
+        return t.trim();
     }
 
     private static LocalDate parseDateLocal(String s) {

@@ -25,6 +25,8 @@ public class DatePhraseDialog {
     }
 
     private static final String[] MONTHS = {"", "JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"};
+    private static final String[] HEBREW_MONTHS = {"", "TSH", "CSH", "KSL", "TVT", "SHV", "ADR", "ADS", "NSN", "IYR", "SVN", "TMZ", "AAV"};
+    private static final String[] FRENCH_REV_MONTHS = {"", "VEND", "BRUM", "FRIM", "NIVO", "PLUV", "VENT", "GERM", "FLOR", "PRAI", "MESS", "THER", "FRUC"};
 
     private static ComboBox<String> createDayCombo() {
         ComboBox<String> cb = new ComboBox<>();
@@ -33,6 +35,25 @@ public class DatePhraseDialog {
         cb.getSelectionModel().select(0);
         cb.setPrefWidth(65);
         return cb;
+    }
+
+    private static void updateMonthCombo(ComboBox<String> monthCombo, Calendar calendar) {
+        String currentSelection = monthCombo.getSelectionModel().getSelectedItem();
+        monthCombo.getItems().clear();
+        String[] monthArray = switch (calendar) {
+            case HEBREW -> HEBREW_MONTHS;
+            case FRENCH_REV -> FRENCH_REV_MONTHS;
+            default -> MONTHS;
+        };
+        for (String m : monthArray) {
+            monthCombo.getItems().add(m);
+        }
+        // Try to preserve selection if it exists in the new list
+        if (currentSelection != null && monthCombo.getItems().contains(currentSelection)) {
+            monthCombo.getSelectionModel().select(currentSelection);
+        } else {
+            monthCombo.getSelectionModel().select(0);
+        }
     }
 
     private static <T> void standardize(ComboBox<T> cal, ComboBox<String> day, ComboBox<String> month, TextField year) {
@@ -68,6 +89,16 @@ public class DatePhraseDialog {
         TextField y1 = new TextField();
         CheckBox bc1 = new CheckBox("B.C.");
         standardize(cal1, d1, m1, y1);
+        // Disable B.C. for HEBREW and FRENCH_REV calendars, and update month names
+        cal1.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bc1.setSelected(false);
+                bc1.setDisable(true);
+            } else {
+                bc1.setDisable(false);
+            }
+            updateMonthCombo(m1, newVal);
+        });
 
         // Period FROM .. TO
         CheckBox fromChecked = new CheckBox("FROM"); fromChecked.setSelected(true);
@@ -84,6 +115,25 @@ public class DatePhraseDialog {
         CheckBox bcTo = new CheckBox("B.C.");
         standardize(calFrom, dFrom, mFrom, yFrom);
         standardize(calTo, dTo, mTo, yTo);
+        // Disable B.C. for HEBREW and FRENCH_REV calendars, and update month names
+        calFrom.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcFrom.setSelected(false);
+                bcFrom.setDisable(true);
+            } else {
+                bcFrom.setDisable(!fromChecked.isSelected());
+            }
+            updateMonthCombo(mFrom, newVal);
+        });
+        calTo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcTo.setSelected(false);
+                bcTo.setDisable(true);
+            } else {
+                bcTo.setDisable(!toChecked.isSelected());
+            }
+            updateMonthCombo(mTo, newVal);
+        });
 
         // Enable/disable left-side FROM fields based on checkbox
         fromChecked.selectedProperty().addListener((obs, o, n) -> {
@@ -116,6 +166,8 @@ public class DatePhraseDialog {
         bcTo.setDisable(!toChecked.isSelected());
 
         // Range BET .. AND
+        ComboBox<String> rangeType = new ComboBox<>(); rangeType.getItems().addAll("BET", "BEF", "AFT"); rangeType.getSelectionModel().select("BET");
+        rangeType.setPrefWidth(70);
         ComboBox<Calendar> calBet = new ComboBox<>(); calBet.getItems().addAll(Calendar.values()); calBet.getSelectionModel().select(Calendar.GREGORIAN);
         ComboBox<String> dBet = createDayCombo();
         ComboBox<String> mBet = new ComboBox<>(); for (String m: MONTHS) mBet.getItems().add(m); mBet.getSelectionModel().select(0);
@@ -129,9 +181,28 @@ public class DatePhraseDialog {
         CheckBox bcAnd = new CheckBox("B.C.");
         standardize(calBet, dBet, mBet, yBet);
         standardize(calAnd, dAnd, mAnd, yAnd);
+        // Disable B.C. for HEBREW and FRENCH_REV calendars, and update month names
+        calBet.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcBet.setSelected(false);
+                bcBet.setDisable(true);
+            } else {
+                bcBet.setDisable(false);
+            }
+            updateMonthCombo(mBet, newVal);
+        });
+        calAnd.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcAnd.setSelected(false);
+                bcAnd.setDisable(true);
+            } else {
+                bcAnd.setDisable(false);
+            }
+            updateMonthCombo(mAnd, newVal);
+        });
 
         // Approx ABT
-        ComboBox<String> approxType = new ComboBox<>(); approxType.getItems().addAll("ABT", "EST", "CAL"); approxType.getSelectionModel().select("ABT");
+        ComboBox<String> approxType = new ComboBox<>(); approxType.getItems().addAll("ABT", "CAL", "EST"); approxType.getSelectionModel().select("ABT");
         approxType.setPrefWidth(70);
         ComboBox<Calendar> calAbt = new ComboBox<>(); calAbt.getItems().addAll(Calendar.values()); calAbt.getSelectionModel().select(Calendar.GREGORIAN);
         ComboBox<String> dAbt = createDayCombo();
@@ -139,6 +210,16 @@ public class DatePhraseDialog {
         TextField yAbt = new TextField();
         CheckBox bcAbt = new CheckBox("B.C.");
         standardize(calAbt, dAbt, mAbt, yAbt);
+        // Disable B.C. for HEBREW and FRENCH_REV calendars, and update month names
+        calAbt.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcAbt.setSelected(false);
+                bcAbt.setDisable(true);
+            } else {
+                bcAbt.setDisable(false);
+            }
+            updateMonthCombo(mAbt, newVal);
+        });
 
         // Interpreted INT (date (phrase))
         ComboBox<Calendar> calInt = new ComboBox<>(); calInt.getItems().addAll(Calendar.values()); calInt.getSelectionModel().select(Calendar.GREGORIAN);
@@ -148,6 +229,16 @@ public class DatePhraseDialog {
         CheckBox bcInt = new CheckBox("B.C.");
         TextField phraseInt = new TextField(); phraseInt.setPrefColumnCount(18);
         standardize(calInt, dInt, mInt, yInt);
+        // Disable B.C. for HEBREW and FRENCH_REV calendars, and update month names
+        calInt.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == Calendar.HEBREW || newVal == Calendar.FRENCH_REV) {
+                bcInt.setSelected(false);
+                bcInt.setDisable(true);
+            } else {
+                bcInt.setDisable(false);
+            }
+            updateMonthCombo(mInt, newVal);
+        });
 
         // Free phrase
         TextField phrase = new TextField();
@@ -159,8 +250,6 @@ public class DatePhraseDialog {
         Label emptyLbl = new Label("");
         setFixedWidth(emptyLbl, 70);
         setFixedWidth(fromChecked, 70);
-        Label betLbl = new Label("BET");
-        setFixedWidth(betLbl, 70);
         Label intLbl = new Label("INT");
         setFixedWidth(intLbl, 70);
 
@@ -191,7 +280,7 @@ public class DatePhraseDialog {
         
         // Range row: BET in col 1, calendar in col 2 (aligned with FROM row calendar)
         grid.add(rbRange, 0, r);
-        grid.add(betLbl, 1, r);
+        grid.add(rangeType, 1, r);
         grid.add(calBet, 2, r);
         grid.add(dBet, 3, r);
         grid.add(mBet, 4, r);
@@ -238,10 +327,15 @@ public class DatePhraseDialog {
         HBox actions = new HBox(8, btnOk, btnCancel);
         grid.add(actions, 1, r);
 
-        // Pre-fill simple initial phrase if provided
+        // Pre-fill based on initial date string if provided
         if (initial != null && !initial.isBlank()) {
-            phrase.setText(initial);
-            rbPhrase.setSelected(true);
+            parseAndPopulate(initial, rbExact, rbPeriod, rbRange, rbApprox, rbInterpreted, rbPhrase,
+                    cal1, d1, m1, y1, bc1,
+                    fromChecked, calFrom, dFrom, mFrom, yFrom, bcFrom, toChecked, calTo, dTo, mTo, yTo, bcTo,
+                    rangeType, calBet, dBet, mBet, yBet, bcBet, calAnd, dAnd, mAnd, yAnd, bcAnd,
+                    approxType, calAbt, dAbt, mAbt, yAbt, bcAbt,
+                    calInt, dInt, mInt, yInt, bcInt, phraseInt,
+                    phrase);
         } else {
             rbExact.setSelected(true);
         }
@@ -262,7 +356,7 @@ public class DatePhraseDialog {
                 String left = buildExact(calBet, dBet, mBet, yBet, bcBet);
                 String right = buildExact(calAnd, dAnd, mAnd, yAnd, bcAnd);
                 if (left == null || right == null) { showWarn(); return; }
-                result[0] = "BET " + left + " AND " + right;
+                result[0] = rangeType.getValue() + " " + left + " AND " + right;
             } else if (sel == rbApprox) {
                 String base = buildExact(calAbt, dAbt, mAbt, yAbt, bcAbt);
                 if (base == null) { showWarn(); return; }
@@ -271,11 +365,12 @@ public class DatePhraseDialog {
                 String base = buildExact(calInt, dInt, mInt, yInt, bcInt);
                 if (base == null) { showWarn(); return; }
                 String phr = phraseInt.getText() != null ? phraseInt.getText().trim() : "";
-                result[0] = "INT " + base + (phr.isEmpty() ? "" : " (" + phr + ")");
+                if (phr.isEmpty()) { showWarn(); return; }
+                result[0] = "INT " + base + " (" + phr + ")";
             } else {
                 String phr = phrase.getText() != null ? phrase.getText().trim() : "";
                 if (phr.isEmpty()) { showWarn(); return; }
-                result[0] = phr;
+                result[0] = "(" + phr + ")";
             }
             stage.close();
         });
@@ -297,7 +392,14 @@ public class DatePhraseDialog {
         if (day == null) day = "";
         StringBuilder sb = new StringBuilder();
         if (cal.getValue() != null && cal.getValue() != Calendar.GREGORIAN) {
-            sb.append(cal.getValue().label).append(' ');
+            String escapeCode = switch (cal.getValue()) {
+                case HEBREW -> "@#DHEBREW@";
+                case FRENCH_REV -> "@#DFRENCH R@";
+                case JULIAN -> "@#DJULIAN@";
+                case UNKNOWN -> "@#DUNKNOWN@";
+                default -> cal.getValue().label;
+            };
+            sb.append(escapeCode).append(' ');
         }
         if (!day.isEmpty()) sb.append(day).append(' ');
         if (month != null && !month.isEmpty()) sb.append(month).append(' ');
@@ -305,6 +407,214 @@ public class DatePhraseDialog {
         if (!year.isEmpty()) sb.append(year);
         if (bc.isSelected()) sb.append(" B.C.");
         return sb.toString().trim();
+    }
+
+    private static void parseAndPopulate(String initial,
+                                         RadioButton rbExact, RadioButton rbPeriod, RadioButton rbRange, RadioButton rbApprox, RadioButton rbInterpreted, RadioButton rbPhrase,
+                                         ComboBox<Calendar> cal1, ComboBox<String> d1, ComboBox<String> m1, TextField y1, CheckBox bc1,
+                                         CheckBox fromChecked, ComboBox<Calendar> calFrom, ComboBox<String> dFrom, ComboBox<String> mFrom, TextField yFrom, CheckBox bcFrom,
+                                         CheckBox toChecked, ComboBox<Calendar> calTo, ComboBox<String> dTo, ComboBox<String> mTo, TextField yTo, CheckBox bcTo,
+                                         ComboBox<String> rangeType, ComboBox<Calendar> calBet, ComboBox<String> dBet, ComboBox<String> mBet, TextField yBet, CheckBox bcBet,
+                                         ComboBox<Calendar> calAnd, ComboBox<String> dAnd, ComboBox<String> mAnd, TextField yAnd, CheckBox bcAnd,
+                                         ComboBox<String> approxType, ComboBox<Calendar> calAbt, ComboBox<String> dAbt, ComboBox<String> mAbt, TextField yAbt, CheckBox bcAbt,
+                                         ComboBox<Calendar> calInt, ComboBox<String> dInt, ComboBox<String> mInt, TextField yInt, CheckBox bcInt, TextField phraseInt,
+                                         TextField phrase) {
+        String s = initial.trim();
+        
+        // Check for Interpreted date: INT date (phrase)
+        if (s.startsWith("INT ")) {
+            rbInterpreted.setSelected(true);
+            String rest = s.substring(4).trim();
+            int parenIndex = rest.indexOf('(');
+            if (parenIndex > 0) {
+                String datePart = rest.substring(0, parenIndex).trim();
+                String phrasePart = rest.substring(parenIndex + 1).trim();
+                if (phrasePart.endsWith(")")) {
+                    phrasePart = phrasePart.substring(0, phrasePart.length() - 1).trim();
+                }
+                parseDateIntoControls(datePart, calInt, dInt, mInt, yInt, bcInt);
+                phraseInt.setText(phrasePart);
+            } else {
+                parseDateIntoControls(rest, calInt, dInt, mInt, yInt, bcInt);
+            }
+            return;
+        }
+        
+        // Check for Approximated date: ABT/CAL/EST date
+        if (s.startsWith("ABT ") || s.startsWith("CAL ") || s.startsWith("EST ")) {
+            rbApprox.setSelected(true);
+            String typeStr = s.substring(0, 3);
+            approxType.getSelectionModel().select(typeStr);
+            String rest = s.substring(4).trim();
+            parseDateIntoControls(rest, calAbt, dAbt, mAbt, yAbt, bcAbt);
+            return;
+        }
+        
+        // Check for Range: BET/BEF/AFT date AND date
+        if (s.startsWith("BET ") || s.startsWith("BEF ") || s.startsWith("AFT ")) {
+            int andIndex = s.indexOf(" AND ");
+            if (andIndex > 0) {
+                rbRange.setSelected(true);
+                String typeStr = s.substring(0, 3);
+                rangeType.getSelectionModel().select(typeStr);
+                String leftPart = s.substring(4, andIndex).trim();
+                String rightPart = s.substring(andIndex + 5).trim();
+                parseDateIntoControls(leftPart, calBet, dBet, mBet, yBet, bcBet);
+                parseDateIntoControls(rightPart, calAnd, dAnd, mAnd, yAnd, bcAnd);
+                return;
+            }
+        }
+        
+        // Check for Period: FROM date TO date
+        boolean hasFrom = s.startsWith("FROM ");
+        int toIndex = s.indexOf(" TO ");
+        if (hasFrom || toIndex > 0) {
+            rbPeriod.setSelected(true);
+            if (hasFrom) {
+                fromChecked.setSelected(true);
+                String fromPart;
+                if (toIndex > 0) {
+                    fromPart = s.substring(5, toIndex).trim();
+                    String toPart = s.substring(toIndex + 4).trim();
+                    toChecked.setSelected(true);
+                    parseDateIntoControls(fromPart, calFrom, dFrom, mFrom, yFrom, bcFrom);
+                    parseDateIntoControls(toPart, calTo, dTo, mTo, yTo, bcTo);
+                } else {
+                    fromPart = s.substring(5).trim();
+                    toChecked.setSelected(false);
+                    parseDateIntoControls(fromPart, calFrom, dFrom, mFrom, yFrom, bcFrom);
+                }
+            } else {
+                // Only TO part
+                fromChecked.setSelected(false);
+                toChecked.setSelected(true);
+                String toPart = s.substring(toIndex + 4).trim();
+                parseDateIntoControls(toPart, calTo, dTo, mTo, yTo, bcTo);
+            }
+            return;
+        }
+        
+        // Check if it looks like a simple date (contains year or month codes)
+        if (s.matches(".*\\d+.*") || containsMonthCode(s)) {
+            rbExact.setSelected(true);
+            parseDateIntoControls(s, cal1, d1, m1, y1, bc1);
+            return;
+        }
+        
+        // Default to phrase
+        rbPhrase.setSelected(true);
+        // Strip parentheses if present
+        if (s.startsWith("(") && s.endsWith(")")) {
+            s = s.substring(1, s.length() - 1).trim();
+        }
+        phrase.setText(s);
+    }
+    
+    private static boolean containsMonthCode(String s) {
+        for (String m : MONTHS) {
+            if (!m.isEmpty() && s.contains(m)) return true;
+        }
+        for (String m : HEBREW_MONTHS) {
+            if (!m.isEmpty() && s.contains(m)) return true;
+        }
+        for (String m : FRENCH_REV_MONTHS) {
+            if (!m.isEmpty() && s.contains(m)) return true;
+        }
+        return false;
+    }
+    
+    private static void parseDateIntoControls(String datePart, ComboBox<Calendar> cal, ComboBox<String> d, ComboBox<String> m, TextField y, CheckBox bc) {
+        if (datePart == null || datePart.isEmpty()) return;
+        
+        String s = datePart.trim();
+        Calendar calendar = Calendar.GREGORIAN;
+        
+        // Check for calendar escape codes
+        if (s.startsWith("@#DHEBREW@")) {
+            calendar = Calendar.HEBREW;
+            s = s.substring(10).trim();
+        } else if (s.startsWith("@#DFRENCH R@")) {
+            calendar = Calendar.FRENCH_REV;
+            s = s.substring(12).trim();
+        } else if (s.startsWith("@#DJULIAN@")) {
+            calendar = Calendar.JULIAN;
+            s = s.substring(10).trim();
+        } else if (s.startsWith("@#DUNKNOWN@")) {
+            calendar = Calendar.UNKNOWN;
+            s = s.substring(11).trim();
+        }
+        
+        cal.getSelectionModel().select(calendar);
+        
+        // Check for B.C.
+        boolean isBc = s.endsWith(" B.C.");
+        if (isBc) {
+            s = s.substring(0, s.length() - 5).trim();
+            bc.setSelected(true);
+        } else {
+            bc.setSelected(false);
+        }
+        
+        // Parse date components: day month year or month year or just year
+        String[] parts = s.split("\\s+");
+        String dayStr = "", monthStr = "", yearStr = "";
+        
+        if (parts.length == 3) {
+            // day month year
+            dayStr = parts[0];
+            monthStr = parts[1];
+            yearStr = parts[2];
+        } else if (parts.length == 2) {
+            // Could be day month, month year, or day year
+            if (isMonthCode(parts[0])) {
+                monthStr = parts[0];
+                yearStr = parts[1];
+            } else if (isMonthCode(parts[1])) {
+                dayStr = parts[0];
+                monthStr = parts[1];
+            } else {
+                // Assume month year
+                monthStr = parts[0];
+                yearStr = parts[1];
+            }
+        } else if (parts.length == 1) {
+            // Just year or month
+            if (isMonthCode(parts[0])) {
+                monthStr = parts[0];
+            } else {
+                yearStr = parts[0];
+            }
+        }
+        
+        // Set day
+        if (!dayStr.isEmpty() && dayStr.matches("\\d+")) {
+            d.getSelectionModel().select(dayStr);
+        } else {
+            d.getSelectionModel().select(0);
+        }
+        
+        // Set month
+        if (!monthStr.isEmpty()) {
+            m.getSelectionModel().select(monthStr);
+        } else {
+            m.getSelectionModel().select(0);
+        }
+        
+        // Set year
+        y.setText(yearStr);
+    }
+    
+    private static boolean isMonthCode(String s) {
+        for (String m : MONTHS) {
+            if (!m.isEmpty() && m.equals(s)) return true;
+        }
+        for (String m : HEBREW_MONTHS) {
+            if (!m.isEmpty() && m.equals(s)) return true;
+        }
+        for (String m : FRENCH_REV_MONTHS) {
+            if (!m.isEmpty() && m.equals(s)) return true;
+        }
+        return false;
     }
 
 }
