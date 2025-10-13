@@ -25,6 +25,9 @@ public class ProjectRepository {
         public List<Family> families = new com.pedigree.util.DirtyObservableList<>();
         public List<Relationship> relationships = new com.pedigree.util.DirtyObservableList<>();
         public List<Tag> tags = new com.pedigree.util.DirtyObservableList<>();
+        public List<Source> sources = new com.pedigree.util.DirtyObservableList<>();
+        public List<Repository> repositories = new com.pedigree.util.DirtyObservableList<>();
+        public List<Submitter> submitters = new com.pedigree.util.DirtyObservableList<>();
     }
 
     private final ObjectMapper objectMapper;
@@ -110,6 +113,9 @@ public class ProjectRepository {
             data.families = new com.pedigree.util.DirtyObservableList<>(data.families);
             data.relationships = new com.pedigree.util.DirtyObservableList<>(data.relationships);
             data.tags = new com.pedigree.util.DirtyObservableList<>(data.tags);
+            data.sources = new com.pedigree.util.DirtyObservableList<>(data.sources);
+            data.repositories = new com.pedigree.util.DirtyObservableList<>(data.repositories);
+            data.submitters = new com.pedigree.util.DirtyObservableList<>(data.submitters);
         }
         com.pedigree.util.DirtyFlag.clear();
         return new LoadedProject(data, layout, meta);

@@ -14,6 +14,8 @@ public class Family {
     private final List<String> childrenIds;
     private String marriageDate;
     private String marriagePlace;
+    private final List<GedcomEvent> events; // All family events (MARR, DIV, ANUL, etc.)
+    private final List<SourceCitation> sources; // Source citations
     private final List<Note> notes;
     private final List<MediaAttachment> media;
     private final List<Tag> tags;
@@ -25,6 +27,8 @@ public class Family {
     public Family(String id) {
         this.id = Objects.requireNonNull(id, "id");
         this.childrenIds = new com.pedigree.util.DirtyObservableList<>();
+        this.events = new com.pedigree.util.DirtyObservableList<>();
+        this.sources = new com.pedigree.util.DirtyObservableList<>();
         this.notes = new com.pedigree.util.DirtyObservableList<>();
         this.media = new com.pedigree.util.DirtyObservableList<>();
         this.tags = new com.pedigree.util.DirtyObservableList<>();
@@ -39,6 +43,8 @@ public class Family {
             @JsonProperty("marriageDate") String marriageDate,
             @JsonProperty("marriagePlace") String marriagePlace,
             @JsonProperty("marriage") Event marriage,
+            @JsonProperty("events") List<GedcomEvent> events,
+            @JsonProperty("sources") List<SourceCitation> sources,
             @JsonProperty("notes") List<Note> notes,
             @JsonProperty("media") List<MediaAttachment> media,
             @JsonProperty("tags") List<Tag> tags
@@ -55,6 +61,8 @@ public class Family {
             this.marriageDate = marriageDate;
             this.marriagePlace = marriagePlace;
         }
+        this.events = (events != null) ? new com.pedigree.util.DirtyObservableList<>(events) : new com.pedigree.util.DirtyObservableList<>();
+        this.sources = (sources != null) ? new com.pedigree.util.DirtyObservableList<>(sources) : new com.pedigree.util.DirtyObservableList<>();
         this.notes = (notes != null) ? new com.pedigree.util.DirtyObservableList<>(notes) : new com.pedigree.util.DirtyObservableList<>();
         this.media = (media != null) ? new com.pedigree.util.DirtyObservableList<>(media) : new com.pedigree.util.DirtyObservableList<>();
         this.tags = (tags != null) ? new com.pedigree.util.DirtyObservableList<>(tags) : new com.pedigree.util.DirtyObservableList<>();
@@ -93,6 +101,10 @@ public class Family {
         this.marriagePlace = marriagePlace;
         com.pedigree.util.DirtyFlag.setModified();
     }
+
+    public List<GedcomEvent> getEvents() { return events; }
+
+    public List<SourceCitation> getSources() { return sources; }
 
     public List<Note> getNotes() { return notes; }
 

@@ -17,6 +17,8 @@ public class Individual {
     private String birthPlace;
     private String deathDate;
     private String deathPlace;
+    private final List<GedcomEvent> events; // All events (BIRT, DEAT, BURI, ADOP, RESI, etc.)
+    private final List<SourceCitation> sources; // Source citations
     private final List<Note> notes;
     private final List<MediaAttachment> media;
     private final List<Tag> tags;
@@ -30,6 +32,8 @@ public class Individual {
         this.firstName = Objects.requireNonNull(firstName, "firstName");
         this.lastName = Objects.requireNonNull(lastName, "lastName");
         this.gender = Objects.requireNonNull(gender, "gender");
+        this.events = new com.pedigree.util.DirtyObservableList<>();
+        this.sources = new com.pedigree.util.DirtyObservableList<>();
         this.notes = new com.pedigree.util.DirtyObservableList<>();
         this.media = new com.pedigree.util.DirtyObservableList<>();
         this.tags = new com.pedigree.util.DirtyObservableList<>();
@@ -45,6 +49,8 @@ public class Individual {
             @JsonProperty("birthPlace") String birthPlace,
             @JsonProperty("deathDate") String deathDate,
             @JsonProperty("deathPlace") String deathPlace,
+            @JsonProperty("events") List<GedcomEvent> events,
+            @JsonProperty("sources") List<SourceCitation> sources,
             @JsonProperty("notes") List<Note> notes,
             @JsonProperty("media") List<MediaAttachment> media,
             @JsonProperty("tags") List<Tag> tags
@@ -57,6 +63,8 @@ public class Individual {
         this.birthPlace = birthPlace;
         this.deathDate = deathDate;
         this.deathPlace = deathPlace;
+        this.events = (events != null) ? new com.pedigree.util.DirtyObservableList<>(events) : new com.pedigree.util.DirtyObservableList<>();
+        this.sources = (sources != null) ? new com.pedigree.util.DirtyObservableList<>(sources) : new com.pedigree.util.DirtyObservableList<>();
         this.notes = (notes != null) ? new com.pedigree.util.DirtyObservableList<>(notes) : new com.pedigree.util.DirtyObservableList<>();
         this.media = (media != null) ? new com.pedigree.util.DirtyObservableList<>(media) : new com.pedigree.util.DirtyObservableList<>();
         this.tags = (tags != null) ? new com.pedigree.util.DirtyObservableList<>(tags) : new com.pedigree.util.DirtyObservableList<>();
@@ -77,6 +85,8 @@ public class Individual {
     public void setDeathDate(String deathDate) { this.deathDate = deathDate; com.pedigree.util.DirtyFlag.setModified(); }
     public String getDeathPlace() { return deathPlace; }
     public void setDeathPlace(String deathPlace) { this.deathPlace = deathPlace; com.pedigree.util.DirtyFlag.setModified(); }
+    public List<GedcomEvent> getEvents() { return events; }
+    public List<SourceCitation> getSources() { return sources; }
     public List<Note> getNotes() { return notes; }
     public List<MediaAttachment> getMedia() { return media; }
     public List<Tag> getTags() { return tags; }
