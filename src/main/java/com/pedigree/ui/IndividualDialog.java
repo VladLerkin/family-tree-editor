@@ -20,14 +20,14 @@ public class IndividualDialog {
         stage.setTitle("New Individual");
 
         GridPane grid = buildForm(null);
-        Scene scene = new Scene(grid, 520, 360);
+        Scene scene = new Scene(grid, 520, 240);
         stage.setScene(scene);
 
         final Individual[] result = new Individual[1];
         Button btnOk = new Button("Create");
         Button btnCancel = new Button("Cancel");
-        grid.add(btnOk, 0, 8);
-        grid.add(btnCancel, 1, 8);
+        grid.add(btnOk, 0, 4);
+        grid.add(btnCancel, 1, 4);
 
         btnOk.setDefaultButton(true);
         btnCancel.setCancelButton(true);
@@ -36,16 +36,6 @@ public class IndividualDialog {
         TextField tfLast = (TextField) grid.lookup("#lastName");
         @SuppressWarnings("unchecked")
         ComboBox<Gender> cbGender = (ComboBox<Gender>) grid.lookup("#gender");
-        TextField tfBirth = (TextField) grid.lookup("#birthDate");
-        Button btnBirth = (Button) grid.lookup("#birthPicker");
-        TextField tfBirthPlace = (TextField) grid.lookup("#birthPlace");
-        TextField tfDeath = (TextField) grid.lookup("#deathDate");
-        Button btnDeath = (Button) grid.lookup("#deathPicker");
-        TextField tfDeathPlace = (TextField) grid.lookup("#deathPlace");
-
-        DatePhraseDialog dateDlg = new DatePhraseDialog();
-        btnBirth.setOnAction(ev -> dateDlg.show(tfBirth.getText()).ifPresent(tfBirth::setText));
-        btnDeath.setOnAction(ev -> dateDlg.show(tfDeath.getText()).ifPresent(tfDeath::setText));
 
         btnOk.setOnAction(e -> {
             String first = tfFirst.getText() != null ? tfFirst.getText().trim() : "";
@@ -56,14 +46,6 @@ public class IndividualDialog {
                 return;
             }
             Individual ind = new Individual(first, last, gender);
-            String bd = tfBirth.getText();
-            String bp = tfBirthPlace.getText();
-            String dd = tfDeath.getText();
-            String dp = tfDeathPlace.getText();
-            if (bd != null && !bd.isBlank()) ind.setBirthDate(bd.trim());
-            if (bp != null && !bp.isBlank()) ind.setBirthPlace(bp.trim());
-            if (dd != null && !dd.isBlank()) ind.setDeathDate(dd.trim());
-            if (dp != null && !dp.isBlank()) ind.setDeathPlace(dp.trim());
             result[0] = ind;
             stage.close();
         });
@@ -79,14 +61,14 @@ public class IndividualDialog {
         stage.setTitle("Edit Individual");
 
         GridPane grid = buildForm(individual);
-        Scene scene = new Scene(grid, 520, 360);
+        Scene scene = new Scene(grid, 520, 240);
         stage.setScene(scene);
 
         final boolean[] saved = new boolean[]{false};
         Button btnOk = new Button("Save");
         Button btnCancel = new Button("Cancel");
-        grid.add(btnOk, 0, 8);
-        grid.add(btnCancel, 1, 8);
+        grid.add(btnOk, 0, 4);
+        grid.add(btnCancel, 1, 4);
 
         btnOk.setDefaultButton(true);
         btnCancel.setCancelButton(true);
@@ -95,16 +77,6 @@ public class IndividualDialog {
         TextField tfLast = (TextField) grid.lookup("#lastName");
         @SuppressWarnings("unchecked")
         ComboBox<Gender> cbGender = (ComboBox<Gender>) grid.lookup("#gender");
-        TextField tfBirth = (TextField) grid.lookup("#birthDate");
-        Button btnBirth = (Button) grid.lookup("#birthPicker");
-        TextField tfBirthPlace = (TextField) grid.lookup("#birthPlace");
-        TextField tfDeath = (TextField) grid.lookup("#deathDate");
-        Button btnDeath = (Button) grid.lookup("#deathPicker");
-        TextField tfDeathPlace = (TextField) grid.lookup("#deathPlace");
-
-        DatePhraseDialog dateDlg = new DatePhraseDialog();
-        btnBirth.setOnAction(ev -> dateDlg.show(tfBirth.getText()).ifPresent(tfBirth::setText));
-        btnDeath.setOnAction(ev -> dateDlg.show(tfDeath.getText()).ifPresent(tfDeath::setText));
 
         btnOk.setOnAction(e -> {
             String first = tfFirst.getText() != null ? tfFirst.getText().trim() : "";
@@ -117,10 +89,6 @@ public class IndividualDialog {
             individual.setFirstName(first);
             individual.setLastName(last);
             individual.setGender(gender);
-            individual.setBirthDate(tfBirth.getText() != null ? tfBirth.getText().trim() : null);
-            individual.setBirthPlace(tfBirthPlace.getText() != null ? tfBirthPlace.getText().trim() : null);
-            individual.setDeathDate(tfDeath.getText() != null ? tfDeath.getText().trim() : null);
-            individual.setDeathPlace(tfDeathPlace.getText() != null ? tfDeathPlace.getText().trim() : null);
             saved[0] = true;
             stage.close();
         });
@@ -154,37 +122,9 @@ public class IndividualDialog {
             cbGender.setValue(existing.getGender());
         }
 
-        Label lBirth = new Label("Birth Date:");
-        TextField tfBirth = new TextField(existing != null ? nullToEmpty(existing.getBirthDate()) : "");
-        tfBirth.setId("birthDate");
-        tfBirth.setPrefWidth(300);
-        Button btnBirth = new Button("..."); btnBirth.setId("birthPicker");
-        HBox hbBirth = new HBox(6, tfBirth, btnBirth);
-
-        Label lBirthPlace = new Label("Birth Place:");
-        TextField tfBirthPlace = new TextField(existing != null ? nullToEmpty(existing.getBirthPlace()) : "");
-        tfBirthPlace.setId("birthPlace");
-        tfBirthPlace.setPrefWidth(300);
-
-        Label lDeath = new Label("Death Date:");
-        TextField tfDeath = new TextField(existing != null ? nullToEmpty(existing.getDeathDate()) : "");
-        tfDeath.setId("deathDate");
-        tfDeath.setPrefWidth(300);
-        Button btnDeath = new Button("..."); btnDeath.setId("deathPicker");
-        HBox hbDeath = new HBox(6, tfDeath, btnDeath);
-
-        Label lDeathPlace = new Label("Death Place:");
-        TextField tfDeathPlace = new TextField(existing != null ? nullToEmpty(existing.getDeathPlace()) : "");
-        tfDeathPlace.setId("deathPlace");
-        tfDeathPlace.setPrefWidth(300);
-
         grid.add(lFirst, 0, 0); grid.add(tfFirst, 1, 0);
         grid.add(lLast, 0, 1); grid.add(tfLast, 1, 1);
         grid.add(lGender, 0, 2); grid.add(cbGender, 1, 2);
-        grid.add(lBirth, 0, 3); grid.add(hbBirth, 1, 3);
-        grid.add(lBirthPlace, 0, 4); grid.add(tfBirthPlace, 1, 4);
-        grid.add(lDeath, 0, 5); grid.add(hbDeath, 1, 5);
-        grid.add(lDeathPlace, 0, 6); grid.add(tfDeathPlace, 1, 6);
 
         return grid;
     }

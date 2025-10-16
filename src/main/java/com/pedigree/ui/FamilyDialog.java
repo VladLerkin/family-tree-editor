@@ -51,14 +51,8 @@ public class FamilyDialog {
         ComboBox<Individual> cbA = (ComboBox<Individual>) grid.lookup("#husband");
         @SuppressWarnings("unchecked")
         ComboBox<Individual> cbB = (ComboBox<Individual>) grid.lookup("#wife");
-        TextField tfMarriageDate = (TextField) grid.lookup("#marriageDate");
-        Button btnMarriageDate = (Button) grid.lookup("#marriageDatePicker");
-        TextField tfMarriagePlace = (TextField) grid.lookup("#marriagePlace");
         @SuppressWarnings("unchecked")
         ListView<Individual> lvChildrenSelected = (ListView<Individual>) grid.lookup("#childrenSelected");
-
-        DatePhraseDialog dateDlg = new DatePhraseDialog();
-        btnMarriageDate.setOnAction(ev -> dateDlg.show(tfMarriageDate.getText()).ifPresent(tfMarriageDate::setText));
 
         btnOk.setOnAction(e -> {
             Family fam = new Family();
@@ -66,8 +60,6 @@ public class FamilyDialog {
             Individual b = cbB.getValue();
             fam.setHusbandId(a != null ? a.getId() : null);
             fam.setWifeId(b != null ? b.getId() : null);
-            fam.setMarriageDate(tfMarriageDate.getText() != null ? tfMarriageDate.getText().trim() : null);
-            fam.setMarriagePlace(tfMarriagePlace.getText() != null ? tfMarriagePlace.getText().trim() : null);
             lvChildrenSelected.getItems()
                     .forEach(child -> fam.getChildrenIds().add(child.getId()));
             result[0] = fam;
@@ -89,11 +81,11 @@ public class FamilyDialog {
         GridPane grid = buildForm(fam, data);
         VBox root = new VBox(grid);
         root.setPadding(new Insets(8));
-        Scene scene = new Scene(root, 640, 520);
+        Scene scene = new Scene(root, 640, 480);
         stage.setScene(scene);
         stage.setResizable(true);
         stage.setMinWidth(580);
-        stage.setMinHeight(460);
+        stage.setMinHeight(420);
 
         final boolean[] saved = new boolean[]{false};
         Button btnOk = new Button("Save");
@@ -101,7 +93,7 @@ public class FamilyDialog {
         HBox buttons = new HBox(10, btnOk, btnCancel);
         buttons.setAlignment(Pos.CENTER_RIGHT);
         GridPane.setColumnSpan(buttons, 2);
-        grid.add(buttons, 0, 5);
+        grid.add(buttons, 0, 3);
 
         btnOk.setDefaultButton(true);
         btnCancel.setCancelButton(true);
@@ -110,22 +102,14 @@ public class FamilyDialog {
         ComboBox<Individual> cbA = (ComboBox<Individual>) grid.lookup("#husband");
         @SuppressWarnings("unchecked")
         ComboBox<Individual> cbB = (ComboBox<Individual>) grid.lookup("#wife");
-        TextField tfMarriageDate = (TextField) grid.lookup("#marriageDate");
-        Button btnMarriageDate = (Button) grid.lookup("#marriageDatePicker");
-        TextField tfMarriagePlace = (TextField) grid.lookup("#marriagePlace");
         @SuppressWarnings("unchecked")
         ListView<Individual> lvChildrenSelected = (ListView<Individual>) grid.lookup("#childrenSelected");
-
-        DatePhraseDialog dateDlg = new DatePhraseDialog();
-        btnMarriageDate.setOnAction(ev -> dateDlg.show(tfMarriageDate.getText()).ifPresent(tfMarriageDate::setText));
 
         btnOk.setOnAction(e -> {
             Individual a = cbA.getValue();
             Individual b = cbB.getValue();
             fam.setHusbandId(a != null ? a.getId() : null);
             fam.setWifeId(b != null ? b.getId() : null);
-            fam.setMarriageDate(tfMarriageDate.getText() != null ? tfMarriageDate.getText().trim() : null);
-            fam.setMarriagePlace(tfMarriagePlace.getText() != null ? tfMarriagePlace.getText().trim() : null);
             fam.getChildrenIds().clear();
             lvChildrenSelected.getItems()
                     .forEach(child -> fam.getChildrenIds().add(child.getId()));
@@ -206,20 +190,6 @@ public class FamilyDialog {
             @Override public Individual fromString(String string) { return null; }
         });
 
-        Label lMarriageDate = new Label("Marriage Date:");
-        lMarriageDate.setMinWidth(Region.USE_PREF_SIZE);
-        TextField tfMarriageDate = new TextField(existing != null ? nullToEmpty(existing.getMarriageDate()) : "");
-        tfMarriageDate.setId("marriageDate");
-        tfMarriageDate.setPrefWidth(300);
-        Button btnMarriageDate = new Button("...");
-        btnMarriageDate.setId("marriageDatePicker");
-        HBox hbMarriageDate = new HBox(6, tfMarriageDate, btnMarriageDate);
-
-        Label lMarriagePlace = new Label("Marriage Place:");
-        lMarriagePlace.setMinWidth(Region.USE_PREF_SIZE);
-        TextField tfMarriagePlace = new TextField(existing != null ? nullToEmpty(existing.getMarriagePlace()) : "");
-        tfMarriagePlace.setId("marriagePlace");
-        tfMarriagePlace.setPrefWidth(300);
 
         Label lChildren = new Label("Children:");
         lChildren.setMinWidth(Region.USE_PREF_SIZE);
@@ -335,9 +305,7 @@ public class FamilyDialog {
 
         grid.add(lA, 0, 0); grid.add(cbA, 1, 0);
         grid.add(lB, 0, 1); grid.add(cbB, 1, 1);
-        grid.add(lMarriageDate, 0, 2); grid.add(hbMarriageDate, 1, 2);
-        grid.add(lMarriagePlace, 0, 3); grid.add(tfMarriagePlace, 1, 3);
-        grid.add(lChildren, 0, 4); grid.add(childrenBox, 1, 4);
+        grid.add(lChildren, 0, 2); grid.add(childrenBox, 1, 2);
 
         return grid;
     }

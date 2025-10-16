@@ -45,8 +45,15 @@ public class MainWindow {
         canvasView.setDirtyCallback(this::markDirty);
         canvasPane.setOnSelectionChanged(this::onSelectionChanged);
 
-        // List selection -> canvas selection
-        individualsList.setOnSelect(id -> { if (id != null) { canvasView.select(id); canvasPane.draw(); }});
+        // List selection -> canvas selection + open properties on the right
+        individualsList.setOnSelect(id -> {
+            if (id != null) {
+                canvasView.select(id);
+                canvasPane.draw();
+                // Also show this individual's properties in the inspector
+                propertiesInspector.setSelection(java.util.Set.of(id));
+            }
+        });
         familiesList.setOnSelect(familyId -> {
             if (familyId == null) return;
             var data = projectService.getCurrentData();
@@ -212,6 +219,7 @@ public class MainWindow {
                 () -> distribute(AlignAndDistributeController.Distribution.VERTICAL),
                 this::openQuickSearch,
                 this::debugExportRelSection,
+                this::manageSources,
                 this::showAbout,
                 projectService::getRecentProjects,
                 this::openProject
@@ -316,9 +324,21 @@ public class MainWindow {
             }
             var importer = new com.pedigree.gedcom.GedcomImporter();
             ProjectRepository.ProjectData imported = importer.importFromFile(path);
+            // Merge imported data into current project
             projectService.getCurrentData().individuals.addAll(imported.individuals);
             projectService.getCurrentData().families.addAll(imported.families);
             projectService.getCurrentData().relationships.addAll(imported.relationships);
+            // Also merge sources and repositories so citations resolve and display correctly
+            if (imported.sources != null && !imported.sources.isEmpty()) {
+                projectService.getCurrentData().sources.addAll(imported.sources);
+            }
+            if (imported.repositories != null && !imported.repositories.isEmpty()) {
+                projectService.getCurrentData().repositories.addAll(imported.repositories);
+            }
+            // Optionally merge submitters (not shown in UI but keeps data complete)
+            if (imported.submitters != null && !imported.submitters.isEmpty()) {
+                projectService.getCurrentData().submitters.addAll(imported.submitters);
+            }
             refreshAll();
             // Fit tree to canvas after import
             fitTreeToCanvas();
@@ -338,9 +358,17 @@ public class MainWindow {
             }
             var importer = new com.pedigree.rel.RelImporter();
             ProjectRepository.ProjectData imported = importer.importFromFileWithLayout(path, projectService.getCurrentLayout());
+            // Merge imported data into current project
             projectService.getCurrentData().individuals.addAll(imported.individuals);
             projectService.getCurrentData().families.addAll(imported.families);
             projectService.getCurrentData().relationships.addAll(imported.relationships);
+            // Also merge sources and repositories so SOUR1..SOUR6 and any related records appear in the project
+            if (imported.sources != null && !imported.sources.isEmpty()) {
+                projectService.getCurrentData().sources.addAll(imported.sources);
+            }
+            if (imported.repositories != null && !imported.repositories.isEmpty()) {
+                projectService.getCurrentData().repositories.addAll(imported.repositories);
+            }
             refreshAll();
             // Fit tree to canvas after import
             fitTreeToCanvas();
@@ -544,6 +572,21 @@ public class MainWindow {
 
     private void showAbout() {
         AboutDialog.show();
+    }
+
+    private void manageSources() {
+        var data = projectService.getCurrentData();
+        if (data == null) {
+            Dialogs.showError("Sources", "Нет открытого проекта.");
+            return;
+        }
+        try {
+            new SourcesManagerDialog(data).showAndWait();
+            // Refresh UI to reflect possible source title changes
+            refreshAll();
+        } catch (Throwable ex) {
+            Dialogs.showError("Sources", ex.getMessage());
+        }
     }
 
     private void debugExportRelSection() {

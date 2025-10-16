@@ -72,6 +72,35 @@ public class RelImporter {
 
         // Build model
         ProjectRepository.ProjectData data = new ProjectRepository.ProjectData();
+        // Add global/common SOUR1..SOUR6 as Source records first so we can link citations
+        Map<Integer, String> sourNumToId = new HashMap<>();
+        if (bundle.commonSources != null && !bundle.commonSources.isEmpty()) {
+            for (Map.Entry<Integer, String> e : bundle.commonSources.entrySet()) {
+                com.pedigree.model.Source src = new com.pedigree.model.Source();
+                String full = e.getValue();
+                // Try to extract ABBR from the global SOURn block
+                String abbr = extractSourceTag(full, "ABBR");
+                if (abbr != null && !abbr.isBlank()) {
+                    src.setAbbreviation(abbr);
+                }
+                // Derive a short title from TITL if present; otherwise from the first line or first 80 chars
+                String titl = extractSourceTag(full, "TITL");
+                String title;
+                if (titl != null && !titl.isBlank()) {
+                    title = titl.trim();
+                } else {
+                    int nl = full.indexOf('\n');
+                    if (nl >= 0) title = full.substring(0, nl).trim(); else title = full.trim();
+                    if (title.length() > 80) title = title.substring(0, 80) + "…";
+                    if (title.isBlank()) title = "SOUR " + e.getKey();
+                }
+                src.setTitle(title);
+                // Preserve full cleaned text for reference
+                src.setText(full);
+                data.sources.add(src);
+                sourNumToId.put(e.getKey(), src.getId());
+            }
+        }
         Map<String, String> idMap = new HashMap<>(); // P### -> Individual.id
         // Collect referenced person section ids from families to avoid dropping real, unnamed members
         java.util.Set<String> referenced = new java.util.HashSet<>();
@@ -118,10 +147,44 @@ public class RelImporter {
                 continue;
             }
             Individual ind = new Individual(first, last, r.sex);
-            if (r.birth != null) ind.setBirthDate(r.birth);
-            if (r.birthPlace != null) ind.setBirthPlace(r.birthPlace);
-            if (r.death != null) ind.setDeathDate(r.death);
-            if (r.deathPlace != null) ind.setDeathPlace(r.deathPlace);
+            // Dates and places are stored only within events (BIRT/DEAT), not in top-level fields.
+            // Create GedcomEvent entries for BIRT/DEAT with sources if available
+            if ((r.birth != null && !r.birth.isBlank()) || (r.birthPlace != null && !r.birthPlace.isBlank()) || (r.birthSource != null && !r.birthSource.isBlank())) {
+                com.pedigree.model.GedcomEvent ev = new com.pedigree.model.GedcomEvent();
+                ev.setType("BIRT");
+                if (r.birth != null && !r.birth.isBlank()) ev.setDate(r.birth);
+                if (r.birthPlace != null && !r.birthPlace.isBlank()) ev.setPlace(r.birthPlace);
+                if (r.birthSource != null && !r.birthSource.isBlank()) {
+                    com.pedigree.model.SourceCitation sc = new com.pedigree.model.SourceCitation();
+                    String refId = resolveSourRef(r.birthSource, sourNumToId);
+                    if (refId != null) {
+                        sc.setSourceId(refId);
+                    } else {
+                        sc.setText(r.birthSource);
+                    }
+                    if (r.birthPage != null && !r.birthPage.isBlank()) sc.setPage(r.birthPage);
+                    ev.getSources().add(sc);
+                }
+                ind.getEvents().add(ev);
+            }
+            if ((r.death != null && !r.death.isBlank()) || (r.deathPlace != null && !r.deathPlace.isBlank()) || (r.deathSource != null && !r.deathSource.isBlank())) {
+                com.pedigree.model.GedcomEvent ev = new com.pedigree.model.GedcomEvent();
+                ev.setType("DEAT");
+                if (r.death != null && !r.death.isBlank()) ev.setDate(r.death);
+                if (r.deathPlace != null && !r.deathPlace.isBlank()) ev.setPlace(r.deathPlace);
+                if (r.deathSource != null && !r.deathSource.isBlank()) {
+                    com.pedigree.model.SourceCitation sc = new com.pedigree.model.SourceCitation();
+                    String refId = resolveSourRef(r.deathSource, sourNumToId);
+                    if (refId != null) {
+                        sc.setSourceId(refId);
+                    } else {
+                        sc.setText(r.deathSource);
+                    }
+                    if (r.deathPage != null && !r.deathPage.isBlank()) sc.setPage(r.deathPage);
+                    ev.getSources().add(sc);
+                }
+                ind.getEvents().add(ev);
+            }
             // Attach optional notes parsed from NOTE/NOTES
             if (r.notes != null && !r.notes.isEmpty()) {
                 for (String nt : r.notes) {
@@ -161,8 +224,7 @@ public class RelImporter {
                 String cid = idMap.get(cP);
                 if (cid != null) fam.getChildrenIds().add(cid);
             }
-            if (rf.marrDate != null) fam.setMarriageDate(rf.marrDate.toString());
-            if (rf.marrPlace != null && !rf.marrPlace.isBlank()) fam.setMarriagePlace(rf.marrPlace);
+            // Marriage date/place are represented as events in the Properties inspector; do not set top-level fields here.
             // Attach optional media parsed for family OBJE blocks
             if (rf.media != null && !rf.media.isEmpty()) {
                 for (MediaTmp mt : rf.media) {
@@ -288,9 +350,9 @@ public class RelImporter {
     private static final Pattern RUS_SURN_RE = Pattern.compile("ФАМИЛИ[ЯИ]\\P{L}*([^\\r\\n]+)", RU_FLAGS);
     private static final Pattern RUS_SEX_LETTER_RE = Pattern.compile("ПОЛ\\P{L}*([МЖ])", RU_FLAGS);
     private static final Pattern RUS_SEX_WORD_RE = Pattern.compile("(Муж(ской)?|Жен(ский)?)", RU_FLAGS);
-    private static final Pattern BIRT_RE = Pattern.compile("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern BIRT_RE = Pattern.compile("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final Pattern BIRT_PLAC_RE = Pattern.compile("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
-    private static final Pattern DEAT_RE = Pattern.compile("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
+    private static final Pattern DEAT_RE = Pattern.compile("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final Pattern DEAT_PLAC_RE = Pattern.compile("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", Pattern.DOTALL);
     private static final int POS_FLAGS = Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE;
     private static final Pattern POS_X_RE = Pattern.compile("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", POS_FLAGS);
@@ -379,6 +441,28 @@ public class RelImporter {
         if (birthPlac != null) r.birthPlace = birthPlac.strip();
         String deathPlac = find(DEAT_PLAC_RE, body);
         if (deathPlac != null) r.deathPlace = deathPlac.strip();
+        // Extract SOUR and PAGE inside BIRT/DEAT blocks if present
+        // Find BIRT block boundaries
+        int birtIdx = body.indexOf("BIRT");
+        if (birtIdx >= 0) {
+            int birtEnd = indexOfNextTagExcludingSourPage(body, birtIdx + 4);
+            if (birtEnd < 0) birtEnd = body.length();
+            String birtBlock = body.substring(birtIdx, birtEnd);
+            String bSour = extractAfterToken("SOUR", birtBlock);
+            if (bSour != null && !bSour.isBlank()) r.birthSource = bSour;
+            String bPage = extractAfterToken("PAGE", birtBlock);
+            if (bPage != null && !bPage.isBlank()) r.birthPage = bPage;
+        }
+        int deatIdx = body.indexOf("DEAT");
+        if (deatIdx >= 0) {
+            int deatEnd = indexOfNextTagExcludingSourPage(body, deatIdx + 4);
+            if (deatEnd < 0) deatEnd = body.length();
+            String deatBlock = body.substring(deatIdx, deatEnd);
+            String dSour = extractAfterToken("SOUR", deatBlock);
+            if (dSour != null && !dSour.isBlank()) r.deathSource = dSour;
+            String dPage = extractAfterToken("PAGE", deatBlock);
+            if (dPage != null && !dPage.isBlank()) r.deathPage = dPage;
+        }
         String xs = find(POS_X_RE, body);
         String ys = find(POS_Y_RE, body);
         if (xs != null) try { r.x = Double.parseDouble(xs.trim()); } catch (NumberFormatException ignored) {}
@@ -758,8 +842,12 @@ public class RelImporter {
         Gender sex = Gender.UNKNOWN;
         String birth;
         String birthPlace;
+        String birthSource;
+        String birthPage;
         String death;
         String deathPlace;
+        String deathSource;
+        String deathPage;
         Double x; // optional parsed position
         Double y;
         List<String> notes = new ArrayList<>();
@@ -799,6 +887,19 @@ public class RelImporter {
         return min;
     }
 
+    // Find index of the next top-level tag, but deliberately keep SOUR and PAGE inside the current block
+    // so that BIRT/DEAT sub-block parsing can see them.
+    private static int indexOfNextTagExcludingSourPage(String s, int from) {
+        if (s == null) return -1;
+        int min = -1;
+        String[] tags = {"SEX", "BIRT", "DEAT", "FAMC", "FAMS", "NOTE", "NOTES", "TITL", "OBJE", "P", "F", "_X", "_Y"};
+        for (String t : tags) {
+            int i = s.indexOf(t, from);
+            if (i >= 0 && (min < 0 || i < min)) min = i;
+        }
+        return min;
+    }
+
     private static String extractAfterToken(String token, String body) {
         if (body == null || token == null) return null;
         // Match full token with non-letter boundaries to avoid matching SURNAME/FILENAME, case-insensitive
@@ -817,6 +918,8 @@ public class RelImporter {
         int end = indexOfNextTag(body, start);
         if (end < 0) end = body.length();
         String raw = body.substring(start, end);
+        // Strip BOM and Unicode replacement characters that sometimes appear between tags/values
+        raw = raw.replace("\uFEFF", "").replace("\uFFFD", "");
         raw = raw.replaceAll("[\\p{Cntrl}]", "").trim();
         return raw;
     }
@@ -843,7 +946,57 @@ public class RelImporter {
         return false;
     }
 
-    private static String baseName(String path) {
+    private static String resolveSourRef(String val, Map<Integer, String> sourNumToId) {
+            if (val == null || sourNumToId == null || sourNumToId.isEmpty()) return null;
+            String s = val.trim();
+            if (s.isEmpty()) return null;
+            // Remove possible leading token remnants and symbols
+            s = s.replaceFirst("(?i)^SOUR", "");
+            s = s.replaceFirst("^[#№Nn\\s]*", "");
+            // Keep only leading digits
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(\\d+)").matcher(s);
+            if (!m.find()) return null;
+            try {
+                int n = Integer.parseInt(m.group(1));
+                if (n >= 1 && n <= 6) {
+                    return sourNumToId.get(n);
+                }
+            } catch (NumberFormatException ignore) { }
+            return null;
+        }
+
+        // Extract a tag value from a global SOURn block (e.g., ABBR, TITL) up to the next known tag
+        private static String extractSourceTag(String block, String tag) {
+            if (block == null || block.isBlank() || tag == null || tag.isBlank()) return null;
+            // Find token with non-letter boundaries (case-insensitive)
+            String regex = "(?i)(?:^|[^\\p{L}])" + java.util.regex.Pattern.quote(tag) + "(?![\\p{L}])";
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile(regex).matcher(block);
+            if (!m.find()) return null;
+            int start = m.end();
+            // Skip separators
+            while (start < block.length()) {
+                char ch = block.charAt(start);
+                if (Character.isLetterOrDigit(ch) || ch == '/' || ch == '"' || ch == '\'' || (ch >= 0x0400 && ch <= 0x052F)) break;
+                start++;
+            }
+            // Determine end at next known source-related tag
+            String up = block.toUpperCase(java.util.Locale.ROOT);
+            int end = block.length();
+            String[] toks = {"ABBR","TITL","TEXT","PUBL","AGNC","REPO","CALN","AUTH","NOTE","OBJE","DATA","REFN","SOUR","P","F","SUBM","SUBM1"};
+            for (String t : toks) {
+                int idx = up.indexOf(t, start + 1);
+                if (idx >= 0 && idx < end) end = idx;
+            }
+            if (end < start) return null;
+            String raw = block.substring(start, end);
+            raw = raw.replace("\uFEFF", "").replace("\uFFFD", "");
+            raw = raw.replaceAll("[\\p{Cntrl}]", " ").trim();
+            // Collapse excessive spaces
+            raw = raw.replaceAll("\\s{2,}", " ");
+            return raw.isEmpty() ? null : raw;
+        }
+
+        private static String baseName(String path) {
         if (path == null || path.isBlank()) return null;
         String p = path.strip();
         // Normalize backslashes
@@ -893,7 +1046,29 @@ public class RelImporter {
                 fams.put(s.id, parseFamily(s));
             }
         }
-        return new ParseBundle(persons, fams);
+        // Parse global/common SOUR1..SOUR6 blocks from the entire text
+        Map<Integer, String> commonSources = new LinkedHashMap<>();
+        java.util.regex.Pattern SOURN_BLOCK = java.util.regex.Pattern.compile(
+                "(?i)SOUR([1-6])\\s*([\\s\\S]+?)(?=(?:SOUR[1-6]|P\\d{1,5}|F\\d{1,5}|SUBM1|$))",
+                java.util.regex.Pattern.DOTALL);
+        java.util.regex.Matcher mm = SOURN_BLOCK.matcher(text);
+        while (mm.find()) {
+            String numS = mm.group(1);
+            String val = mm.group(2);
+            if (val != null) {
+                String cleaned = val
+                        .replace("\uFEFF", "")
+                        .replace("\uFFFD", "")
+                        .replaceAll("[\\p{Cntrl}]", " ")
+                        .trim();
+                int n;
+                try { n = Integer.parseInt(numS); } catch (NumberFormatException ex) { continue; }
+                if (!cleaned.isEmpty() && !commonSources.containsKey(n)) {
+                    commonSources.put(n, cleaned);
+                }
+            }
+        }
+        return new ParseBundle(persons, fams, commonSources);
     }
 
     // Ultra-robust: directly slice after raw NAME until next known tag (case-insensitive)
@@ -926,9 +1101,11 @@ public class RelImporter {
     private static class ParseBundle {
         final Map<String, PersonRec> persons;
         final Map<String, FamRec> fams;
-        ParseBundle(Map<String, PersonRec> persons, Map<String, FamRec> fams) {
+        final Map<Integer, String> commonSources; // n -> text
+        ParseBundle(Map<String, PersonRec> persons, Map<String, FamRec> fams, Map<Integer, String> commonSources) {
             this.persons = persons;
             this.fams = fams;
+            this.commonSources = commonSources != null ? commonSources : java.util.Collections.emptyMap();
         }
     }
 }

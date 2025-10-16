@@ -3,6 +3,7 @@ package com.pedigree.render;
 import com.pedigree.layout.LayoutResult;
 import com.pedigree.model.Family;
 import com.pedigree.model.Gender;
+import com.pedigree.model.GedcomEvent;
 import com.pedigree.model.Individual;
 import com.pedigree.model.Relationship;
 import com.pedigree.storage.ProjectRepository;
@@ -111,7 +112,9 @@ public class TreeRenderer {
                     g.drawText(last, cx - w2 / 2.0, y2);
                     
                     // Third line: dates with appropriate formatting - measure actual width
-                    String dateText = formatDates(ind.getBirthDate(), ind.getDeathDate(), first, last);
+                    String b = extractEventDate(ind, "BIRT");
+                    String d = extractEventDate(ind, "DEAT");
+                    String dateText = formatDates(b, d, first, last);
                     if (dateText != null && !dateText.isEmpty()) {
                         double w3 = g.measureTextWidth(dateText);
                         g.drawText(dateText, cx - w3 / 2.0, y3);
@@ -309,6 +312,17 @@ public class TreeRenderer {
             }
         }
         return false;
+    }
+
+    private String extractEventDate(Individual ind, String type) {
+        if (ind == null || type == null) return null;
+        String t = type.trim().toUpperCase(java.util.Locale.ROOT);
+        for (GedcomEvent ev : ind.getEvents()) {
+            if (ev.getType() != null && t.equals(ev.getType().trim().toUpperCase(java.util.Locale.ROOT))) {
+                return ev.getDate();
+            }
+        }
+        return null;
     }
 
     /**

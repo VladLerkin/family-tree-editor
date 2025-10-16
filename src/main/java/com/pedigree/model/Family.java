@@ -1,19 +1,19 @@
 package com.pedigree.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Family {
     private final String id;
     private String husbandId;
     private String wifeId;
     private final List<String> childrenIds;
-    private String marriageDate;
-    private String marriagePlace;
     private final List<GedcomEvent> events; // All family events (MARR, DIV, ANUL, etc.)
     private final List<SourceCitation> sources; // Source citations
     private final List<Note> notes;
@@ -40,9 +40,6 @@ public class Family {
             @JsonProperty("husbandId") String husbandId,
             @JsonProperty("wifeId") String wifeId,
             @JsonProperty("childrenIds") List<String> childrenIds,
-            @JsonProperty("marriageDate") String marriageDate,
-            @JsonProperty("marriagePlace") String marriagePlace,
-            @JsonProperty("marriage") Event marriage,
             @JsonProperty("events") List<GedcomEvent> events,
             @JsonProperty("sources") List<SourceCitation> sources,
             @JsonProperty("notes") List<Note> notes,
@@ -53,14 +50,6 @@ public class Family {
         this.husbandId = husbandId;
         this.wifeId = wifeId;
         this.childrenIds = (childrenIds != null) ? new com.pedigree.util.DirtyObservableList<>(childrenIds) : new com.pedigree.util.DirtyObservableList<>();
-        // Support backward compatibility: if old Event marriage exists, convert it
-        if (marriage != null) {
-            this.marriageDate = marriage.getDate() != null ? marriage.getDate().toString() : null;
-            this.marriagePlace = marriage.getPlace();
-        } else {
-            this.marriageDate = marriageDate;
-            this.marriagePlace = marriagePlace;
-        }
         this.events = (events != null) ? new com.pedigree.util.DirtyObservableList<>(events) : new com.pedigree.util.DirtyObservableList<>();
         this.sources = (sources != null) ? new com.pedigree.util.DirtyObservableList<>(sources) : new com.pedigree.util.DirtyObservableList<>();
         this.notes = (notes != null) ? new com.pedigree.util.DirtyObservableList<>(notes) : new com.pedigree.util.DirtyObservableList<>();
@@ -87,20 +76,6 @@ public class Family {
     }
 
     public List<String> getChildrenIds() { return childrenIds; }
-
-    public String getMarriageDate() { return marriageDate; }
-
-    public void setMarriageDate(String marriageDate) {
-        this.marriageDate = marriageDate;
-        com.pedigree.util.DirtyFlag.setModified();
-    }
-
-    public String getMarriagePlace() { return marriagePlace; }
-
-    public void setMarriagePlace(String marriagePlace) {
-        this.marriagePlace = marriagePlace;
-        com.pedigree.util.DirtyFlag.setModified();
-    }
 
     public List<GedcomEvent> getEvents() { return events; }
 

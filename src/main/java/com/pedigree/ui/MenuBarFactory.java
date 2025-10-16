@@ -51,6 +51,7 @@ public class MenuBarFactory {
 
     private final Runnable onQuickSearch;
     private final Runnable onDebugExportRelSection;
+    private final Runnable onManageSources;
 
     private final Runnable onAbout;
 
@@ -68,6 +69,7 @@ public class MenuBarFactory {
             Runnable onDistributeH, Runnable onDistributeV,
             Runnable onQuickSearch,
             Runnable onDebugExportRelSection,
+            Runnable onManageSources,
             Runnable onAbout,
             Supplier<List<Path>> recentSupplier,
             Consumer<Path> onOpenRecent
@@ -108,6 +110,7 @@ public class MenuBarFactory {
 
         this.onQuickSearch = onQuickSearch;
         this.onDebugExportRelSection = onDebugExportRelSection;
+        this.onManageSources = onManageSources;
 
         this.onAbout = onAbout;
 
@@ -208,6 +211,7 @@ public class MenuBarFactory {
         Menu tools = new Menu("Tools");
         tools.getItems().addAll(
                 item("Quick Search...", "Shortcut+F", onQuickSearch),
+                item("Manage Sources...", null, onManageSources),
                 item("Debug: Export REL Section...", null, onDebugExportRelSection)
         );
 

@@ -316,6 +316,25 @@ public class PropertiesInspector {
         } else {
             clearDetails();
         }
+        // Auto-select a meaningful event to show its sources immediately
+        if (!eventsList.getItems().isEmpty()) {
+            GedcomEvent sel = eventsList.getSelectionModel().getSelectedItem();
+            if (sel == null) {
+                // Prefer DEAT, then BIRT, else first
+                GedcomEvent prefer = null;
+                for (GedcomEvent ev : eventsList.getItems()) {
+                    String t = ev.getType() != null ? ev.getType().trim().toUpperCase(java.util.Locale.ROOT) : "";
+                    if (t.equals("DEAT")) { prefer = ev; break; }
+                    if (prefer == null && t.equals("BIRT")) { prefer = ev; }
+                }
+                if (prefer == null) prefer = eventsList.getItems().get(0);
+                eventsList.getSelectionModel().select(prefer);
+                evSourcesList.getItems().setAll(prefer.getSources());
+                evTypeField.setText(prefer.getType() != null ? prefer.getType() : "");
+                evDateField.setText(prefer.getDate() != null ? prefer.getDate() : "");
+                evPlaceField.setText(prefer.getPlace() != null ? prefer.getPlace() : "");
+            }
+        }
         // Auto-expand sections that have content; collapse those that are empty
         try {
             boolean hasEvents = !eventsList.getItems().isEmpty();
@@ -365,14 +384,21 @@ public class PropertiesInspector {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setText(null); }
                 else {
-                    String title = "Unknown source";
-                    if (item.getSourceId() != null && data != null) {
-                        for (Source s : data.sources) {
-                            if (s.getId().equals(item.getSourceId())) { title = s.getTitle() != null ? s.getTitle() : title; break; }
+                    String label;
+                    String inlineText = item.getText();
+                    if (inlineText != null && !inlineText.isBlank()) {
+                        label = inlineText.trim();
+                    } else {
+                        String title = "Unknown source";
+                        if (item.getSourceId() != null && data != null) {
+                            for (Source s : data.sources) {
+                                if (s.getId().equals(item.getSourceId())) { title = s.getTitle() != null && !s.getTitle().isBlank() ? s.getTitle() : title; break; }
+                            }
                         }
+                        label = title;
                     }
                     String page = item.getPage() != null ? item.getPage() : "";
-                    setText(title + (page.isBlank()?"":" — PAGE: " + page));
+                    setText(label + (page.isBlank()?"":" — PAGE: " + page));
                 }
             }
         });
@@ -396,7 +422,9 @@ public class PropertiesInspector {
         VBox box = new VBox(6);
         tagInput.setPromptText("New tag...");
         HBox actions = new HBox(6, tagInput, addTagBtn, removeTagBtn);
-        VBox.setVgrow(tagList, Priority.ALWAYS);
+        // Make the tags list compact
+        tagList.setPrefHeight(100);
+        VBox.setVgrow(tagList, Priority.NEVER);
         box.getChildren().addAll(tagList, actions);
 
         addTagBtn.setOnAction(e -> {
@@ -439,7 +467,9 @@ public class PropertiesInspector {
         noteEditor.setPrefRowCount(8);
         noteEditor.setMinHeight(120);
         HBox actions = new HBox(6, addNoteBtn, removeNoteBtn);
-        VBox.setVgrow(noteList, Priority.SOMETIMES);
+        // Make the notes list compact
+        noteList.setPrefHeight(100);
+        VBox.setVgrow(noteList, Priority.NEVER);
         VBox.setVgrow(noteEditor, Priority.ALWAYS);
 
         // Note sources UI
@@ -449,7 +479,9 @@ public class PropertiesInspector {
         removeNoteSourceBtn.setTooltip(new Tooltip("Remove citation"));
         HBox noteSrcActions = new HBox(6, addNoteSourceBtn, manageNoteSourcesBtn, removeNoteSourceBtn);
         VBox noteSrcBox = new VBox(4, lNoteSrc, noteSrcActions, noteSourcesList, new Label("PAGE:"), noteSourcePageField);
-        VBox.setVgrow(noteSourcesList, Priority.SOMETIMES);
+        // Make the note sources list compact
+        noteSourcesList.setPrefHeight(80);
+        VBox.setVgrow(noteSourcesList, Priority.NEVER);
 
         // Disable/enable controls
         addNoteSourceBtn.disableProperty().bind(noteList.getSelectionModel().selectedItemProperty().isNull());
@@ -562,14 +594,21 @@ public class PropertiesInspector {
                 super.updateItem(item, empty);
                 if (empty || item == null) { setText(null); }
                 else {
-                    String title = "Unknown source";
-                    if (item.getSourceId() != null && data != null) {
-                        for (Source s : data.sources) {
-                            if (s.getId().equals(item.getSourceId())) { title = s.getTitle() != null ? s.getTitle() : title; break; }
+                    String label;
+                    String inlineText = item.getText();
+                    if (inlineText != null && !inlineText.isBlank()) {
+                        label = inlineText.trim();
+                    } else {
+                        String title = "Unknown source";
+                        if (item.getSourceId() != null && data != null) {
+                            for (Source s : data.sources) {
+                                if (s.getId().equals(item.getSourceId())) { title = s.getTitle() != null && !s.getTitle().isBlank() ? s.getTitle() : title; break; }
+                            }
                         }
+                        label = title;
                     }
                     String page = item.getPage() != null ? item.getPage() : "";
-                    setText(title + (page.isBlank()?"":" — PAGE: " + page));
+                    setText(label + (page.isBlank()?"":" — PAGE: " + page));
                 }
             }
         });
@@ -581,7 +620,9 @@ public class PropertiesInspector {
     private Pane buildMediaPane() {
         VBox box = new VBox(6);
         HBox actions = new HBox(6, addMediaBtn, editMediaBtn, openMediaBtn, removeMediaBtn);
-        VBox.setVgrow(mediaList, Priority.ALWAYS);
+        // Make the media list more compact (~2x smaller)
+        mediaList.setPrefHeight(150);
+        VBox.setVgrow(mediaList, Priority.NEVER);
         box.getChildren().addAll(mediaList, actions);
 
         addMediaBtn.setOnAction(e -> {
@@ -668,13 +709,32 @@ public class PropertiesInspector {
         VBox box = new VBox(8);
         // Top: events list with add/remove
         HBox evActions = new HBox(6, addEventBtn, removeEventBtn);
-        VBox.setVgrow(eventsList, Priority.SOMETIMES);
+        // Make the events list compact
+        eventsList.setPrefHeight(100);
+        VBox.setVgrow(eventsList, Priority.NEVER);
         // Details: labels above fields (avoid truncated labels next to fields)
         VBox fieldsBox = new VBox(6);
         evTypeField.setPromptText("Type (e.g., BIRT, DEAT, MARR)");
         evDateField.setPromptText("Date (e.g., 5 JAN 1980, ABT 1900)");
         evPlaceField.setPromptText("Place");
-        fieldsBox.getChildren().addAll(new Label("Type:"), evTypeField, new Label("Date:"), evDateField, new Label("Place:"), evPlaceField);
+        // Add date picker button like in Individual/Family dialogs
+        Button evDatePickerBtn = new Button("...");
+        HBox hbEvDate = new HBox(6, evDateField, evDatePickerBtn);
+        evDatePickerBtn.setOnAction(evt -> {
+            DatePhraseDialog dateDlg = new DatePhraseDialog();
+            String initial = evDateField.getText();
+            var res = dateDlg.show(initial);
+            if (res.isPresent()) {
+                String val = res.get();
+                evDateField.setText(val);
+                GedcomEvent selEv = eventsList.getSelectionModel().getSelectedItem();
+                if (selEv != null) {
+                    selEv.setDate(val);
+                    eventsList.refresh();
+                }
+            }
+        });
+        fieldsBox.getChildren().addAll(new Label("Type:"), evTypeField, new Label("Date:"), hbEvDate, new Label("Place:"), evPlaceField);
 
         // Event sources
         Label lSrc = new Label("Sources:");
@@ -683,7 +743,9 @@ public class PropertiesInspector {
         removeEvSourceBtn.setTooltip(new Tooltip("Remove citation"));
         HBox srcActions = new HBox(6, addEvSourceBtn, manageSourcesBtn, removeEvSourceBtn);
         VBox evSrcBox = new VBox(4, lSrc, srcActions, evSourcesList, new Label("PAGE:"), evSourcePageField);
-        VBox.setVgrow(evSourcesList, Priority.SOMETIMES);
+        // Make the event sources list compact
+        evSourcesList.setPrefHeight(80);
+        VBox.setVgrow(evSourcesList, Priority.NEVER);
 
         box.getChildren().addAll(eventsList, evActions, fieldsBox, evSrcBox);
 

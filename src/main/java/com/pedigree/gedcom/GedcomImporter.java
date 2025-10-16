@@ -452,11 +452,7 @@ public class GedcomImporter {
             Gender sex = r.sex != null ? r.sex : Gender.UNKNOWN;
             Individual ind = new Individual(given.isEmpty() ? "?" : given, surname, sex);
             
-            // Backward compatibility: set legacy birth/death fields
-            if (r.birthDate != null) ind.setBirthDate(r.birthDate);
-            if (r.birthPlace != null) ind.setBirthPlace(r.birthPlace);
-            if (r.deathDate != null) ind.setDeathDate(r.deathDate);
-            if (r.deathPlace != null) ind.setDeathPlace(r.deathPlace);
+            // Store dates/places only within events (no top-level birth/death fields)
             
             // Build events
             for (EventRec ev : r.events) {
@@ -522,9 +518,7 @@ public class GedcomImporter {
                 if (id != null) fam.getChildrenIds().add(id);
             }
             
-            // Backward compatibility
-            if (r.marrDate != null) fam.setMarriageDate(r.marrDate);
-            if (r.marrPlace != null) fam.setMarriagePlace(r.marrPlace);
+            // Store marriage details only within events (no top-level marriage fields)
             
             // Build events
             for (EventRec ev : r.events) {

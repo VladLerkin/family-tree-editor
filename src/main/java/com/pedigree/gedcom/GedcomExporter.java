@@ -182,21 +182,7 @@ public class GedcomExporter {
                     }
                 }
                 
-                // Backward compatibility: export BIRT/DEAT if not in events
-                boolean hasBirt = ind.getEvents().stream().anyMatch(e -> "BIRT".equals(e.getType()));
-                boolean hasDeat = ind.getEvents().stream().anyMatch(e -> "DEAT".equals(e.getType()));
-                
-                if (!hasBirt && (ind.getBirthDate() != null || (ind.getBirthPlace() != null && !ind.getBirthPlace().isBlank()))) {
-                    writeln(w, "1 BIRT");
-                    if (ind.getBirthDate() != null) writeln(w, "2 DATE " + ind.getBirthDate());
-                    if (ind.getBirthPlace() != null && !ind.getBirthPlace().isBlank()) writeln(w, "2 PLAC " + ind.getBirthPlace());
-                }
-                
-                if (!hasDeat && (ind.getDeathDate() != null || (ind.getDeathPlace() != null && !ind.getDeathPlace().isBlank()))) {
-                    writeln(w, "1 DEAT");
-                    if (ind.getDeathDate() != null) writeln(w, "2 DATE " + ind.getDeathDate());
-                    if (ind.getDeathPlace() != null && !ind.getDeathPlace().isBlank()) writeln(w, "2 PLAC " + ind.getDeathPlace());
-                }
+                // Events are exported above; no fallback to top-level birth/death fields anymore
                 
                 // Family child/spouse links
                 for (Family f : fams) {
@@ -273,14 +259,6 @@ public class GedcomExporter {
                             }
                         }
                     }
-                }
-                
-                // Backward compatibility: export MARR if not in events
-                boolean hasMarr = fam.getEvents().stream().anyMatch(e -> "MARR".equals(e.getType()));
-                if (!hasMarr && (fam.getMarriageDate() != null || (fam.getMarriagePlace() != null && !fam.getMarriagePlace().isBlank()))) {
-                    writeln(w, "1 MARR");
-                    if (fam.getMarriageDate() != null) writeln(w, "2 DATE " + fam.getMarriageDate());
-                    if (fam.getMarriagePlace() != null && !fam.getMarriagePlace().isBlank()) writeln(w, "2 PLAC " + fam.getMarriagePlace());
                 }
                 
                 // Notes

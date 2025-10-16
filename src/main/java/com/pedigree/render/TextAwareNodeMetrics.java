@@ -1,5 +1,6 @@
 package com.pedigree.render;
 
+import com.pedigree.model.GedcomEvent;
 import com.pedigree.model.Individual;
 import com.pedigree.storage.ProjectRepository;
 
@@ -42,8 +43,8 @@ public class TextAwareNodeMetrics extends NodeMetrics {
             double w1 = approxTextWidth(first, font);
             double w2 = approxTextWidth(last, font);
             
-            // Also consider date text width
-            String dateText = formatDatesForWidth(ind.getBirthDate(), ind.getDeathDate(), first, last);
+            // Also consider date text width derived from events (BIRT/DEAT)
+            String dateText = buildDateLine(ind, first, last);
             double w3 = approxTextWidth(dateText, font);
             
             double w = Math.max(Math.max(w1, w2), w3) + H_PAD * 2.0;
@@ -117,6 +118,23 @@ public class TextAwareNodeMetrics extends NodeMetrics {
             String prefix = isCyrillicText ? "ум.:" : "d.:";
             return prefix + deathDate.trim();
         }
+    }
+
+    private String buildDateLine(Individual ind, String firstName, String lastName) {
+        String b = extractEventDate(ind, "BIRT");
+        String d = extractEventDate(ind, "DEAT");
+        return formatDatesForWidth(b, d, firstName, lastName);
+    }
+
+    private String extractEventDate(Individual ind, String type) {
+        if (ind == null || type == null) return null;
+        String t = type.trim().toUpperCase(java.util.Locale.ROOT);
+        for (GedcomEvent ev : ind.getEvents()) {
+            if (ev.getType() != null && t.equals(ev.getType().trim().toUpperCase(java.util.Locale.ROOT))) {
+                return ev.getDate();
+            }
+        }
+        return null;
     }
 
     public static double approxTextWidth(String s, double fontSize) {
