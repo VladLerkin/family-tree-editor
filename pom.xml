@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.19-SNAPSHOT</version>
+    <version>1.2.24-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -17,7 +17,7 @@
         <javafx.version>24.0.1</javafx.version>
         <jackson.version>2.18.2</jackson.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.19</app.version.effective>
+        <app.version.effective>1.2.24</app.version.effective>
         <!-- macOS packaging/signing properties (safe defaults for local builds) -->
         <mac.package.identifier>com.familytree.editor</mac.package.identifier>
         <mac.sign>false</mac.sign>
