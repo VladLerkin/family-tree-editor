@@ -6,7 +6,7 @@
 
     <groupId>com.pedigree</groupId>
     <artifactId>family-tree-editor</artifactId>
-    <version>1.2.24-SNAPSHOT</version>
+    <version>1.2.25-SNAPSHOT</version>
     <name>Family Tree Editor</name>
     <description>Data layer and core scaffolding for the Family Tree Editor (Phase 1)</description>
 
@@ -18,7 +18,7 @@
         <jackson.version>2.18.2</jackson.version>
         <kotlin.version>2.1.20</kotlin.version>
         <!-- Default for tooling; overridden by build-helper regex-property during validate phase -->
-        <app.version.effective>1.2.24</app.version.effective>
+        <app.version.effective>1.2.25</app.version.effective>
         <!-- macOS packaging/signing properties (safe defaults for local builds) -->
         <mac.package.identifier>com.familytree.editor</mac.package.identifier>
         <mac.sign>false</mac.sign>
@@ -121,7 +121,7 @@
                 <version>0.0.8</version>
                 <configuration>
                     <launcher>app</launcher>
-                    <mainClass>com.pedigree.app.MainApplication</mainClass>
+                    <mainClass>com.family.tree.app.MainApplication</mainClass>
                 </configuration>
             </plugin>
 
@@ -301,7 +301,7 @@
                                             <arg value="--main-jar"/>
                                             <arg value="${project.build.finalName}.jar"/>
                                             <arg value="--main-class"/>
-                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="com.family.tree.app.MainApplication"/>
                                             <arg value="--module-path"/>
                                             <arg value="${project.build.directory}/jpackage/input"/>
                                             <arg value="--add-modules"/>
@@ -464,7 +464,7 @@
                                             <arg value="--main-jar"/>
                                             <arg value="${project.build.finalName}.jar"/>
                                             <arg value="--main-class"/>
-                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="com.family.tree.app.MainApplication"/>
                                             <arg value="--module-path"/>
                                             <arg value="${project.build.directory}/jpackage/input"/>
                                             <arg value="--add-modules"/>
@@ -600,7 +600,7 @@
 DIR="$(cd "$(dirname "$0")" >/dev/null && pwd)"
 JAVA_CMD="java"
 MP="$DIR/lib"
-$JAVA_CMD --module-path "$MP" --add-modules javafx.controls,javafx.swing -cp "$DIR/lib/*" com.pedigree.app.MainApplication "$@"
+$JAVA_CMD --module-path "$MP" --add-modules javafx.controls,javafx.swing -cp "$DIR/lib/*" com.family.tree.app.MainApplication "$@"
 ]]></echo>
                                         <chmod file="${project.build.directory}/portable-linux/run.sh" perm="755"/>
                                         <!-- Create archives into dist (tar.gz and zip) -->
@@ -744,7 +744,7 @@ $JAVA_CMD --module-path "$MP" --add-modules javafx.controls,javafx.swing -cp "$D
                                             <arg value="--main-jar"/>
                                             <arg value="${project.build.finalName}.jar"/>
                                             <arg value="--main-class"/>
-                                            <arg value="com.pedigree.app.MainApplication"/>
+                                            <arg value="com.family.tree.app.MainApplication"/>
                                             <arg value="--module-path"/>
                                             <arg value="${project.build.directory}/jpackage/input"/>
                                             <arg value="--add-modules"/>

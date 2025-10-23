@@ -22,7 +22,7 @@ import java.net.URISyntaxException
  */
 object AboutDialog {
     private const val APP_NAME: String = "Family Tree Editor"
-    private const val APP_VERSION: String = "v1.2.24"
+    private const val APP_VERSION: String = "v1.2.25"
     private const val AUTHOR_EMAIL: String = "domfindus@gmail.com"
 
     @JvmStatic
