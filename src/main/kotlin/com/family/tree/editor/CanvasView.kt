@@ -14,49 +14,32 @@ import java.util.Objects
  */
 class CanvasView {
 
-    private val zoomAndPan: ZoomAndPanController = ZoomAndPanController()
-    private val selectionModel: SelectionModel = SelectionModel()
+    val zoomAndPan: ZoomAndPanController = ZoomAndPanController()
+    val selectionModel: SelectionModel = SelectionModel()
 
-    private var data: ProjectRepository.ProjectData? = null
-    private var layout: LayoutResult? = null
-    private var renderer: TreeRenderer? = null
-    private var metrics: NodeMetrics = NodeMetrics()
-    private var commandStack: CommandStack? = null
-    private var dirtyCallback: Runnable? = null
+    var projectData: ProjectRepository.ProjectData? = null
+        set(value) {
+            field = value
+            updateSelectionBoundsProvider()
+        }
 
-    fun getZoomAndPan(): ZoomAndPanController = zoomAndPan
-    fun getSelectionModel(): SelectionModel = selectionModel
+    var layout: LayoutResult? = null
+        set(value) {
+            field = value
+            updateSelectionBoundsProvider()
+        }
 
-    fun setProjectData(data: ProjectRepository.ProjectData?) {
-        this.data = data
-        updateSelectionBoundsProvider()
-    }
+    var renderer: TreeRenderer? = null
 
-    fun getProjectData(): ProjectRepository.ProjectData? = data
+    var nodeMetrics: NodeMetrics = NodeMetrics()
+        set(value) {
+            field = value
+            updateSelectionBoundsProvider()
+        }
 
-    fun setLayout(layout: LayoutResult?) {
-        this.layout = layout
-        updateSelectionBoundsProvider()
-    }
+    var commandStack: CommandStack? = null
 
-    fun setRenderer(renderer: TreeRenderer?) {
-        this.renderer = renderer
-    }
-
-    fun getLayout(): LayoutResult? = layout
-
-    fun setNodeMetrics(metrics: NodeMetrics?) {
-        this.metrics = metrics ?: NodeMetrics()
-        updateSelectionBoundsProvider()
-    }
-
-    fun setCommandStack(commandStack: CommandStack?) {
-        this.commandStack = commandStack
-    }
-
-    fun setDirtyCallback(dirtyCallback: Runnable?) {
-        this.dirtyCallback = dirtyCallback
-    }
+    var dirtyCallback: Runnable? = null
 
     private fun markDirty() {
         com.family.tree.util.DirtyFlag.setModified()
@@ -69,8 +52,8 @@ class CanvasView {
             override fun getBounds(id: String): Rect? {
                 val p: Point2D? = layout.getPosition(id)
                 if (p == null) return null
-                val w = metrics.getWidth(id)
-                val h = metrics.getHeight(id)
+                val w = nodeMetrics.getWidth(id)
+                val h = nodeMetrics.getHeight(id)
                 return Rect(p.x, p.y, w, h)
             }
 
@@ -86,8 +69,8 @@ class CanvasView {
     fun render(g: GraphicsContext) {
         val r: TreeRenderer = renderer ?: return
         val l = layout ?: return
-        val d: ProjectRepository.ProjectData = data ?: return
-        com.family.tree.render.RenderCompat.render(r, d, l, g, zoomAndPan.getZoom(), zoomAndPan.getPanX(), zoomAndPan.getPanY())
+        val d: ProjectRepository.ProjectData = projectData ?: return
+        com.family.tree.render.RenderCompat.render(r, d, l, g, zoomAndPan.zoom, zoomAndPan.panX, zoomAndPan.panY)
     }
 
     /**
@@ -140,15 +123,15 @@ class CanvasView {
      */
     fun pickNearest(x: Double, y: Double, maxDist: Double): String? { // maxDist kept for API compatibility (unused)
         val l = layout ?: return null
-        val lx = (x - zoomAndPan.getPanX()) / zoomAndPan.getZoom()
-        val ly = (y - zoomAndPan.getPanY()) / zoomAndPan.getZoom()
+        val lx = (x - zoomAndPan.panX) / zoomAndPan.zoom
+        val ly = (y - zoomAndPan.panY) / zoomAndPan.zoom
         for (id in l.getNodeIds()) {
             // Skip family nodes for hit-testing (they are not visualized)
-            val hasFamilyId = data?.families?.stream()?.anyMatch { f -> id == f.id } ?: false
+            val hasFamilyId = projectData?.families?.stream()?.anyMatch { f: com.family.tree.model.Family -> id == f.id } ?: false
             if (hasFamilyId) continue
             val p = l.getPosition(id) ?: continue
-            val w = metrics.getWidth(id)
-            val h = metrics.getHeight(id)
+            val w = nodeMetrics.getWidth(id)
+            val h = nodeMetrics.getHeight(id)
             if (lx >= p.x && lx <= p.x + w && ly >= p.y && ly <= p.y + h) {
                 return id
             }

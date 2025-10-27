@@ -27,7 +27,7 @@ class MainWindow {
         this.projectService = projectService
         this.undoRedoService = undoRedoService
 
-        canvasView.setDirtyCallback { markDirty() }
+        canvasView.dirtyCallback = Runnable { markDirty() }
         canvasPane.setOnSelectionChanged { ids -> onSelectionChanged(ids) }
 
         // List selection -> canvas selection + open properties
@@ -40,7 +40,7 @@ class MainWindow {
         }
         familiesList.setOnSelect { familyId ->
             if (familyId == null) return@setOnSelect
-            val data = projectService.getCurrentData()
+            val data = projectService.currentData
             if (data == null || data.families == null) return@setOnSelect
             data.families.stream().filter { f -> familyId == f.id }.findFirst().ifPresent { fam ->
                 val ids = LinkedHashSet<String>()
@@ -56,7 +56,7 @@ class MainWindow {
         // Families add/edit/delete
         familiesList.setOnAdd {
             val dlg = FamilyDialog()
-            val data = projectService.getCurrentData()
+            val data = projectService.currentData
             dlg.showCreate(data).ifPresent { fam ->
                 data!!.families.add(fam)
                 fam.husbandId?.let {
@@ -85,7 +85,7 @@ class MainWindow {
             }
         }
         familiesList.setOnEdit { id ->
-            val data = projectService.getCurrentData() ?: return@setOnEdit
+            val data = projectService.currentData ?: return@setOnEdit
             data.families.stream().filter { f -> f.id == id }.findFirst().ifPresent { fam ->
                 val dlg = FamilyDialog()
                 if (dlg.showEdit(fam, data)) {
@@ -117,7 +117,7 @@ class MainWindow {
             }
         }
         familiesList.setOnDelete { id ->
-            val data = projectService.getCurrentData() ?: return@setOnDelete
+            val data = projectService.currentData ?: return@setOnDelete
             data.families.removeIf { f -> f.id == id }
             data.relationships.removeIf { r -> id == r.fromId || id == r.toId }
             refreshAll()
@@ -128,14 +128,14 @@ class MainWindow {
         individualsList.setOnAdd {
             val dlg = IndividualDialog()
             dlg.showCreate().ifPresent { ind ->
-                val d = projectService.getCurrentData()
+                val d = projectService.currentData
                 d!!.individuals.add(ind)
                 refreshAll()
                 statusBar.text = "Added individual: ${ind.firstName} ${ind.lastName}"
             }
         }
         individualsList.setOnEdit { id ->
-            val data = projectService.getCurrentData() ?: return@setOnEdit
+            val data = projectService.currentData ?: return@setOnEdit
             data.individuals.stream().filter { i -> i.id == id }.findFirst().ifPresent { ind ->
                 val dlg = IndividualDialog()
                 if (dlg.showEdit(ind)) {
@@ -145,7 +145,7 @@ class MainWindow {
             }
         }
         individualsList.setOnDelete { id ->
-            val data = projectService.getCurrentData() ?: return@setOnDelete
+            val data = projectService.currentData ?: return@setOnDelete
             data.individuals.removeIf { i -> i.id == id }
             data.relationships.removeIf { r -> id == r.fromId || id == r.toId }
             refreshAll()
@@ -202,7 +202,7 @@ class MainWindow {
             this::debugExportRelSection,
             this::manageSources,
             this::showAbout,
-            projectService::getRecentProjects,
+            java.util.function.Supplier { projectService.recentProjects },
             this::openProject
         )
         root.top = menuFactory.create()
@@ -263,13 +263,13 @@ class MainWindow {
 
     private fun saveProject() {
         try {
-            if (projectService.getCurrentProjectPath() == null) {
+            if (projectService.currentProjectPath == null) {
                 saveProjectAs(); return
             }
             persistViewport()
             persistNodePositions()
             projectService.saveProject()
-            statusBar.text = "Saved: ${projectService.getCurrentProjectPath()}"
+            statusBar.text = "Saved: ${projectService.currentProjectPath}"
         } catch (ex: Exception) {
             Dialogs.showError("Save Project Failed", ex.message)
         }
@@ -290,17 +290,17 @@ class MainWindow {
     private fun importGedcom() {
         val path = Dialogs.chooseOpenGedcomPath() ?: return
         try {
-            if (projectService.getCurrentData() == null) {
+            if (projectService.currentData == null) {
                 projectService.createNewProject()
             }
             val importer = GedcomImporter()
             val imported = importer.importFromFile(path)
-            projectService.getCurrentData()!!.individuals.addAll(imported.individuals)
-            projectService.getCurrentData()!!.families.addAll(imported.families)
-            projectService.getCurrentData()!!.relationships.addAll(imported.relationships)
-            if (!imported.sources.isNullOrEmpty()) projectService.getCurrentData()!!.sources.addAll(imported.sources)
-            if (!imported.repositories.isNullOrEmpty()) projectService.getCurrentData()!!.repositories.addAll(imported.repositories)
-            if (!imported.submitters.isNullOrEmpty()) projectService.getCurrentData()!!.submitters.addAll(imported.submitters)
+            projectService.currentData!!.individuals.addAll(imported.individuals)
+            projectService.currentData!!.families.addAll(imported.families)
+            projectService.currentData!!.relationships.addAll(imported.relationships)
+            if (!imported.sources.isNullOrEmpty()) projectService.currentData!!.sources.addAll(imported.sources)
+            if (!imported.repositories.isNullOrEmpty()) projectService.currentData!!.repositories.addAll(imported.repositories)
+            if (!imported.submitters.isNullOrEmpty()) projectService.currentData!!.submitters.addAll(imported.submitters)
             refreshAll()
             fitTreeToCanvas()
             statusBar.text = "Imported GEDCOM: $path"
@@ -312,16 +312,16 @@ class MainWindow {
     private fun importRel() {
         val path = Dialogs.chooseOpenRelPath() ?: return
         try {
-            if (projectService.getCurrentData() == null) {
+            if (projectService.currentData == null) {
                 projectService.createNewProject()
             }
             val importer = com.family.tree.rel.RelImporter()
-            val imported = importer.importFromFileWithLayout(path, projectService.getCurrentLayout())
-            projectService.getCurrentData()!!.individuals.addAll(imported.individuals)
-            projectService.getCurrentData()!!.families.addAll(imported.families)
-            projectService.getCurrentData()!!.relationships.addAll(imported.relationships)
-            if (!imported.sources.isNullOrEmpty()) projectService.getCurrentData()!!.sources.addAll(imported.sources)
-            if (!imported.repositories.isNullOrEmpty()) projectService.getCurrentData()!!.repositories.addAll(imported.repositories)
+            val imported = importer.importFromFileWithLayout(path, projectService.currentLayout)
+            projectService.currentData!!.individuals.addAll(imported.individuals)
+            projectService.currentData!!.families.addAll(imported.families)
+            projectService.currentData!!.relationships.addAll(imported.relationships)
+            if (!imported.sources.isNullOrEmpty()) projectService.currentData!!.sources.addAll(imported.sources)
+            if (!imported.repositories.isNullOrEmpty()) projectService.currentData!!.repositories.addAll(imported.repositories)
             refreshAll()
             fitTreeToCanvas()
             statusBar.text = "Imported REL: $path"
@@ -334,7 +334,7 @@ class MainWindow {
         val path = Dialogs.chooseSaveGedcomPath() ?: return
         try {
             val exporter = GedcomExporter()
-            exporter.exportToFile(projectService.getCurrentData(), path)
+            exporter.exportToFile(projectService.currentData, path)
             statusBar.text = "Exported GEDCOM: $path"
         } catch (ex: Exception) {
             Dialogs.showError("Export GEDCOM Failed", ex.message)
@@ -342,8 +342,8 @@ class MainWindow {
     }
 
     private fun exportHtml() {
-        val data = projectService.getCurrentData()
-        val layout = canvasView.getLayout()
+        val data = projectService.currentData
+        val layout = canvasView.layout
         if (data == null || layout == null) {
             Dialogs.showError("Export HTML", "Nothing to export.")
             return
@@ -358,8 +358,8 @@ class MainWindow {
     }
 
     private fun exportSvg() {
-        val data = projectService.getCurrentData()
-        val layout = canvasView.getLayout()
+        val data = projectService.currentData
+        val layout = canvasView.layout
         if (data == null || layout == null) {
             Dialogs.showError("Export SVG", "Nothing to export.")
             return
@@ -374,8 +374,8 @@ class MainWindow {
     }
 
     private fun exportImage() {
-        val data = projectService.getCurrentData()
-        val layout = canvasView.getLayout()
+        val data = projectService.currentData
+        val layout = canvasView.layout
         if (data == null || layout == null) {
             Dialogs.showError("Export Image", "Nothing to export.")
             return
@@ -414,9 +414,9 @@ class MainWindow {
     private fun pasteClipboard() { statusBar.text = "Paste not implemented (placeholder)" }
 
     private fun deleteSelection() {
-        val ids = canvasView.getSelectionModel().getSelectedIds()
+        val ids = canvasView.selectionModel.getSelectedIds()
         if (ids.isEmpty()) return
-        val data = projectService.getCurrentData() ?: return
+        val data = projectService.currentData ?: return
         data.individuals.removeIf { i -> ids.contains(i.id) }
         data.families.removeIf { f -> ids.contains(f.id) }
         data.relationships.removeIf { r -> ids.contains(r.fromId) || ids.contains(r.toId) }
@@ -426,7 +426,7 @@ class MainWindow {
 
     private fun align(mode: AlignAndDistributeController.Alignment) {
         val acc = getLayoutIdsAndAccessor() ?: return
-        val controller = AlignAndDistributeController(canvasView.getSelectionModel(), acc)
+        val controller = AlignAndDistributeController(canvasView.selectionModel, acc)
         controller.align(mode)
         canvasPane.draw()
         markDirty()
@@ -434,15 +434,15 @@ class MainWindow {
 
     private fun distribute(mode: AlignAndDistributeController.Distribution) {
         val acc = getLayoutIdsAndAccessor() ?: return
-        val controller = AlignAndDistributeController(canvasView.getSelectionModel(), acc)
+        val controller = AlignAndDistributeController(canvasView.selectionModel, acc)
         controller.distribute(mode)
         canvasPane.draw()
         markDirty()
     }
 
     private fun getLayoutIdsAndAccessor(): AlignAndDistributeController.PositionAccessor? {
-        val layoutResult = canvasView.getLayout() ?: return null
-        if (projectService.getCurrentData() == null) return null
+        val layoutResult = canvasView.layout ?: return null
+        if (projectService.currentData == null) return null
         return object : AlignAndDistributeController.PositionAccessor {
             override fun getX(id: String): Double {
                 val p = layoutResult.getPosition(id) ?: return 0.0
@@ -460,7 +460,7 @@ class MainWindow {
     }
 
     private fun openQuickSearch() {
-        val data = projectService.getCurrentData() ?: return
+        val data = projectService.currentData ?: return
         QuickSearchDialog(data) { id ->
             canvasView.select(id)
             canvasPane.draw()
@@ -470,7 +470,7 @@ class MainWindow {
     private fun showAbout() { AboutDialog.show() }
 
     private fun manageSources() {
-        val data = projectService.getCurrentData()
+        val data = projectService.currentData
         if (data == null) {
             Dialogs.showError("Sources", "Нет открытого проекта.")
             return
@@ -612,15 +612,15 @@ class MainWindow {
     private fun refreshAll() = refreshAll(false)
 
     private fun refreshAll(isNewProject: Boolean) {
-        val data = projectService.getCurrentData()
-        canvasView.setProjectData(data)
-        canvasView.setRenderer(com.family.tree.render.TreeRenderer(metrics))
-        canvasView.setNodeMetrics(metrics)
+        val data = projectService.currentData
+        canvasView.projectData = data
+        canvasView.renderer = com.family.tree.render.TreeRenderer(metrics)
+        canvasView.nodeMetrics = metrics
         metrics.setData(data)
 
         val computed = layoutEngine.computeLayout(data)
 
-        val persisted = projectService.getCurrentLayout()
+        val persisted = projectService.currentLayout
         if (persisted != null && persisted.nodePositions != null) {
             var centers = false
             try { centers = persisted.isPositionsAreCenters() } catch (_: Throwable) {}
@@ -669,8 +669,8 @@ class MainWindow {
             val hasViewport = persisted.zoom != 1.0 || persisted.viewOriginX != 0.0 || persisted.viewOriginY != 0.0
             if (hasViewport) {
                 canvasView.setZoom(persisted.zoom)
-                val dx = persisted.viewOriginX - canvasView.getZoomAndPan().getPanX()
-                val dy = persisted.viewOriginY - canvasView.getZoomAndPan().getPanY()
+                val dx = persisted.viewOriginX - canvasView.zoomAndPan.panX
+                val dy = persisted.viewOriginY - canvasView.zoomAndPan.panY
                 if (dx != 0.0 || dy != 0.0) canvasView.panBy(dx, dy)
             } else {
                 if (isNewProject) {
@@ -681,13 +681,13 @@ class MainWindow {
             }
         }
 
-        canvasView.setLayout(computed)
+        canvasView.layout = computed
         canvasPane.draw()
 
         individualsList.setData(data!!)
         familiesList.setData(data!!)
         relationshipsList.setData(data!!)
-        propertiesInspector.setProjectContext(data, projectService.getCurrentProjectPath())
+        propertiesInspector.setProjectContext(data, projectService.currentProjectPath)
         propertiesInspector.setSelection(setOf())
     }
 
@@ -696,8 +696,8 @@ class MainWindow {
     }
 
     private fun fitTreeToCanvas() {
-        val layout = canvasView.getLayout()
-        if (layout != null && !layout.getNodeIds().isEmpty()) {
+        val layout = canvasView.layout
+        if (layout != null && layout.getNodeIds().isNotEmpty()) {
             val fitZoom = computeFitToCanvasZoom(layout, metrics)
             canvasView.setZoom(fitZoom)
             canvasPane.draw()
@@ -729,28 +729,28 @@ class MainWindow {
         val treeWidth = maxX - minX
         val treeHeight = maxY - minY
         var zoom = kotlin.math.min((canvasWidth - 2 * margin) / treeWidth, (canvasHeight - 2 * margin) / treeHeight)
-        val minZoom = canvasView.getZoomAndPan().getMinZoom()
-        val maxZoom = canvasView.getZoomAndPan().getMaxZoom()
+        val minZoom = canvasView.zoomAndPan.minZoom
+        val maxZoom = canvasView.zoomAndPan.maxZoom
         zoom = kotlin.math.max(minZoom, kotlin.math.min(maxZoom, zoom))
         return zoom
     }
 
     private fun markDirty() {
-        projectService.getCurrentMeta()?.let { meta ->
+        projectService.currentMeta?.let { meta ->
             undoRedoService.bindProjectMetadata(meta)
         }
     }
 
     private fun persistViewport() {
-        val layout = projectService.getCurrentLayout() ?: return
-        layout.zoom = canvasView.getZoomAndPan().getZoom()
-        layout.viewOriginX = canvasView.getZoomAndPan().getPanX()
-        layout.viewOriginY = canvasView.getZoomAndPan().getPanY()
+        val layout = projectService.currentLayout ?: return
+        layout.zoom = canvasView.zoomAndPan.zoom
+        layout.viewOriginX = canvasView.zoomAndPan.panX
+        layout.viewOriginY = canvasView.zoomAndPan.panY
     }
 
     private fun persistNodePositions() {
-        val layoutResult = canvasView.getLayout() ?: return
-        val persisted = projectService.getCurrentLayout() ?: return
+        val layoutResult = canvasView.layout ?: return
+        val persisted = projectService.currentLayout ?: return
         val map = persisted.nodePositions
         map.clear()
         for (id in layoutResult.getNodeIds()) {

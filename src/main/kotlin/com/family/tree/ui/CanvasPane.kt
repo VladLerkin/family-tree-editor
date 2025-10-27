@@ -58,10 +58,10 @@ class CanvasPane(private val view: CanvasView) {
                     panning = false
                     draggingNodeId = id
                     // Compute offset in layout coords between mouse and node origin
-                    val zoom = view.getZoomAndPan().getZoom()
-                    val panX = view.getZoomAndPan().getPanX()
-                    val panY = view.getZoomAndPan().getPanY()
-                    val p = view.getLayout()?.getPosition(id)
+                    val zoom = view.zoomAndPan.zoom
+                    val panX = view.zoomAndPan.panX
+                    val panY = view.zoomAndPan.panY
+                    val p = view.layout?.getPosition(id)
                     if (p != null) {
                         val mouseLX = (e.x - panX) / zoom
                         val mouseLY = (e.y - panY) / zoom
@@ -73,7 +73,7 @@ class CanvasPane(private val view: CanvasView) {
                     }
                     // Select the node on press
                     view.select(id)
-                    onSelectionChanged?.accept(view.getSelectionModel().getSelectedIds())
+                    onSelectionChanged?.accept(view.selectionModel.getSelectedIds())
                 } else {
                     // No node under cursor: start panning with left button
                     panning = true
@@ -95,9 +95,9 @@ class CanvasPane(private val view: CanvasView) {
                 lastDragY = e.y
                 draw()
             } else if (draggingNodeId != null) {
-                val zoom = view.getZoomAndPan().getZoom()
-                val panX = view.getZoomAndPan().getPanX()
-                val panY = view.getZoomAndPan().getPanY()
+                val zoom = view.zoomAndPan.zoom
+                val panX = view.zoomAndPan.panX
+                val panY = view.zoomAndPan.panY
                 val mouseLX = (e.x - panX) / zoom
                 val mouseLY = (e.y - panY) / zoom
                 val newX = mouseLX - dragOffsetLX
@@ -125,8 +125,8 @@ class CanvasPane(private val view: CanvasView) {
             // Double-click opens edit dialog
             if (e.button == MouseButton.PRIMARY && e.clickCount == 2) {
                 view.select(id)
-                onSelectionChanged?.accept(view.getSelectionModel().getSelectedIds())
-                val data = view.getProjectData()
+                onSelectionChanged?.accept(view.selectionModel.getSelectedIds())
+                val data = view.projectData
                 if (data != null) {
                     // Try Individual first
                     val indOpt = data.individuals.stream().filter { i -> i.id == id }.findFirst()
@@ -144,7 +144,7 @@ class CanvasPane(private val view: CanvasView) {
                     }
                     if (saved) {
                         // Notify and redraw after edits
-                        onSelectionChanged?.accept(view.getSelectionModel().getSelectedIds())
+                        onSelectionChanged?.accept(view.selectionModel.getSelectedIds())
                         draw()
                     }
                 }
@@ -153,7 +153,7 @@ class CanvasPane(private val view: CanvasView) {
 
             // Single click: just select and redraw
             view.select(id)
-            onSelectionChanged?.accept(view.getSelectionModel().getSelectedIds())
+            onSelectionChanged?.accept(view.selectionModel.getSelectedIds())
             draw()
         }
     }
@@ -170,7 +170,7 @@ class CanvasPane(private val view: CanvasView) {
     fun selectAndHighlight(id: String?) {
         if (id == null) return
         view.select(id)
-        onSelectionChanged?.accept(view.getSelectionModel().getSelectedIds())
+        onSelectionChanged?.accept(view.selectionModel.getSelectedIds())
         draw()
     }
 
@@ -180,7 +180,7 @@ class CanvasPane(private val view: CanvasView) {
      */
     fun selectAndHighlight(ids: Set<String>?) {
         if (ids == null || ids.isEmpty()) return
-        val sel = view.getSelectionModel()
+        val sel = view.selectionModel
         sel.clear()
         // Preserve order roughly by iterating as provided
         var first: String? = null
@@ -200,7 +200,7 @@ class CanvasPane(private val view: CanvasView) {
         val jfxGc = canvas.graphicsContext2D
         jfxGc.clearRect(0.0, 0.0, canvas.width, canvas.height)
         // Pass current selection to renderer for highlight
-        RenderHighlightState.setSelectedIds(view.getSelectionModel().getSelectedIds())
+        RenderHighlightState.setSelectedIds(view.selectionModel.getSelectedIds())
         val g: GraphicsContext = JavaFxGraphicsContext(jfxGc)
         view.render(g)
     }

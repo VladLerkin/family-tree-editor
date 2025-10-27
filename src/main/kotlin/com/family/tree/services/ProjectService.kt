@@ -10,35 +10,52 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.LinkedList
+import kotlin.jvm.JvmName
 
 class ProjectService {
     private val repository: ProjectRepository = ProjectRepository()
-    private var currentProjectPath: Path? = null
-    private var currentData: ProjectRepository.ProjectData? = null
-    private var currentLayout: ProjectLayout? = null
-    private var currentMeta: ProjectMetadata? = null
-    private val recentProjects: LinkedList<Path> = LinkedList()
+    private var _currentProjectPath: Path? = null
+    private var _currentData: ProjectRepository.ProjectData? = null
+    private var _currentLayout: ProjectLayout? = null
+    private var _currentMeta: ProjectMetadata? = null
+    private val recentProjectsList: LinkedList<Path> = LinkedList()
     private val maxRecent: Int = 10
+
+    var currentProjectPath: Path?
+        get() = _currentProjectPath
+        private set(value) { _currentProjectPath = value }
+
+    val currentData: ProjectRepository.ProjectData?
+        get() = _currentData
+
+    val currentLayout: ProjectLayout?
+        get() = _currentLayout
+
+    val currentMeta: ProjectMetadata?
+        get() = _currentMeta
+
+    val recentProjects: List<Path>
+        get() = java.util.Collections.unmodifiableList(java.util.ArrayList(recentProjectsList))
 
     init {
         loadRecentProjects()
     }
 
     fun createNewProject() {
-        currentProjectPath = null
-        currentData = ProjectRepository.ProjectData()
-        currentLayout = ProjectLayout()
-        currentMeta = ProjectMetadata()
+        _currentProjectPath = null
+        _currentData = ProjectRepository.ProjectData()
+        _currentLayout = ProjectLayout()
+        _currentMeta = ProjectMetadata()
     }
 
     @Throws(IOException::class)
     fun openProject(path: Path) {
         ensureReadable(path)
         val loaded: ProjectRepository.LoadedProject = repository.read(path)
-        currentProjectPath = path
-        currentData = loaded.data
-        currentLayout = loaded.layout
-        currentMeta = loaded.meta
+        _currentProjectPath = path
+        _currentData = loaded.data
+        _currentLayout = loaded.layout
+        _currentMeta = loaded.meta
         addToRecent(path)
     }
 
@@ -59,26 +76,20 @@ class ProjectService {
     }
 
     fun closeProject() {
-        currentProjectPath = null
-        currentData = null
-        currentLayout = null
-        currentMeta = null
+        _currentProjectPath = null
+        _currentData = null
+        _currentLayout = null
+        _currentMeta = null
     }
 
-    fun getCurrentData(): ProjectRepository.ProjectData? = currentData
-    fun getCurrentLayout(): ProjectLayout? = currentLayout
-    fun getCurrentMeta(): ProjectMetadata? = currentMeta
-    fun getCurrentProjectPath(): Path? = currentProjectPath
-
-    fun getRecentProjects(): List<Path> = java.util.Collections.unmodifiableList(java.util.ArrayList(recentProjects))
 
     private fun addToRecent(path: Path?) {
         if (path == null) return
         val abs = path.toAbsolutePath().normalize()
-        recentProjects.removeIf { p -> p == path || p.toAbsolutePath().normalize() == abs }
-        recentProjects.addFirst(abs)
-        while (recentProjects.size > maxRecent) {
-            recentProjects.removeLast()
+        recentProjectsList.removeIf { p: Path -> p == path || p.toAbsolutePath().normalize() == abs }
+        recentProjectsList.addFirst(abs)
+        while (recentProjectsList.size > maxRecent) {
+            recentProjectsList.removeLast()
         }
         saveRecentProjects()
     }
@@ -119,9 +130,9 @@ class ProjectService {
                     .filter { Files.exists(it) }
                     .take(maxRecent)
                     .toList()
-                recentProjects.clear()
+                recentProjectsList.clear()
                 for (i in paths.size - 1 downTo 0) {
-                    recentProjects.addFirst(paths[i])
+                    recentProjectsList.addFirst(paths[i])
                 }
             }
         } catch (_: Exception) {
@@ -136,7 +147,7 @@ class ProjectService {
             if (dir != null && !Files.exists(dir)) {
                 Files.createDirectories(dir)
             }
-            val lines = recentProjects.asSequence()
+            val lines = recentProjectsList.asSequence()
                 .map { it.toAbsolutePath().toString() }
                 .toList()
             Files.write(
