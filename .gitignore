@@ -35,3 +35,4 @@ replay_pid*
 
 # Local distribution directory (if used outside target)
 dist/
+/kmp/.gradle/

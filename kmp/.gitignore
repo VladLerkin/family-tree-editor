@@ -1,0 +1,47 @@
+# Kotlin Multiplatform + Android (kmp/) .gitignore
+
+# Gradle
+.gradle/
+**/.gradle/
+**/build/
+
+# Gradle local configuration
+local.properties
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Kotlin/Compose/Codegen
+.kotlinc/
+.ksp/
+**/.kotlin/
+**/.kotlin_metadata/
+
+# Android NDK/External Builds
+.cxx/
+.externalNativeBuild/
+
+# Android artifacts/outputs
+**/outputs/
+# APKs / App Bundles (just in case someone builds into project dir)
+*.apk
+*.aab
+
+# Profiling / memory dumps
+*.hprof
+
+# Screenshots / recordings made by Studio
+captures/
+
+# Keystores and signing (never commit secrets)
+*.keystore
+*.jks
+*.keystore.properties
+*.signing.properties
+
+# OS-specific
+.DS_Store
+Thumbs.db
