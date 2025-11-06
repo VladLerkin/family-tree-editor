@@ -648,18 +648,25 @@ class RelImporter {
         val gedcomPattern = Regex("([\\p{L} .]+?)\\s+/([^/]+)/")
         val gedcomMatch = gedcomPattern.find(fullName)
         if (gedcomMatch != null) {
-            val given = gedcomMatch.groupValues[1].trim()
-            val surname = gedcomMatch.groupValues[2].trim()
+            var given = gedcomMatch.groupValues[1].trim()
+            var surname = gedcomMatch.groupValues[2].trim()
+            // Clean burger symbols and other garbage from extracted values
+            given = cleanToken(given) ?: given
+            surname = cleanToken(surname) ?: surname
             return arrayOf(given.ifBlank { "?" }, surname)
         }
         
         // Fallback: split by whitespace
         val tokens = fullName.trim().split(Regex("\\s+"))
-        return when {
+        val result = when {
             tokens.isEmpty() -> arrayOf("?", "")
             tokens.size == 1 -> arrayOf(tokens[0], "")
             else -> arrayOf(tokens[0], tokens.drop(1).joinToString(" "))
         }
+        // Clean both parts
+        result[0] = cleanToken(result[0]) ?: result[0]
+        result[1] = cleanToken(result[1]) ?: result[1]
+        return result
     }
 
     private fun cleanToken(s: String?): String? {
@@ -667,6 +674,10 @@ class RelImporter {
         var clean = s.trim()
         // Remove common garbage patterns
         clean = clean.replace(Regex("[\\x00-\\x1F]"), "")
+        // Remove burger Unicode characters (≣, ≡, ≢) and block symbols
+        clean = clean.replace("\uFEFF", "").replace("\uFFFD", "")
+        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "")
+        clean = clean.replace("\u25A0", "").replace("\u25A1", "").replace("\u25AA", "").replace("\u25AB", "")
         return if (clean.isBlank()) null else clean
     }
 
@@ -675,6 +686,13 @@ class RelImporter {
         var clean = s
         // Remove stray BOM and replacement characters that appear as black bars
         clean = clean.replace("\uFEFF", "").replace("\uFFFD", "")
+        // Remove horizontal bar symbols (≣ U+2263 and similar block characters) that appear as "five-layer burgers"
+        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "") // ≡ ≢ ≣
+        clean = clean.replace("\u25A0", "").replace("\u25A1", "").replace("\u25AA", "").replace("\u25AB", "") // ■ □ ▪ ▫
+        // Remove leading digits and special characters (like "2", "4", "6", "*", etc.) that prefix names in .rel format
+        clean = clean.replace(Regex("^[^\\p{L}]+"), "")
+        // Remove trailing digits and special characters (burger symbols, etc.) that follow names in .rel format
+        clean = clean.replace(Regex("[^\\p{L}]+$"), "")
         // Remove embedded GEDCOM tags
         clean = clean.replace(Regex("\\b(OBJE|TITL|FILE|NOTE|FORM|SEX|BIRT|DEAT)\\b.*", RegexOption.IGNORE_CASE), "")
         clean = clean.trim()
@@ -688,6 +706,9 @@ class RelImporter {
         clean = clean.replace(Regex("\\([^)]*\\)"), "").trim()
         // Remove quotes
         clean = clean.replace(Regex("^[\"']|[\"']$"), "").trim()
+        // Remove GEDCOM surname delimiters (/) that may be leftover - strip leading/trailing slashes and empty "//"
+        clean = clean.replace("//", "").trim()
+        clean = clean.replace(Regex("^/+|/+$"), "").trim()
         return if (clean.isBlank()) null else clean
     }
 
