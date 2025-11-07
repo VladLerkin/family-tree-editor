@@ -116,6 +116,13 @@ class CanvasView {
     fun zoomIn() { zoomAndPan.zoomIn() }
     fun zoomOut() { zoomAndPan.zoomOut() }
     fun setZoom(level: Double) { zoomAndPan.setZoom(level) }
+    
+    /**
+     * Zoom in or out relative to a specific point (e.g., mouse cursor).
+     */
+    fun zoomAt(x: Double, y: Double, zoomIn: Boolean) {
+        zoomAndPan.zoomAt(x, y, zoomIn)
+    }
 
     /**
      * Hit test: returns the id of the node whose rectangle contains the mouse point.

@@ -29,6 +29,8 @@ class CanvasPane(private val view: CanvasView) {
     private var suppressNextClick = false // to prevent click after drag
 
     init {
+        // Set mint green background matching the screenshot
+        root.style = "-fx-background-color: #D5E8D4;"
         root.children.add(canvas)
 
         root.widthProperty().addListener { _, _, _ ->
@@ -41,7 +43,7 @@ class CanvasPane(private val view: CanvasView) {
         }
 
         canvas.setOnScroll { e ->
-            if (e.deltaY > 0) view.zoomIn() else view.zoomOut()
+            view.zoomAt(e.x, e.y, e.deltaY > 0)
             draw()
         }
 

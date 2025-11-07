@@ -698,8 +698,39 @@ class MainWindow {
     private fun fitTreeToCanvas() {
         val layout = canvasView.layout
         if (layout != null && layout.getNodeIds().isNotEmpty()) {
+            // Calculate bounding box
+            var minX = Double.POSITIVE_INFINITY
+            var minY = Double.POSITIVE_INFINITY
+            var maxX = Double.NEGATIVE_INFINITY
+            var maxY = Double.NEGATIVE_INFINITY
+            val ids: Set<String> = layout.getNodeIds()
+            for (id in ids) {
+                val p = layout.getPosition(id) ?: continue
+                val x = p.x
+                val y = p.y
+                val w = metrics.getWidth(id)
+                val h = metrics.getHeight(id)
+                minX = kotlin.math.min(minX, x)
+                minY = kotlin.math.min(minY, y)
+                maxX = kotlin.math.max(maxX, x + w)
+                maxY = kotlin.math.max(maxY, y + h)
+            }
+            
             val fitZoom = computeFitToCanvasZoom(layout, metrics)
             canvasView.setZoom(fitZoom)
+            
+            // Center the tree in the canvas
+            val canvasWidth = canvasPane.getView().width
+            val canvasHeight = canvasPane.getView().height
+            val treeWidth = (maxX - minX) * fitZoom
+            val treeHeight = (maxY - minY) * fitZoom
+            val panX = (canvasWidth - treeWidth) / 2.0 - minX * fitZoom
+            val panY = (canvasHeight - treeHeight) / 2.0 - minY * fitZoom
+            
+            // Reset pan to centered position
+            canvasView.zoomAndPan.panBy(-canvasView.zoomAndPan.panX, -canvasView.zoomAndPan.panY)
+            canvasView.zoomAndPan.panBy(panX, panY)
+            
             canvasPane.draw()
         }
     }

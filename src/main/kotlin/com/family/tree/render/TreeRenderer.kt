@@ -49,17 +49,17 @@ class TreeRenderer @JvmOverloads constructor(private val metrics: NodeMetrics = 
             if (individualIds.contains(id)) {
                 val ind = individualsById[id]
                 if (ind != null && ind.gender == Gender.FEMALE) {
-                    // Yellow for female
-                    g.setFillColor(255, 255, 180, 1.0)
+                    // Light yellow for female (matching screenshot and KMP)
+                    g.setFillColor(255, 255, 192, 1.0)
                     g.setStrokeColor(120, 110, 40, 1.0)
                 } else if (ind != null && ind.gender == Gender.MALE) {
-                    // Light blue for male
-                    g.setFillColor(240, 240, 255, 1.0)
+                    // Light blue/lavender for male (matching screenshot and KMP)
+                    g.setFillColor(208, 208, 255, 1.0)
                     g.setStrokeColor(50, 50, 80, 1.0)
                 } else {
                     // Unknown/other
-                    g.setFillColor(235, 240, 245, 1.0)
-                    g.setStrokeColor(70, 80, 90, 1.0)
+                    g.setFillColor(250, 250, 250, 1.0)
+                    g.setStrokeColor(176, 190, 197, 1.0)
                 }
                 if (ind != null) {
                     val first = ind.firstName ?: ""
@@ -69,8 +69,8 @@ class TreeRenderer @JvmOverloads constructor(private val metrics: NodeMetrics = 
                     g.fillRect(x, y, w, h)
                     g.drawRect(x, y, w, h)
 
-                    // Text layout: three lines, centered
-                    val fontSize = 12.0 * kotlin.math.max(zoom, 0.1)
+                    // Text layout: three lines, centered - scaled 2x for better display
+                    val fontSize = 24.0 * kotlin.math.max(zoom, 0.1)  // 12.0 * 2
                     g.setFontSize(fontSize)
                     val lineH = fontSize * TextAwareNodeMetrics.lineSpacing()
                     val padV = TextAwareNodeMetrics.verticalPadding() * zoom
@@ -149,7 +149,7 @@ class TreeRenderer @JvmOverloads constructor(private val metrics: NodeMetrics = 
 
         // Draw family-aligned edges (spouse bar + child stem), like in the reference screenshot
         g.setStrokeColor(60, 60, 60, 1.0)
-        g.setLineWidth(1.0 * zoom)
+        g.setLineWidth(3.0 * zoom)
 
         // Collect relationships by family
         val spousesByFamily: MutableMap<String, MutableList<String>> = HashMap() // familyId -> spouseIds

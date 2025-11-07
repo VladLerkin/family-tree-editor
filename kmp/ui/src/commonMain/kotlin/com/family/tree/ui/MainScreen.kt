@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,7 +39,9 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.family.tree.core.ProjectData
-import com.family.tree.core.io.ProjectJson
+import com.family.tree.core.io.LoadedProject
+import com.family.tree.core.io.RelRepository
+import com.family.tree.core.io.RelImporter
 import com.family.tree.core.layout.SimpleTreeLayout
 import com.family.tree.core.model.Individual
 import com.family.tree.core.model.IndividualId
@@ -56,10 +59,12 @@ fun MainScreen() {
     // Project state: start from sample data
     val sample = remember { SampleData.simpleThreeGen() }
     var project by remember {
+        println("[DEBUG_LOG] MainScreen: Initializing project state with ${sample.first.size} individuals")
         mutableStateOf(
             ProjectData(individuals = sample.first, families = sample.second)
         )
     }
+    println("[DEBUG_LOG] MainScreen: Current project state has ${project.individuals.size} individuals, ${project.families.size} families")
     var projectLayout by remember { mutableStateOf<com.family.tree.core.layout.ProjectLayout?>(null) }
 
     // Selection model (single-select for now)
@@ -130,6 +135,12 @@ fun MainScreen() {
     // Family editor dialog state
     var editFamilyId by remember { mutableStateOf<FamilyId?>(null) }
 
+    // File dialog state for Android/platform file pickers
+    var showOpenDialog by remember { mutableStateOf(false) }
+    var showSaveDialog by remember { mutableStateOf(false) }
+    var pendingOpenCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
+    var pendingSaveData by remember { mutableStateOf<ProjectData?>(null) }
+
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
     var isSpacePressed by remember { mutableStateOf(false) }
@@ -189,6 +200,16 @@ fun MainScreen() {
     AppActions.zoomIn = { setScaleAnimated(scale * 1.1f) }
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
+
+    // Wire dialog actions for platform file dialogs (used by Android DesktopActions)
+    DialogActions.triggerOpenDialog = { callback ->
+        pendingOpenCallback = callback
+        showOpenDialog = true
+    }
+    DialogActions.triggerSaveDialog = { data ->
+        pendingSaveData = data
+        showSaveDialog = true
+    }
 
     Surface(color = MaterialTheme.colorScheme.background) {
         Column(
@@ -271,6 +292,7 @@ fun MainScreen() {
                         }
                         when (leftTab) {
                             0 -> {
+                                println("[DEBUG_LOG] MainScreen: Rendering individuals list with ${project.individuals.size} items")
                                 Column(Modifier.fillMaxSize().padding(12.dp)) {
                                     LazyColumn(Modifier.weight(1f)) {
                                         items(project.individuals) { ind ->
@@ -360,10 +382,24 @@ fun MainScreen() {
                             setPan = { pan = it },
                             getCanvasSize = { canvasSize }
                         )
-                        // Drag to pan
-                        .pointerInput(scale) {
-                            detectDragGestures { _, dragAmount ->
-                                pan += dragAmount
+                        // Multi-touch gestures: pinch to zoom, drag to pan
+                        .pointerInput(Unit) {
+                            detectTransformGestures { centroid, panChange, zoomChange, _ ->
+                                // Apply zoom change
+                                val newScale = (scale * zoomChange).coerceIn(0.25f, 4f)
+                                
+                                // Zoom toward centroid (touch point)
+                                // Before zoom: point P in world coords = (screenX - pan.x) / scale
+                                // After zoom: we want P to stay at same screen position
+                                // So: (screenX - newPan.x) / newScale = (screenX - pan.x) / scale
+                                // Solving: newPan.x = screenX - ((screenX - pan.x) / scale) * newScale
+                                val worldX = (centroid.x - pan.x) / scale
+                                val worldY = (centroid.y - pan.y) / scale
+                                val newPanX = centroid.x - worldX * newScale
+                                val newPanY = centroid.y - worldY * newScale
+                                
+                                scale = newScale
+                                pan = Offset(newPanX, newPanY) + panChange
                             }
                         }
                 ) {
@@ -468,6 +504,71 @@ fun MainScreen() {
             )
         }
     }
+
+    // Platform file dialogs (for Android and future cross-platform support)
+    // Store loaded project temporarily to ensure state update happens in composition scope
+    var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
+    
+    // Effect to apply loaded project data to main state
+    LaunchedEffect(loadedProjectTemp) {
+        val loaded = loadedProjectTemp
+        if (loaded != null) {
+            println("[DEBUG_LOG] MainScreen LaunchedEffect: Applying loaded project with ${loaded.data.individuals.size} individuals")
+            project = loaded.data
+            projectLayout = loaded.layout
+            selection.clear()
+            // Apply viewport from layout if present; otherwise fit to content
+            val layout = loaded.layout
+            if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {
+                scale = layout.zoom.toFloat()
+                pan = Offset(layout.viewOriginX.toFloat(), layout.viewOriginY.toFloat())
+            } else {
+                fitToView()
+            }
+            println("[DEBUG_LOG] MainScreen LaunchedEffect: Applied project state - project.individuals=${project.individuals.size}")
+            loadedProjectTemp = null  // Clear after applying
+        }
+    }
+    
+    PlatformFileDialogs(
+        showOpen = showOpenDialog,
+        onDismissOpen = {
+            showOpenDialog = false
+            pendingOpenCallback = null
+        },
+        onOpenResult = { bytes ->
+            println("[DEBUG_LOG] MainScreen.onOpenResult: received bytes=${bytes?.size ?: 0} bytes")
+            val callback = pendingOpenCallback
+            println("[DEBUG_LOG] MainScreen.onOpenResult: callback=$callback")
+            if (bytes != null) {
+                val loaded = runCatching {
+                    // Use RelImporter for .rel binary TLV format (starts with "Rela" header)
+                    RelImporter().importFromBytes(bytes)
+                }.getOrNull()
+                println("[DEBUG_LOG] MainScreen.onOpenResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
+                // Instead of invoking callback directly, store in temp state to trigger LaunchedEffect
+                if (loaded != null) {
+                    loadedProjectTemp = loaded
+                }
+                callback?.invoke(loaded)
+                println("[DEBUG_LOG] MainScreen.onOpenResult: callback invoked, project now has ${project.individuals.size} individuals")
+            } else {
+                println("[DEBUG_LOG] MainScreen.onOpenResult: bytes is null, invoking callback with null")
+                callback?.invoke(null)
+            }
+            showOpenDialog = false
+            pendingOpenCallback = null
+        },
+        showSave = showSaveDialog,
+        onDismissSave = {
+            showSaveDialog = false
+            pendingSaveData = null
+        },
+        bytesToSave = {
+            val data = pendingSaveData ?: project
+            RelRepository().write(data, projectLayout, null)
+        }
+    )
 }
 
 @Composable

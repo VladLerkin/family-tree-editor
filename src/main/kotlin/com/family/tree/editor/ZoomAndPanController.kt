@@ -34,6 +34,29 @@ class ZoomAndPanController {
     fun zoomIn() { setZoom(_zoom * zoomStep) }
     fun zoomOut() { setZoom(_zoom / zoomStep) }
 
+    /**
+     * Zoom in or out relative to a specific point (e.g., mouse cursor position).
+     * The point stays at the same screen location after zoom.
+     *
+     * @param screenX X coordinate in screen/view space
+     * @param screenY Y coordinate in screen/view space
+     * @param zoomIn true to zoom in, false to zoom out
+     */
+    fun zoomAt(screenX: Double, screenY: Double, zoomIn: Boolean) {
+        val oldZoom = _zoom
+        val newZoom = if (zoomIn) oldZoom * zoomStep else oldZoom / zoomStep
+        val clampedZoom = clamp(newZoom, _minZoom, _maxZoom)
+        
+        if (clampedZoom == oldZoom) return // No change, already at limit
+        
+        // Keep the point under cursor fixed by adjusting pan
+        // Formula: newPan = cursor - (cursor - oldPan) * (newZoom / oldZoom)
+        val k = clampedZoom / oldZoom
+        _panX = screenX - (screenX - _panX) * k
+        _panY = screenY - (screenY - _panY) * k
+        _zoom = clampedZoom
+    }
+
     fun panBy(dx: Double, dy: Double) {
         if (!dx.isFinite() || !dy.isFinite()) return
         this._panX += dx

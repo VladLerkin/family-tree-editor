@@ -21,31 +21,69 @@ actual class RelRepository {
     }
 
     actual fun read(bytes: ByteArray): LoadedProject {
+        println("[DEBUG_LOG] RelRepository.read: Starting to read ${bytes.size} bytes")
+        // Check ZIP magic number (should be PK\x03\x04 = 0x50 0x4B 0x03 0x04)
+        if (bytes.size >= 4) {
+            val header = bytes.take(4).map { String.format("%02X", it) }.joinToString(" ")
+            println("[DEBUG_LOG] RelRepository.read: First 4 bytes (hex): $header")
+            println("[DEBUG_LOG] RelRepository.read: Expected ZIP header: 50 4B 03 04")
+        }
+        
         var data: ProjectData? = null
         var layout: ProjectLayout? = null
         var meta: ProjectMetadata? = null
 
-        ByteArrayInputStream(bytes).use { bais ->
-            ZipInputStream(bais).use { zis ->
-                var entry: ZipEntry? = zis.nextEntry
-                while (entry != null) {
-                    val content = zis.readBytes()
-                    when (entry.name) {
-                        RelFormat.DATA_JSON -> data = json.decodeFromString(content.decodeToString())
-                        RelFormat.LAYOUT_JSON -> layout = json.decodeFromString(content.decodeToString())
-                        RelFormat.META_JSON -> meta = json.decodeFromString(content.decodeToString())
+        try {
+            ByteArrayInputStream(bytes).use { bais ->
+                ZipInputStream(bais).use { zis ->
+                    var entry: ZipEntry? = zis.nextEntry
+                    println("[DEBUG_LOG] RelRepository.read: First entry=$entry (null means no entries found)")
+                    println("[DEBUG_LOG] RelRepository.read: Starting ZIP entry iteration")
+                    while (entry != null) {
+                        val entryName = entry.name
+                        val content = zis.readBytes()
+                        println("[DEBUG_LOG] RelRepository.read: Found entry '$entryName', size=${content.size} bytes")
+                        try {
+                            when (entryName) {
+                                RelFormat.DATA_JSON -> {
+                                    println("[DEBUG_LOG] RelRepository.read: Parsing data.json...")
+                                    data = json.decodeFromString<ProjectData>(content.decodeToString())
+                                    println("[DEBUG_LOG] RelRepository.read: data.json parsed - individuals=${data?.individuals?.size}, families=${data?.families?.size}")
+                                }
+                                RelFormat.LAYOUT_JSON -> {
+                                    println("[DEBUG_LOG] RelRepository.read: Parsing layout.json...")
+                                    layout = json.decodeFromString<ProjectLayout>(content.decodeToString())
+                                    println("[DEBUG_LOG] RelRepository.read: layout.json parsed")
+                                }
+                                RelFormat.META_JSON -> {
+                                    println("[DEBUG_LOG] RelRepository.read: Parsing meta.json...")
+                                    meta = json.decodeFromString<ProjectMetadata>(content.decodeToString())
+                                    println("[DEBUG_LOG] RelRepository.read: meta.json parsed")
+                                }
+                                else -> println("[DEBUG_LOG] RelRepository.read: Skipping unknown entry '$entryName'")
+                            }
+                        } catch (e: Exception) {
+                            println("[DEBUG_LOG] RelRepository.read: ERROR parsing entry '$entryName':")
+                            e.printStackTrace()
+                        }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
                     }
-                    zis.closeEntry()
-                    entry = zis.nextEntry
+                    println("[DEBUG_LOG] RelRepository.read: Finished ZIP entry iteration")
                 }
             }
+        } catch (e: Exception) {
+            println("[DEBUG_LOG] RelRepository.read: ERROR reading ZIP:")
+            e.printStackTrace()
         }
 
-        return LoadedProject(
+        val result = LoadedProject(
             data = data ?: ProjectData(),
             layout = layout,
             meta = meta
         )
+        println("[DEBUG_LOG] RelRepository.read: Returning LoadedProject with data=${result.data.individuals.size} individuals, ${result.data.families.size} families")
+        return result
     }
 
     actual fun write(data: ProjectData, layout: ProjectLayout?, meta: ProjectMetadata?): ByteArray {

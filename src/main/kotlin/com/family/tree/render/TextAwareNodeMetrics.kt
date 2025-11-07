@@ -13,17 +13,17 @@ import java.util.*
  * Measurements are approximate and independent of zoom; TreeRenderer applies zoom.
  */
 class TextAwareNodeMetrics : NodeMetrics() {
-    // Base font size (layout units, at zoom=1)
-    private var baseFontSize = 12.0
+    // Base font size (layout units, at zoom=1) - scaled 2x for better display
+    private var baseFontSize = 24.0  // 12.0 * 2
     // Approximate average glyph width factor (em to px)
     private val AVG_CHAR_FACTOR = 0.6 // ~0.6 * font size per character
-    // Padding around text (layout units)
+    // Padding around text (layout units) - scaled 2x for better display
     companion object {
         @JvmStatic fun horizontalPadding(): Double = H_PAD
         @JvmStatic fun verticalPadding(): Double = V_PAD
         @JvmStatic fun lineSpacing(): Double = LINE_SPACING
-        private const val H_PAD = 12.0
-        private const val V_PAD = 10.0
+        private const val H_PAD = 24.0  // 12.0 * 2
+        private const val V_PAD = 20.0  // 10.0 * 2
         private const val LINE_SPACING = 1.2
     }
 
@@ -53,8 +53,8 @@ class TextAwareNodeMetrics : NodeMetrics() {
             val w3 = approxTextWidth(dateText, font)
 
             val w = maxOf(maxOf(w1, w2), w3) + H_PAD * 2.0
-            // Minimum width fallback
-            return maxOf(w, 80.0)
+            // Minimum width fallback - scaled 2x for better display
+            return maxOf(w, 160.0)  // 80.0 * 2
         }
         return super.getWidth(nodeId)
     }
@@ -64,7 +64,8 @@ class TextAwareNodeMetrics : NodeMetrics() {
         if (d != null && nodeId.isNotEmpty() && isIndividual(nodeId, d)) {
             val lineH = baseFontSize * LINE_SPACING
             val h = V_PAD * 2.0 + lineH * 3.0
-            return maxOf(h, 60.0)
+            // Minimum height fallback - scaled 2x for better display
+            return maxOf(h, 120.0)  // 60.0 * 2
         }
         return super.getHeight(nodeId)
     }

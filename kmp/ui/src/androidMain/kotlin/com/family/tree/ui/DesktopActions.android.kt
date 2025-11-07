@@ -6,11 +6,17 @@ import com.family.tree.core.io.LoadedProject
 
 actual object DesktopActions {
     actual fun openPed(onLoaded: (LoadedProject?) -> Unit) {
-        onLoaded(null)
+        // Trigger the platform file dialog via DialogActions
+        DialogActions.triggerOpenDialog(onLoaded)
     }
-    actual fun savePed(data: ProjectData): Boolean = false
+    actual fun savePed(data: ProjectData): Boolean {
+        // Trigger the platform save dialog via DialogActions
+        DialogActions.triggerSaveDialog(data)
+        return true
+    }
     actual fun importRel(onLoaded: (LoadedProject?) -> Unit) {
-        onLoaded(null)
+        // Same as openPed - trigger the platform file dialog
+        DialogActions.triggerOpenDialog(onLoaded)
     }
     actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean = false
     actual fun exportSvgFit(project: ProjectData): Boolean = false
