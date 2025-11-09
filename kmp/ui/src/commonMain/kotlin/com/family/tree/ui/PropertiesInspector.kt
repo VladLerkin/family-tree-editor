@@ -379,7 +379,7 @@ private fun TagsSection(
             onClick = {
                 if (newTagName.isNotBlank()) {
                     val newTag = Tag(
-                        id = TagId("tag_${System.currentTimeMillis()}"),
+                        id = TagId.generate(),
                         name = newTagName.trim()
                     )
                     onUpdate(tags + newTag)
@@ -431,7 +431,7 @@ private fun NotesSection(
     Button(
         onClick = {
             val newNote = Note(
-                id = NoteId("note_${System.currentTimeMillis()}"),
+                id = NoteId.generate(),
                 text = "New note"
             )
             onUpdate(notes + newNote)

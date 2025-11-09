@@ -7,15 +7,16 @@ plugins {
 kotlin {
     androidTarget()
     jvm("desktop")
+    
+    // iOS targets
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-            }
+        commonMain.dependencies {
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
         }
-        val androidMain by getting
-        val desktopMain by getting
     }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 17
     jvmToolchain(17)

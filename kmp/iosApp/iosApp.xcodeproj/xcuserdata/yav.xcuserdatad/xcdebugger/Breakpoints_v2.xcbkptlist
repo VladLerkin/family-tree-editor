@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "1BC46A16-9B03-45B6-8F01-2A2D77351B2F"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.AddressBreakpoint">
+         <BreakpointContent
+            uuid = "44934C56-9E03-4D91-80C1-8A3A2EB5DC3D"
+            shouldBeEnabled = "Yes"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            symbolName = "*0x113e53ef2">
+            <Locations>
+               <Location
+                  uuid = "44934C56-9E03-4D91-80C1-8A3A2EB5DC3D - 9b509af1fb4a628c"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "kfun:androidx.compose.ui.uikit.PlistSanityCheck.PlistSanityCheck$performIfNeeded$1.invoke#internal"
+                  moduleName = "FamilyTree.debug.dylib"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///opt/buildAgent/work/7377bd4dc65e1c03/kotlin/libraries/stdlib/src/kotlin/util/Preconditions.kt"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "0"
+                  endingLineNumber = "0">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>

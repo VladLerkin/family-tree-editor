@@ -10,17 +10,21 @@ plugins {
 kotlin {
     androidTarget()
     jvm("desktop")
+    
+    // iOS targets
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
-        val commonMain by getting {
-            dependencies {
-                implementation(project(":core"))
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.ui)
-                implementation(compose.material3)
-                implementation(compose.animation)
-            }
+        commonMain.dependencies {
+            implementation(project(":core"))
+            implementation(compose.runtime)
+            implementation(compose.foundation)
+            implementation(compose.ui)
+            implementation(compose.material3)
+            implementation(compose.materialIconsExtended)
+            implementation(compose.animation)
         }
         val androidMain by getting {
             dependencies {

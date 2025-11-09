@@ -3,18 +3,19 @@
 This directory contains the Kotlin Multiplatform migration branch of the app. It coexists with the legacy Maven/JavaFX project in the repo root.
 
 ## Tech matrix
-- Gradle: 9.1.0 (via wrapper)  
-- Kotlin: 2.0.21  
-- Compose Multiplatform: 1.7.0  
-- Android Gradle Plugin (AGP): 8.12.0  
+- Gradle: 8.10 (via wrapper)  
+- Kotlin: 2.1.0  
+- Compose Multiplatform: 1.7.1  
+- Android Gradle Plugin (AGP): 8.7.3  
 - JDK for Gradle: 21  
 - Android JVM target: 17
 
 ## Modules
 - :core — shared domain, layout, serialization (`kotlinx.serialization` JSON)
-- :ui — shared UI (Compose MPP), desktop/Android specifics via expect/actual
+- :ui — shared UI (Compose MPP), desktop/Android/iOS specifics via expect/actual
 - :app-desktop — Compose Desktop launcher
 - :app-android — Android launcher (Compose)
+- :app-ios — iOS launcher (Compose Multiplatform for iOS)
 
 ## How to run
 
@@ -36,6 +37,18 @@ adb shell monkey -p com.family.tree.android -c android.intent.category.LAUNCHER 
 Expected: App launches on connected device/emulator in landscape mode.
 
 **For detailed instructions:** See [docs/BUILD_ANDROID.md](docs/BUILD_ANDROID.md)
+
+### iOS
+**Note:** iOS support is structurally complete but currently requires resolving a build configuration issue. See [docs/iOS_TROUBLESHOOTING.md](docs/iOS_TROUBLESHOOTING.md) for details and solutions.
+
+```
+cd kmp
+./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
+```
+Expected: Framework built for iOS Simulator on Apple Silicon. Use IntelliJ IDEA with Kotlin Multiplatform Mobile plugin or create Xcode wrapper to run.
+
+**For detailed instructions:** See [docs/BUILD_IOS.md](docs/BUILD_IOS.md)  
+**Troubleshooting:** See [docs/iOS_TROUBLESHOOTING.md](docs/iOS_TROUBLESHOOTING.md)
 
 ### Desktop gestures and shortcuts
 - Zoom: mouse wheel / trackpad scroll (zoom under cursor)

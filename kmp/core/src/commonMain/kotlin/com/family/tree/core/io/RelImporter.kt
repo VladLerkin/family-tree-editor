@@ -424,20 +424,20 @@ class RelImporter {
         val rec = PersonRec()
 
         // For name extraction, pre-strip OBJE and NOTE(S) blocks to avoid contamination (matching JavaFX logic)
-        val objePatternForName = Regex("OBJE\\s*[\\s\\S]+?(?=(?:OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
-        val notePatternForName = Regex("(?:NOTE|NOTES)\\s*[\\s\\S]+?(?=(?:SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val objePatternForName = Regex("OBJE\\s*[\\s\\S]+?(?=(?:OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
+        val notePatternForName = Regex("(?:NOTE|NOTES)\\s*[\\s\\S]+?(?=(?:SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
         var blockForName = objePatternForName.replace(block, " ")
         blockForName = notePatternForName.replace(blockForName, " ")
 
         // NAME - try multiple patterns for binary .rel format
         // Pattern 1: Standard NAME with content on same or next line (with optional prefix character)
-        var nameMatch = Regex("NAME\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|GIVN|SURN|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(blockForName)
+        var nameMatch = Regex("NAME\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|GIVN|SURN|P\\d+|F\\d+|_X|_Y)|$)").find(blockForName)
         if (nameMatch != null) {
             rec.name = nameMatch.groupValues[1].trim()
         }
         // Pattern 2: Corrupted NAME (sometimes first char is corrupted in binary format)
         if (rec.name.isNullOrBlank()) {
-            nameMatch = Regex("(?:NAME|.AME)\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(blockForName)
+            nameMatch = Regex("(?:NAME|.AME)\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|P\\d+|F\\d+|_X|_Y)|$)").find(blockForName)
             if (nameMatch != null) {
                 rec.name = nameMatch.groupValues[1].trim()
             }
@@ -475,10 +475,10 @@ class RelImporter {
         }
 
         // BIRT - extract date and place first
-        val birtMatch = Regex("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val birtMatch = Regex("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
         rec.birth = birtMatch?.groupValues?.get(1)?.trim()
         
-        val birtPlacMatch = Regex("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val birtPlacMatch = Regex("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
         rec.birthPlace = birtPlacMatch?.groupValues?.get(1)?.trim()
         
         // Extract SOUR and PAGE inside BIRT block boundaries (matching JavaFX logic)
@@ -494,10 +494,10 @@ class RelImporter {
         }
 
         // DEAT - extract date and place first
-        val deatMatch = Regex("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val deatMatch = Regex("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
         rec.death = deatMatch?.groupValues?.get(1)?.trim()
         
-        val deatPlacMatch = Regex("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val deatPlacMatch = Regex("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
         rec.deathPlace = deatPlacMatch?.groupValues?.get(1)?.trim()
         
         // Extract SOUR and PAGE inside DEAT block boundaries (matching JavaFX logic)
@@ -520,7 +520,7 @@ class RelImporter {
         rec.posY = yMatch?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull()
 
         // Notes
-        val notePattern = Regex("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val notePattern = Regex("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
         for (match in notePattern.findAll(block)) {
             val noteText = match.groupValues[1].trim()
             if (noteText.isNotBlank()) {
@@ -529,13 +529,13 @@ class RelImporter {
         }
 
         // Media
-        val objePattern = Regex("OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val objePattern = Regex("OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
         for (match in objePattern.findAll(block)) {
             val objeBlock = match.groupValues[1]
             val media = MediaRec()
             media.form = Regex("FORM\\s*([^\\r\\n\\s]+)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
-            media.title = Regex("TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(objeBlock)?.groupValues?.get(1)?.trim()
-            media.file = Regex("FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)).find(objeBlock)?.groupValues?.get(1)?.trim()
+            media.title = Regex("TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
+            media.file = Regex("FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
             if (media.file != null || media.title != null) {
                 rec.media.add(media)
             }
@@ -567,10 +567,10 @@ class RelImporter {
         println("[DEBUG_LOG] RelImporter.parseFamilyBlock: children count=${rec.children.size}, children=${rec.children}")
 
         // MARR
-        val marrDateMatch = Regex("MARR.*?DATE\\((.+?)\\)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val marrDateMatch = Regex("MARR.*?DATE\\((.+?)\\)").find(block)
         rec.marriageDate = marrDateMatch?.groupValues?.get(1)?.trim()
         
-        val marrPlacMatch = Regex("MARR.*?PLAC\\s*([^PF\\r\\n]+)", RegexOption.DOT_MATCHES_ALL).find(block)
+        val marrPlacMatch = Regex("MARR.*?PLAC\\s*([^PF\\r\\n]+)").find(block)
         rec.marriagePlace = marrPlacMatch?.groupValues?.get(1)?.trim()
 
         return rec
@@ -637,7 +637,7 @@ class RelImporter {
     }
 
     private fun extractSourceTag(text: String, tag: String): String? {
-        val pattern = Regex("$tag\\s*([\\s\\S]+?)(?=(ABBR|TITL|AUTH|PUBL|REPO|$))", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+        val pattern = Regex("$tag\\s*([\\s\\S]+?)(?=(ABBR|TITL|AUTH|PUBL|REPO|$))", RegexOption.IGNORE_CASE)
         return pattern.find(text)?.groupValues?.get(1)?.trim()
     }
 

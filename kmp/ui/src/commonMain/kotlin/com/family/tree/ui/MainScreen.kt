@@ -265,7 +265,7 @@ fun MainScreen() {
                 ) {
                     Text("Compose Multiplatform — Family Tree", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
-                    Text("${"%.0f".format(scale * 100)}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+                    Text("${(scale * 100).toInt()}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
                 }
             }
 
