@@ -8,6 +8,8 @@ expect object DesktopActions {
     fun openPed(onLoaded: (LoadedProject?) -> Unit)
     fun savePed(data: ProjectData): Boolean
     fun importRel(onLoaded: (LoadedProject?) -> Unit)
+    fun importGedcom(onLoaded: (ProjectData?) -> Unit)
+    fun exportGedcom(data: ProjectData): Boolean
     fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean
     fun exportSvgFit(project: ProjectData): Boolean
     // With options

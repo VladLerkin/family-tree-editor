@@ -124,6 +124,72 @@ actual object DesktopActions {
         }
     }
 
+    actual fun importGedcom(onLoaded: (ProjectData?) -> Unit) {
+        println("[DEBUG_LOG] importGedcom: Dialog opening...")
+        val fd = FileDialog(null as Frame?, "Import GEDCOM", FileDialog.LOAD)
+        fd.file = "*.ged"
+        fd.setFilenameFilter { _, name -> name.endsWith(".ged", ignoreCase = true) || name.endsWith(".gedcom", ignoreCase = true) }
+        fd.isVisible = true
+        val dir = fd.directory
+        val file = fd.file
+        println("[DEBUG_LOG] importGedcom: dir=$dir, file=$file")
+        if (dir == null || file == null) {
+            println("[DEBUG_LOG] importGedcom: User cancelled or no file selected")
+            return onLoaded(null)
+        }
+        val selected = File(dir, file)
+        println("[DEBUG_LOG] importGedcom: Selected file: ${selected.absolutePath}, exists=${selected.exists()}")
+        try {
+            val content = selected.readText(StandardCharsets.UTF_8)
+            println("[DEBUG_LOG] importGedcom: Read ${content.length} chars from file")
+            
+            val importer = com.family.tree.core.gedcom.GedcomImporter()
+            val data = importer.importFromString(content)
+            println("[DEBUG_LOG] importGedcom: Successfully imported - individuals=${data.individuals.size}, families=${data.families.size}")
+            onLoaded(data)
+        } catch (e: Exception) {
+            println("[DEBUG_LOG] importGedcom: ERROR during import:")
+            e.printStackTrace()
+            
+            java.awt.EventQueue.invokeLater {
+                javax.swing.JOptionPane.showMessageDialog(
+                    null,
+                    "Failed to import GEDCOM file:\n${e.message}",
+                    "Import Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+                )
+            }
+            onLoaded(null)
+        }
+    }
+
+    actual fun exportGedcom(data: ProjectData): Boolean {
+        val fd = FileDialog(null as Frame?, "Export GEDCOM", FileDialog.SAVE)
+        fd.file = "*.ged"
+        fd.isVisible = true
+        val dir = fd.directory ?: return false
+        val file = fd.file ?: return false
+        val out = File(dir, if (file.endsWith(".ged")) file else "$file.ged")
+        return try {
+            val exporter = com.family.tree.core.gedcom.GedcomExporter()
+            val content = exporter.exportToString(data)
+            out.writeText(content, StandardCharsets.UTF_8)
+            println("[DEBUG_LOG] exportGedcom: Successfully exported to ${out.absolutePath}")
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            java.awt.EventQueue.invokeLater {
+                javax.swing.JOptionPane.showMessageDialog(
+                    null,
+                    "Failed to export GEDCOM file:\n${e.message}",
+                    "Export Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+                )
+            }
+            false
+        }
+    }
+
     actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean {
         val fd = FileDialog(null as Frame?, "Export SVG", FileDialog.SAVE)
         fd.file = "export.svg"

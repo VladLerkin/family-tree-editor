@@ -140,6 +140,18 @@ fun MainScreen() {
     var showSaveDialog by remember { mutableStateOf(false) }
     var pendingOpenCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
     var pendingSaveData by remember { mutableStateOf<ProjectData?>(null) }
+    
+    // GEDCOM dialog state
+    var showGedcomImportDialog by remember { mutableStateOf(false) }
+    var showGedcomExportDialog by remember { mutableStateOf(false) }
+    var pendingGedcomImportCallback by remember { mutableStateOf<((ProjectData?) -> Unit)?>(null) }
+    var pendingGedcomExportData by remember { mutableStateOf<ProjectData?>(null) }
+    
+    // SVG export dialog state
+    var showSvgExportDialog by remember { mutableStateOf(false) }
+    var showSvgExportFitDialog by remember { mutableStateOf(false) }
+    var pendingSvgExportData by remember { mutableStateOf<Triple<ProjectData, Float, Offset>?>(null) }
+    var pendingSvgExportFitData by remember { mutableStateOf<ProjectData?>(null) }
 
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
@@ -190,6 +202,23 @@ fun MainScreen() {
             }
         }
     }
+    AppActions.importGedcom = {
+        DesktopActions.importGedcom { data ->
+            println("[DEBUG_LOG] MainScreen.importGedcom callback: data=$data")
+            if (data != null) {
+                println("[DEBUG_LOG] MainScreen.importGedcom: Received data with ${data.individuals.size} individuals, ${data.families.size} families")
+                project = data
+                projectLayout = null
+                println("[DEBUG_LOG] MainScreen.importGedcom: Updated project state")
+                selection.clear()
+                fitToView()
+                println("[DEBUG_LOG] MainScreen.importGedcom: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
+            } else {
+                println("[DEBUG_LOG] MainScreen.importGedcom: data is null (user cancelled or error)")
+            }
+        }
+    }
+    AppActions.exportGedcom = { DesktopActions.exportGedcom(project) }
     AppActions.exportSvgCurrent = { DesktopActions.exportSvg(project, scale = scale, pan = pan) }
     AppActions.exportSvgFit = { DesktopActions.exportSvgFit(project) }
     AppActions.exportPngCurrent = { DesktopActions.exportPng(project, scale = scale, pan = pan) }
@@ -209,6 +238,22 @@ fun MainScreen() {
     DialogActions.triggerSaveDialog = { data ->
         pendingSaveData = data
         showSaveDialog = true
+    }
+    DialogActions.triggerGedcomImport = { callback ->
+        pendingGedcomImportCallback = callback
+        showGedcomImportDialog = true
+    }
+    DialogActions.triggerGedcomExport = { data ->
+        pendingGedcomExportData = data
+        showGedcomExportDialog = true
+    }
+    DialogActions.triggerSvgExport = { data, scale, pan ->
+        pendingSvgExportData = Triple(data, scale, pan)
+        showSvgExportDialog = true
+    }
+    DialogActions.triggerSvgExportFit = { data ->
+        pendingSvgExportFitData = data
+        showSvgExportFitDialog = true
     }
 
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -241,6 +286,8 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showMenu = false; AppActions.openPed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showMenu = false; AppActions.savePed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showMenu = false; AppActions.importRel() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showMenu = false; AppActions.importGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text(if (showGrid) "Grid: On" else "Grid: Off") }, onClick = { showMenu = false; AppActions.toggleGrid() })
@@ -567,6 +614,60 @@ fun MainScreen() {
         bytesToSave = {
             val data = pendingSaveData ?: project
             RelRepository().write(data, projectLayout, null)
+        },
+        // GEDCOM import
+        showGedcomImport = showGedcomImportDialog,
+        onDismissGedcomImport = {
+            showGedcomImportDialog = false
+            pendingGedcomImportCallback = null
+        },
+        onGedcomImportResult = { bytes ->
+            val callback = pendingGedcomImportCallback
+            if (bytes != null) {
+                val content = bytes.decodeToString()
+                val imported = runCatching {
+                    com.family.tree.core.gedcom.GedcomImporter().importFromString(content)
+                }.getOrNull()
+                callback?.invoke(imported)
+            } else {
+                callback?.invoke(null)
+            }
+            showGedcomImportDialog = false
+            pendingGedcomImportCallback = null
+        },
+        // GEDCOM export
+        showGedcomExport = showGedcomExportDialog,
+        onDismissGedcomExport = {
+            showGedcomExportDialog = false
+            pendingGedcomExportData = null
+        },
+        gedcomBytesToSave = {
+            val data = pendingGedcomExportData ?: project
+            val exporter = com.family.tree.core.gedcom.GedcomExporter()
+            val content = exporter.exportToString(data)
+            content.encodeToByteArray()
+        },
+        // SVG export (current view)
+        showSvgExport = showSvgExportDialog,
+        onDismissSvgExport = {
+            showSvgExportDialog = false
+            pendingSvgExportData = null
+        },
+        svgBytesToSave = {
+            // TODO: Implement SVG exporter for KMP
+            val (data, exportScale, exportPan) = pendingSvgExportData ?: Triple(project, scale, pan)
+            "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
+        },
+        // SVG export (fit to content)
+        showSvgExportFit = showSvgExportFitDialog,
+        onDismissSvgExportFit = {
+            showSvgExportFitDialog = false
+            pendingSvgExportFitData = null
+        },
+        svgFitBytesToSave = {
+            // TODO: Implement SVG exporter for KMP
+            val data = pendingSvgExportFitData ?: project
+            "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
         }
     )
 }
