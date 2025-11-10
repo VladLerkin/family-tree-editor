@@ -14,7 +14,21 @@ actual fun PlatformFileDialogs(
     onOpenResult: (bytes: ByteArray?) -> Unit,
     showSave: Boolean,
     onDismissSave: () -> Unit,
-    bytesToSave: () -> ByteArray
+    bytesToSave: () -> ByteArray,
+    // GEDCOM dialogs (unused on Desktop - uses native dialogs in DesktopActions)
+    showGedcomImport: Boolean,
+    onDismissGedcomImport: () -> Unit,
+    onGedcomImportResult: (bytes: ByteArray?) -> Unit,
+    showGedcomExport: Boolean,
+    onDismissGedcomExport: () -> Unit,
+    gedcomBytesToSave: () -> ByteArray,
+    // SVG export dialogs (unused on Desktop - uses native dialogs in DesktopActions)
+    showSvgExport: Boolean,
+    onDismissSvgExport: () -> Unit,
+    svgBytesToSave: () -> ByteArray,
+    showSvgExportFit: Boolean,
+    onDismissSvgExportFit: () -> Unit,
+    svgFitBytesToSave: () -> ByteArray
 ) {
     // Open dialog (AwtWindow wrapper)
     if (showOpen) {

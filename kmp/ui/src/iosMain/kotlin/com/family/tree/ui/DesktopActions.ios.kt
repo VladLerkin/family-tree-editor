@@ -18,8 +18,23 @@ actual object DesktopActions {
         // Same as openPed - trigger the platform file dialog
         DialogActions.triggerOpenDialog(onLoaded)
     }
-    actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean = false
-    actual fun exportSvgFit(project: ProjectData): Boolean = false
+    actual fun importGedcom(onLoaded: (ProjectData?) -> Unit) {
+        // Trigger the platform file dialog via DialogActions
+        DialogActions.triggerGedcomImport(onLoaded)
+    }
+    actual fun exportGedcom(data: ProjectData): Boolean {
+        // Trigger the platform save dialog via DialogActions
+        DialogActions.triggerGedcomExport(data)
+        return true
+    }
+    actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean {
+        DialogActions.triggerSvgExport(project, scale, pan)
+        return true
+    }
+    actual fun exportSvgFit(project: ProjectData): Boolean {
+        DialogActions.triggerSvgExportFit(project)
+        return true
+    }
     actual fun exportSvgWithOptions(
         project: ProjectData,
         scale: Float,

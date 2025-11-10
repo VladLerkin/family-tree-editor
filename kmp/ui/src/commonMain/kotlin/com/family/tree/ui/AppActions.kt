@@ -9,6 +9,8 @@ object AppActions {
     var openPed: () -> Unit = {}
     var savePed: () -> Unit = {}
     var importRel: () -> Unit = {}
+    var importGedcom: () -> Unit = {}
+    var exportGedcom: () -> Unit = {}
     var exportSvgCurrent: () -> Unit = {}
     var exportSvgFit: () -> Unit = {}
     var exportPngCurrent: () -> Unit = {}

@@ -1,5 +1,6 @@
 package com.family.tree.ui
 
+import androidx.compose.ui.geometry.Offset
 import com.family.tree.core.ProjectData
 import com.family.tree.core.io.LoadedProject
 
@@ -11,4 +12,8 @@ import com.family.tree.core.io.LoadedProject
 object DialogActions {
     var triggerOpenDialog: ((LoadedProject?) -> Unit) -> Unit = {}
     var triggerSaveDialog: (ProjectData) -> Unit = {}
+    var triggerGedcomImport: ((ProjectData?) -> Unit) -> Unit = {}
+    var triggerGedcomExport: (ProjectData) -> Unit = {}
+    var triggerSvgExport: (ProjectData, Float, Offset) -> Unit = { _, _, _ -> }
+    var triggerSvgExportFit: (ProjectData) -> Unit = {}
 }

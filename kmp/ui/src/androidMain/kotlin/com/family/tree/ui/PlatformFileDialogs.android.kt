@@ -16,7 +16,21 @@ actual fun PlatformFileDialogs(
     onOpenResult: (bytes: ByteArray?) -> Unit,
     showSave: Boolean,
     onDismissSave: () -> Unit,
-    bytesToSave: () -> ByteArray
+    bytesToSave: () -> ByteArray,
+    // GEDCOM dialogs
+    showGedcomImport: Boolean,
+    onDismissGedcomImport: () -> Unit,
+    onGedcomImportResult: (bytes: ByteArray?) -> Unit,
+    showGedcomExport: Boolean,
+    onDismissGedcomExport: () -> Unit,
+    gedcomBytesToSave: () -> ByteArray,
+    // SVG export dialogs
+    showSvgExport: Boolean,
+    onDismissSvgExport: () -> Unit,
+    svgBytesToSave: () -> ByteArray,
+    showSvgExportFit: Boolean,
+    onDismissSvgExportFit: () -> Unit,
+    svgFitBytesToSave: () -> ByteArray
 ) {
     val context = LocalContext.current
 
@@ -53,6 +67,71 @@ actual fun PlatformFileDialogs(
         }
     )
 
+    // GEDCOM IMPORT — SAF OPEN_DOCUMENT
+    val gedcomImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            if (uri == null) {
+                onGedcomImportResult(null)
+                onDismissGedcomImport()
+            } else {
+                val bytes = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull()
+                onGedcomImportResult(bytes)
+                onDismissGedcomImport()
+            }
+        }
+    )
+
+    // GEDCOM EXPORT — SAF CREATE_DOCUMENT
+    val gedcomExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/x-gedcom"),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(gedcomBytesToSave())
+                        out.flush()
+                    }
+                }
+            }
+            onDismissGedcomExport()
+        }
+    )
+
+    // SVG EXPORT — SAF CREATE_DOCUMENT
+    val svgExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/svg+xml"),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(svgBytesToSave())
+                        out.flush()
+                    }
+                }
+            }
+            onDismissSvgExport()
+        }
+    )
+
+    // SVG EXPORT FIT — SAF CREATE_DOCUMENT
+    val svgExportFitLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("image/svg+xml"),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(svgFitBytesToSave())
+                        out.flush()
+                    }
+                }
+            }
+            onDismissSvgExportFit()
+        }
+    )
+
     if (showOpen) {
         LaunchedEffect(Unit) {
             // JSON first, allow any as fallback via user picker
@@ -64,6 +143,30 @@ actual fun PlatformFileDialogs(
         LaunchedEffect(Unit) {
             // Suggest a default filename
             createLauncher.launch("project.json")
+        }
+    }
+
+    if (showGedcomImport) {
+        LaunchedEffect(Unit) {
+            gedcomImportLauncher.launch(arrayOf("application/x-gedcom", "text/*", "*/*"))
+        }
+    }
+
+    if (showGedcomExport) {
+        LaunchedEffect(Unit) {
+            gedcomExportLauncher.launch("family_tree.ged")
+        }
+    }
+
+    if (showSvgExport) {
+        LaunchedEffect(Unit) {
+            svgExportLauncher.launch("tree_export.svg")
+        }
+    }
+
+    if (showSvgExportFit) {
+        LaunchedEffect(Unit) {
+            svgExportFitLauncher.launch("tree_export_fit.svg")
         }
     }
 }

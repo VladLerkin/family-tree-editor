@@ -14,6 +14,7 @@ fun main() = application {
                 Item("Save") { AppActions.savePed() }
                 Separator()
                 Item("Import .rel") { AppActions.importRel() }
+                Item("Import GEDCOM") { AppActions.importGedcom() }
                 Separator()
                 Menu("Export") {
                     Item("SVG (Current View)") { AppActions.exportSvgCurrent() }
@@ -21,6 +22,8 @@ fun main() = application {
                     Separator()
                     Item("PNG (Current View)") { AppActions.exportPngCurrent() }
                     Item("PNG (Fit to Content)") { AppActions.exportPngFit() }
+                    Separator()
+                    Item("GEDCOM") { AppActions.exportGedcom() }
                 }
             }
             Menu("View") {

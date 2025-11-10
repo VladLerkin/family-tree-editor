@@ -26,7 +26,21 @@ actual fun PlatformFileDialogs(
     onOpenResult: (bytes: ByteArray?) -> Unit,
     showSave: Boolean,
     onDismissSave: () -> Unit,
-    bytesToSave: () -> ByteArray
+    bytesToSave: () -> ByteArray,
+    // GEDCOM dialogs
+    showGedcomImport: Boolean,
+    onDismissGedcomImport: () -> Unit,
+    onGedcomImportResult: (bytes: ByteArray?) -> Unit,
+    showGedcomExport: Boolean,
+    onDismissGedcomExport: () -> Unit,
+    gedcomBytesToSave: () -> ByteArray,
+    // SVG export dialogs
+    showSvgExport: Boolean,
+    onDismissSvgExport: () -> Unit,
+    svgBytesToSave: () -> ByteArray,
+    showSvgExportFit: Boolean,
+    onDismissSvgExportFit: () -> Unit,
+    svgFitBytesToSave: () -> ByteArray
 ) {
     // Open dialog
     if (showOpen) {
@@ -141,6 +155,192 @@ actual fun PlatformFileDialogs(
                 // Fallback if no root view controller
                 println("[DEBUG_LOG] PlatformFileDialogs.ios: Save - No root view controller")
                 onDismissSave()
+            }
+        }
+    }
+    
+    // GEDCOM Import dialog
+    if (showGedcomImport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    val url = didPickDocumentAtURL
+                    val data = NSData.create(contentsOfURL = url)
+                    val bytes = data?.let { nsDataToByteArray(it) }
+                    onGedcomImportResult(bytes)
+                    onDismissGedcomImport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onGedcomImportResult(null)
+                    onDismissGedcomImport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                val documentTypes = listOf("public.plain-text", "public.data", "public.content")
+                val picker = UIDocumentPickerViewController(
+                    documentTypes = documentTypes,
+                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                )
+                picker.setDelegate(delegate)
+                rootViewController.presentViewController(picker, animated = true, completion = null)
+            } else {
+                onGedcomImportResult(null)
+                onDismissGedcomImport()
+            }
+        }
+    }
+    
+    // GEDCOM Export dialog
+    if (showGedcomExport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    onDismissGedcomExport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onDismissGedcomExport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                val bytes = gedcomBytesToSave()
+                val data = byteArrayToNSData(bytes)
+                val fileManager = NSFileManager.defaultManager
+                val tempDir = platform.Foundation.NSTemporaryDirectory()
+                val tempPath = "${tempDir}family_tree.ged"
+                val tempFileUrl = NSURL.fileURLWithPath(tempPath)
+                
+                val success = fileManager.createFileAtPath(
+                    path = tempPath,
+                    contents = data,
+                    attributes = null
+                )
+                
+                if (success) {
+                    val picker = UIDocumentPickerViewController(
+                        uRL = tempFileUrl,
+                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                    )
+                    picker.setDelegate(delegate)
+                    rootViewController.presentViewController(picker, animated = true, completion = null)
+                } else {
+                    onDismissGedcomExport()
+                }
+            } else {
+                onDismissGedcomExport()
+            }
+        }
+    }
+    
+    // SVG Export dialog
+    if (showSvgExport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    onDismissSvgExport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onDismissSvgExport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                val bytes = svgBytesToSave()
+                val data = byteArrayToNSData(bytes)
+                val fileManager = NSFileManager.defaultManager
+                val tempDir = platform.Foundation.NSTemporaryDirectory()
+                val tempPath = "${tempDir}tree_export.svg"
+                val tempFileUrl = NSURL.fileURLWithPath(tempPath)
+                
+                val success = fileManager.createFileAtPath(
+                    path = tempPath,
+                    contents = data,
+                    attributes = null
+                )
+                
+                if (success) {
+                    val picker = UIDocumentPickerViewController(
+                        uRL = tempFileUrl,
+                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                    )
+                    picker.setDelegate(delegate)
+                    rootViewController.presentViewController(picker, animated = true, completion = null)
+                } else {
+                    onDismissSvgExport()
+                }
+            } else {
+                onDismissSvgExport()
+            }
+        }
+    }
+    
+    // SVG Export Fit dialog
+    if (showSvgExportFit) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    onDismissSvgExportFit()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onDismissSvgExportFit()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                val bytes = svgFitBytesToSave()
+                val data = byteArrayToNSData(bytes)
+                val fileManager = NSFileManager.defaultManager
+                val tempDir = platform.Foundation.NSTemporaryDirectory()
+                val tempPath = "${tempDir}tree_export_fit.svg"
+                val tempFileUrl = NSURL.fileURLWithPath(tempPath)
+                
+                val success = fileManager.createFileAtPath(
+                    path = tempPath,
+                    contents = data,
+                    attributes = null
+                )
+                
+                if (success) {
+                    val picker = UIDocumentPickerViewController(
+                        uRL = tempFileUrl,
+                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                    )
+                    picker.setDelegate(delegate)
+                    rootViewController.presentViewController(picker, animated = true, completion = null)
+                } else {
+                    onDismissSvgExportFit()
+                }
+            } else {
+                onDismissSvgExportFit()
             }
         }
     }

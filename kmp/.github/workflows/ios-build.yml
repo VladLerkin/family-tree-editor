@@ -1,0 +1,116 @@
+name: iOS Build
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'kmp/**'
+      - '.github/workflows/ios-build.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'kmp/**'
+  workflow_dispatch:
+
+jobs:
+  build-ios-framework:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        working-directory: kmp
+        run: chmod +x gradlew
+      
+      - name: Build iOS Framework (All Targets)
+        working-directory: kmp
+        run: |
+          ./gradlew :app-ios:linkDebugFrameworkIosArm64 --stacktrace
+          ./gradlew :app-ios:linkDebugFrameworkIosX64 --stacktrace
+          ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+      
+      - name: Upload iOS Framework Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-frameworks
+          path: |
+            kmp/app-ios/build/bin/iosArm64/debugFramework/**
+            kmp/app-ios/build/bin/iosX64/debugFramework/**
+            kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/**
+          retention-days: 7
+  
+  build-ios-app:
+    runs-on: macos-latest
+    needs: build-ios-framework
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'gradle'
+      
+      - name: Grant execute permission for gradlew
+        working-directory: kmp
+        run: chmod +x gradlew
+      
+      - name: Build iOS Framework for Simulator
+        working-directory: kmp
+        run: |
+          ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+      
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      
+      - name: Build iOS App for Simulator
+        working-directory: kmp/iosApp
+        run: |
+          xcodebuild -project iosApp.xcodeproj \
+            -scheme iosApp \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build \
+            build
+      
+      - name: Upload iOS App Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-simulator
+          path: kmp/iosApp/build/Build/Products/Debug-iphonesimulator/*.app
+          retention-days: 7
+      
+      - name: Build iOS App for Device (Archive)
+        working-directory: kmp/iosApp
+        run: |
+          xcodebuild -project iosApp.xcodeproj \
+            -scheme iosApp \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            archive \
+            -archivePath build/iosApp.xcarchive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+        continue-on-error: true
+      
+      - name: Upload iOS Archive
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ios-app-archive
+          path: kmp/iosApp/build/iosApp.xcarchive/**
+          retention-days: 30
