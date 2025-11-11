@@ -49,6 +49,9 @@ import com.family.tree.core.model.FamilyId
 import com.family.tree.core.sample.SampleData
 import com.family.tree.core.platform.FileGateway
 import com.family.tree.ui.render.TreeRenderer
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -79,13 +82,28 @@ fun MainScreen() {
     var showGrid by remember { mutableStateOf(true) }
     var lineWidth by remember { mutableFloatStateOf(1f) }
 
+    // Memoize layout computation - only recompute when data changes (same as TreeRenderer)
+    val cachedPositions = remember(project.individuals, project.families) {
+        SimpleTreeLayout.layout(project.individuals, project.families).also {
+            println("[DEBUG_LOG] MainScreen: computed ${it.size} cached positions")
+        }
+    }
+
+    // Track when to auto-fit view after import
+    var shouldAutoFit by remember { mutableStateOf(false) }
+
+    // Coroutine scope for throttling centerOn operations
+    val coroutineScope = rememberCoroutineScope()
+    var centerOnThrottleJob by remember { mutableStateOf<Job?>(null) }
+    var pendingCenterOnRequest by remember { mutableStateOf<Pair<Individual, Map<IndividualId, Offset>>?>(null) }
+
     fun clampScale(s: Float) = s.coerceIn(0.25f, 4f)
 
     suspend fun setScaleImmediate(value: Float) { scale = clampScale(value) }
     fun setScaleAnimated(value: Float) { scale = clampScale(value) }
 
     fun fitToView() {
-        val positions = SimpleTreeLayout.layout(project.individuals, project.families)
+        val positions = cachedPositions
         if (positions.isEmpty() || canvasSize.width == 0 || canvasSize.height == 0) {
             scale = 1f
             // animate to zero pan
@@ -116,17 +134,63 @@ fun MainScreen() {
         pan = target
     }
 
-    fun centerOn(ind: Individual) {
-        val positions = SimpleTreeLayout.layout(project.individuals, project.families)
-        val p = positions[ind.id] ?: return
+    fun centerOnImmediate(ind: Individual, customOffsets: Map<IndividualId, Offset>) {
+        // Use custom offsets from REL layout if available, otherwise use computed positions
+        val (posX, posY) = if (ind.id in customOffsets) {
+            val offset = customOffsets[ind.id]!!
+            offset.x to offset.y
+        } else {
+            val vec2 = cachedPositions[ind.id] ?: return
+            vec2.x to vec2.y
+        }
         if (canvasSize.width == 0 || canvasSize.height == 0) return
         val cx = canvasSize.width / 2f
         val cy = canvasSize.height / 2f
         val nodeW = 120f * scale
         val nodeH = 60f * scale
-        val targetX = p.x * scale + nodeW / 2
-        val targetY = p.y * scale + nodeH / 2
-        pan = Offset(cx - targetX, cy - targetY)
+        val targetX = posX * scale + nodeW / 2
+        val targetY = posY * scale + nodeH / 2
+        val newPan = Offset(cx - targetX, cy - targetY)
+        
+        // Update pan directly - optimization happens in TreeRenderer via viewport culling
+        // For large trees, only visible nodes recompose (see TreeRenderer.kt:217-223)
+        pan = newPan
+        
+        println("[DEBUG_LOG] MainScreen.centerOn: centered on ${ind.displayName}, new pan=$newPan")
+    }
+    
+    // Throttled centerOn to prevent ANR when rapidly selecting persons in large trees
+    fun centerOn(ind: Individual, customOffsets: Map<IndividualId, Offset>) {
+        // Store pending request
+        pendingCenterOnRequest = Pair(ind, customOffsets)
+        
+        // Cancel any existing throttle job
+        centerOnThrottleJob?.cancel()
+        
+        // Schedule new throttle job with 100ms delay to batch rapid selections
+        centerOnThrottleJob = coroutineScope.launch {
+            delay(100)
+            pendingCenterOnRequest?.let { (individual, offsets) ->
+                centerOnImmediate(individual, offsets)
+                pendingCenterOnRequest = null
+            }
+        }
+    }
+
+    // Auto-fit view after import when positions are ready
+    LaunchedEffect(cachedPositions, shouldAutoFit, canvasSize) {
+        println("[DEBUG_LOG] MainScreen: LaunchedEffect block running - shouldAutoFit=$shouldAutoFit, positions=${cachedPositions.size}, canvasSize=$canvasSize")
+        if (shouldAutoFit && cachedPositions.isNotEmpty() && canvasSize != IntSize.Zero) {
+            println("[DEBUG_LOG] MainScreen: Conditions met, calling fitToView()")
+            // Add a small delay to ensure canvas is fully initialized
+            kotlinx.coroutines.delay(50)
+            println("[DEBUG_LOG] MainScreen: After delay, calling fitToView() with ${cachedPositions.size} positions, canvasSize=$canvasSize")
+            fitToView()
+            shouldAutoFit = false
+            println("[DEBUG_LOG] MainScreen: fitToView() completed, shouldAutoFit set to false")
+        } else {
+            println("[DEBUG_LOG] MainScreen: Conditions NOT met - skipping fitToView()")
+        }
     }
 
     // Person editor dialog state
@@ -194,8 +258,8 @@ fun MainScreen() {
                 projectLayout = loaded.layout
                 println("[DEBUG_LOG] MainScreen.importRel: Updated project state, layout has ${loaded.layout?.nodePositions?.size ?: 0} node positions")
                 selectedId = null
-                fitToView()
-                println("[DEBUG_LOG] MainScreen.importRel: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
+                shouldAutoFit = true
+                println("[DEBUG_LOG] MainScreen.importRel: Set shouldAutoFit=true, final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
             } else {
                 println("[DEBUG_LOG] MainScreen.importRel: loaded is null (user cancelled or error)")
             }
@@ -315,6 +379,19 @@ fun MainScreen() {
                 }
             }
 
+            // Node-level offsets to support dragging individual nodes (JavaFX-like)
+            // Initialize from ProjectLayout coordinates if available (for REL format)
+            val nodeOffsets = remember(project, projectLayout) {
+                mutableStateMapOf<IndividualId, Offset>().apply {
+                    projectLayout?.nodePositions?.forEach { (idString, nodePos) ->
+                        val id = IndividualId(idString)
+                        if (project.individuals.any { it.id == id }) {
+                            put(id, Offset(nodePos.x.toFloat(), nodePos.y.toFloat()))
+                        }
+                    }
+                }
+            }
+
             // Main content: left list, center canvas, right inspector
             Row(Modifier.fillMaxSize()) {
                 // Left panel: Individuals/Families tabs (like legacy JavaFX)
@@ -351,7 +428,7 @@ fun MainScreen() {
                                                 .combinedClickable(
                                                     onClick = {
                                                         selectedId = ind.id
-                                                        centerOn(ind)
+                                                        centerOn(ind, nodeOffsets)
                                                     },
                                                     onDoubleClick = { editPersonId = ind.id }
                                                 )
@@ -451,25 +528,13 @@ fun MainScreen() {
                             }
                         }*/
                 ) {
-                    // Node-level offsets to support dragging individual nodes (JavaFX-like)
-                    val nodeOffsets = remember(project, projectLayout) {
-                        mutableStateMapOf<IndividualId, Offset>().apply {
-                            // Initialize from ProjectLayout coordinates if available
-                            projectLayout?.nodePositions?.forEach { (idString, nodePos) ->
-                                val id = IndividualId(idString)
-                                if (project.individuals.any { it.id == id }) {
-                                    put(id, Offset(nodePos.x.toFloat(), nodePos.y.toFloat()))
-                                }
-                            }
-                        }
-                    }
                     TreeRenderer(
                         data = project,
                         selectedId = selectedId,
                         onSelect = { id -> selectedId = id },
                         onEditPerson = { id -> editPersonId = id },
                         onCenterOn = { id ->
-                            project.individuals.find { it.id == id }?.let { centerOn(it) }
+                            project.individuals.find { it.id == id }?.let { centerOn(it, nodeOffsets) }
                         },
                         onReset = { fitToView() },
                         onNodeDrag = { id, delta ->
@@ -672,128 +737,4 @@ fun MainScreen() {
             "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
         }
     )
-}
-
-@Composable
-private fun TreeCanvas(
-    data: ProjectData,
-    selectedId: IndividualId?,
-    onSelect: (IndividualId?) -> Unit,
-    scale: Float,
-    pan: Offset
-) {
-    val positions = remember(data) { SimpleTreeLayout.layout(data.individuals, data.families) }
-
-    // Node visuals
-    val nodeWidth = 120.dp * scale
-    val nodeHeight = 60.dp * scale
-
-    val density = LocalDensity.current
-
-    Box(Modifier.fillMaxSize()) {
-        // Background grid respecting pan/scale
-        Canvas(Modifier.fillMaxSize()) {
-            val spacingBase = 64f
-            val spacing = (spacingBase * scale).coerceAtLeast(20f)
-            val w = size.width
-            val h = size.height
-            // Offset so that grid moves with pan
-            val startX = ((pan.x % spacing) + spacing) % spacing
-            val startY = ((pan.y % spacing) + spacing) % spacing
-            val gridColor = Color(0x11000000)
-            var x = startX
-            while (x <= w) {
-                drawLine(gridColor, Offset(x, 0f), Offset(x, h))
-                x += spacing
-            }
-            var y = startY
-            while (y <= h) {
-                drawLine(gridColor, Offset(0f, y), Offset(w, y))
-                y += spacing
-            }
-        }
-        // Offset whole drawing area by pan
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(pan.x.roundToInt(), pan.y.roundToInt()) }
-                .fillMaxSize()
-        ) {
-            // Draw connection lines
-            Canvas(Modifier.fillMaxSize()) {
-                data.families.forEach { fam ->
-                    val parents = listOfNotNull(fam.husbandId, fam.wifeId)
-                    val parentCenters = parents.mapNotNull { id ->
-                        positions[id]?.let { p -> Offset(p.x * scale, p.y * scale) }
-                    }
-                    val children = fam.childrenIds
-                    val childCenters = children.mapNotNull { id ->
-                        positions[id]?.let { p -> Offset(p.x * scale, p.y * scale) }
-                    }
-                    if (parentCenters.isNotEmpty() && childCenters.isNotEmpty()) {
-                        val yParent = parentCenters.map { it.y }.average().toFloat() + nodeHeight.toPx() / 2
-                        val xParentMid = parentCenters.map { it.x }.average().toFloat() + nodeWidth.toPx() / 2
-                        childCenters.forEach { child ->
-                            val yChild = child.y + nodeHeight.toPx() / 2
-                            val xChild = child.x + nodeWidth.toPx() / 2
-                            drawLine(
-                                color = Color(0xFF607D8B),
-                                start = Offset(xParentMid, yParent),
-                                end = Offset(xChild, yChild),
-                                strokeWidth = 2f
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Draw nodes as composables so we can use Text easily
-            data.individuals.forEach { ind ->
-                val pos = positions[ind.id] ?: return@forEach
-                val leftDp = with(density) { (pos.x * scale).toDp() }
-                val topDp = with(density) { (pos.y * scale).toDp() }
-                NodeCard(
-                    name = ind.displayName,
-                    x = leftDp,
-                    y = topDp,
-                    width = nodeWidth,
-                    height = nodeHeight,
-                    selected = (ind.id == selectedId),
-                    onClick = { onSelect(ind.id) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NodeCard(
-    name: String,
-    x: Dp,
-    y: Dp,
-    width: Dp,
-    height: Dp,
-    selected: Boolean,
-    onClick: () -> Unit
-) {
-    val borderColor = if (selected) Color(0xFF1976D2) else Color(0xFFB0BEC5)
-    val borderWidth = if (selected) 3f else 2f
-    Box(
-        modifier = Modifier
-            .offset(x, y)
-            .size(width, height)
-            .background(Color(0xFFFAFAFA))
-            .clickable { onClick() }
-            .padding(8.dp)
-    ) {
-        // Border
-        Canvas(Modifier.fillMaxSize()) {
-            drawRect(color = borderColor, style = Stroke(width = borderWidth))
-        }
-        Text(
-            name,
-            modifier = Modifier.align(Alignment.Center),
-            color = Color(0xFF263238),
-            fontSize = 12.sp
-        )
-    }
 }

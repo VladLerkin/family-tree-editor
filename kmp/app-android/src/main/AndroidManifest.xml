@@ -6,6 +6,7 @@
         android:label="Family Tree"
         android:allowBackup="true"
         android:supportsRtl="true"
+        android:largeHeap="true"
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
         <activity
             android:name=".MainActivity"

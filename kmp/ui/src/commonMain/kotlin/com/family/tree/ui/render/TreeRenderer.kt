@@ -70,7 +70,7 @@ fun TreeRenderer(
     showGrid: Boolean,
     lineWidth: Float
 ) {
-    println("[DEBUG_LOG] TreeRenderer: rendering with ${data.individuals.size} individuals, ${data.families.size} families, scale=$scale, pan=$pan")
+    println("[DEBUG_LOG] TreeRenderer: recomposing (total data: ${data.individuals.size} individuals, ${data.families.size} families), scale=$scale, pan=$pan")
     
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     
@@ -166,32 +166,73 @@ fun TreeRenderer(
         return NodeMeasure(w, h, chosenFsBaseSp)
     }
 
-    // Предрасчёт прямоугольников всех узлов с учётом измерений
-    // Memoize to avoid expensive text measurement on every recomposition
-    val measures: Map<IndividualId, NodeMeasure> = remember(data.individuals, scale, measurer) {
+    // Approximate bounds for viewport culling (before expensive text measurement)
+    // Use fixed base size scaled appropriately - good enough for culling, precise measurement happens later
+    data class ApproxBounds(val x: Float, val y: Float, val w: Float, val h: Float)
+    
+    val approxBounds: Map<IndividualId, ApproxBounds> = remember(data.individuals, positions, nodeOffsets, scale) {
         buildMap {
             data.individuals.forEach { ind ->
-                put(ind.id, measureNodePx(ind.firstName, ind.lastName))
+                val off = nodeOffsets[ind.id]
+                val (baseX, baseY) = if (off != null) {
+                    Pair(off.x * scale, off.y * scale)
+                } else {
+                    val p = positions[ind.id] ?: return@forEach
+                    Pair(p.x * scale, p.y * scale)
+                }
+                // Use approximate size: min card dimensions scaled
+                val approxW = 74.25f * scale
+                val approxH = 33.75f * scale
+                put(ind.id, ApproxBounds(baseX, baseY, approxW, approxH))
+            }
+        }
+    }
+    
+    // Viewport culling using approximate bounds (cheap operation)
+    fun isVisibleApprox(b: ApproxBounds): Boolean {
+        val screenLeft = b.x + pan.x
+        val screenRight = b.x + b.w + pan.x
+        val screenTop = b.y + pan.y
+        val screenBottom = b.y + b.h + pan.y
+        val margin = if (PlatformEnv.isDesktop) 200f else 50f
+        return screenRight >= -margin && screenLeft <= canvasSize.width + margin &&
+               screenBottom >= -margin && screenTop <= canvasSize.height + margin
+    }
+    
+    // Filter visible individuals BEFORE expensive text measurement
+    val visibleIndividualIds = remember(approxBounds, pan, canvasSize, scale) {
+        data.individuals.mapNotNull { ind ->
+            approxBounds[ind.id]?.let { bounds ->
+                if (isVisibleApprox(bounds)) ind.id else null
+            }
+        }.also {
+            println("[DEBUG_LOG] TreeRenderer: viewport culling reduced ${data.individuals.size} to ${it.size} visible individuals")
+        }
+    }
+    
+    // NOW measure text only for visible individuals (expensive but limited to visible set)
+    val measures: Map<IndividualId, NodeMeasure> = remember(visibleIndividualIds, data.individuals, scale, measurer) {
+        buildMap {
+            visibleIndividualIds.forEach { id ->
+                val ind = data.individuals.find { it.id == id } ?: return@forEach
+                put(id, measureNodePx(ind.firstName, ind.lastName))
             }
         }
     }
 
-    val rects: Map<IndividualId, RectF> = remember(data.individuals, positions, nodeOffsets, scale, measures) {
+    // Precise rectangles only for visible individuals
+    val rects: Map<IndividualId, RectF> = remember(visibleIndividualIds, positions, nodeOffsets, scale, measures) {
         buildMap {
-            data.individuals.forEach { ind ->
-                val m = measures[ind.id] ?: return@forEach
-                // If nodeOffsets has this individual, use it as absolute position (from imported layout)
-                // Otherwise fall back to auto-layout position from SimpleTreeLayout
-                val off = nodeOffsets[ind.id]
+            visibleIndividualIds.forEach { id ->
+                val m = measures[id] ?: return@forEach
+                val off = nodeOffsets[id]
                 val (baseX, baseY) = if (off != null) {
-                    // Use nodeOffsets as absolute position (imported coordinates), scaled
                     Pair(off.x * scale, off.y * scale)
                 } else {
-                    // Use auto-layout position
-                    val p = positions[ind.id] ?: return@forEach
+                    val p = positions[id] ?: return@forEach
                     Pair(p.x * scale, p.y * scale)
                 }
-                put(ind.id, RectF(baseX, baseY, m.w, m.h))
+                put(id, RectF(baseX, baseY, m.w, m.h))
             }
         }
     }
@@ -199,26 +240,10 @@ fun TreeRenderer(
     fun rectFor(id: IndividualId): RectF? = rects[id]
     fun textFsFor(id: IndividualId): Float = measures[id]?.baseFsSp ?: 3f
     
-    // Viewport culling: check if rectangle intersects viewport
-    // Rects are in world space (scaled positions), rendered at screen position = worldPos + pan
-    // For visibility: worldPos + pan must intersect screen bounds [0, canvasSize]
-    // Therefore: worldPos.right + pan.x >= -margin  AND  worldPos.left + pan.x <= canvasSize.width + margin
-    fun isVisible(r: RectF): Boolean {
-        val screenLeft = r.left + pan.x
-        val screenRight = r.right + pan.x
-        val screenTop = r.top + pan.y
-        val screenBottom = r.bottom + pan.y
-        val margin = 200f
-        return screenRight >= -margin && screenLeft <= canvasSize.width + margin &&
-               screenBottom >= -margin && screenTop <= canvasSize.height + margin
-    }
-    
-    // Filter visible individuals for rendering - memoize based on viewport bounds and rects
-    val visibleIndividuals = remember(rects, pan, canvasSize) {
-        data.individuals.filter { ind ->
-            rectFor(ind.id)?.let { isVisible(it) } ?: false
-        }.also {
-            println("[DEBUG_LOG] TreeRenderer: viewport culling reduced ${data.individuals.size} to ${it.size} visible individuals")
+    // Convert visible IDs back to Individual objects for rendering
+    val visibleIndividuals = remember(visibleIndividualIds, data.individuals) {
+        visibleIndividualIds.mapNotNull { id ->
+            data.individuals.find { it.id == id }
         }
     }
 
