@@ -139,7 +139,13 @@ class GedcomImporter {
                     curInd.surname = surname
                 }
                 "SEX" -> curInd.sex = GedcomMapper.parseSex(value)
-                "BIRT", "DEAT", "BURI", "ADOP", "RESI" -> {
+                // Handle all standard GEDCOM individual event tags
+                "BIRT", "CHR", "DEAT", "BURI", "CREM", "ADOP", "BAPM", "BARM", "BASM", 
+                "BLES", "CHRA", "CONF", "FCOM", "ORDN", "NATU", "EMIG", "IMMI", 
+                "CENS", "PROB", "WILL", "GRAD", "RETI", "EVEN",
+                // Handle individual attribute tags that can have dates/places
+                "CAST", "DSCR", "EDUC", "IDNO", "NATI", "NCHI", "NMR", "OCCU", 
+                "PROP", "RELI", "RESI", "SSN", "TITL" -> {
                     val event = EventRec(type = tag)
                     curInd.events.add(event)
                 }
@@ -150,7 +156,15 @@ class GedcomImporter {
             }
         } else if (level == 2) {
             val ctx = context.lastOrNull()
-            if (ctx in listOf("BIRT", "DEAT", "BURI", "ADOP", "RESI")) {
+            // Check if context is any event/attribute tag
+            val eventTags = setOf(
+                "BIRT", "CHR", "DEAT", "BURI", "CREM", "ADOP", "BAPM", "BARM", "BASM", 
+                "BLES", "CHRA", "CONF", "FCOM", "ORDN", "NATU", "EMIG", "IMMI", 
+                "CENS", "PROB", "WILL", "GRAD", "RETI", "EVEN",
+                "CAST", "DSCR", "EDUC", "IDNO", "NATI", "NCHI", "NMR", "OCCU", 
+                "PROP", "RELI", "RESI", "SSN", "TITL"
+            )
+            if (ctx != null && ctx in eventTags) {
                 val event = curInd.events.lastOrNull()
                 if (event != null) {
                     when (tag) {

@@ -67,9 +67,8 @@ fun MainScreen() {
     println("[DEBUG_LOG] MainScreen: Current project state has ${project.individuals.size} individuals, ${project.families.size} families")
     var projectLayout by remember { mutableStateOf<com.family.tree.core.layout.ProjectLayout?>(null) }
 
-    // Selection model (single-select for now)
-    val selection = remember { com.family.tree.core.editor.SelectionModel() }
-    val selectedId by remember { derivedStateOf { selection.selected } }
+    // Selection state (single-select for now)
+    var selectedId by remember { mutableStateOf<IndividualId?>(null) }
 
     // Viewport state (simplified without Animatable to unblock compile)
     var scale by remember { mutableFloatStateOf(1f) }
@@ -168,7 +167,7 @@ fun MainScreen() {
                 project = loaded.data
                 projectLayout = loaded.layout
                 println("[DEBUG_LOG] MainScreen.openPed: Updated project state, layout has ${loaded.layout?.nodePositions?.size ?: 0} node positions")
-                selection.clear()
+                selectedId = null
                 // Apply viewport from layout if present; otherwise fit to content
                 val layout = loaded.layout
                 if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {
@@ -194,7 +193,7 @@ fun MainScreen() {
                 project = loaded.data
                 projectLayout = loaded.layout
                 println("[DEBUG_LOG] MainScreen.importRel: Updated project state, layout has ${loaded.layout?.nodePositions?.size ?: 0} node positions")
-                selection.clear()
+                selectedId = null
                 fitToView()
                 println("[DEBUG_LOG] MainScreen.importRel: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
             } else {
@@ -210,7 +209,7 @@ fun MainScreen() {
                 project = data
                 projectLayout = null
                 println("[DEBUG_LOG] MainScreen.importGedcom: Updated project state")
-                selection.clear()
+                selectedId = null
                 fitToView()
                 println("[DEBUG_LOG] MainScreen.importGedcom: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
             } else {
@@ -262,7 +261,7 @@ fun MainScreen() {
                 .fillMaxSize()
                 .focusRequester(focusRequester)
                 .platformKeyboardShortcuts(
-                    onEscape = { selection.clear() },
+                    onEscape = { selectedId = null },
                     onZoomIn = { setScaleAnimated(scale * 1.1f) },
                     onZoomOut = { setScaleAnimated(scale * 0.9f) }
                 )
@@ -319,10 +318,11 @@ fun MainScreen() {
             // Main content: left list, center canvas, right inspector
             Row(Modifier.fillMaxSize()) {
                 // Left panel: Individuals/Families tabs (like legacy JavaFX)
-                Box(
-                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                    contentAlignment = Alignment.TopStart
-                ) {
+                if (PlatformEnv.isDesktop) {
+                    Box(
+                        modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
+                        contentAlignment = Alignment.TopStart
+                    ) {
                     Column(Modifier.fillMaxSize()) {
                         var leftTab by remember { mutableStateOf(0) }
                         androidx.compose.material3.TabRow(selectedTabIndex = leftTab) {
@@ -351,7 +351,7 @@ fun MainScreen() {
                                                     .background(bg)
                                                     .combinedClickable(
                                                         onClick = {
-                                                            selection.select(ind.id)
+                                                            selectedId = ind.id
                                                             centerOn(ind)
                                                         },
                                                         onDoubleClick = { editPersonId = ind.id }
@@ -414,6 +414,7 @@ fun MainScreen() {
                         }
                     }
                 }
+                }
 
                 // Center canvas with panning/zoom
                 Box(
@@ -429,8 +430,10 @@ fun MainScreen() {
                             setPan = { pan = it },
                             getCanvasSize = { canvasSize }
                         )
-                        // Multi-touch gestures: pinch to zoom, drag to pan
-                        .pointerInput(Unit) {
+                        // Multi-touch gestures: pinch to zoom, drag to pan (mobile only)
+                        // TODO: Re-enable for mobile with proper event propagation to allow node taps
+                        // Currently disabled to fix node selection on Desktop
+                        /*.pointerInput(Unit) {
                             detectTransformGestures { centroid, panChange, zoomChange, _ ->
                                 // Apply zoom change
                                 val newScale = (scale * zoomChange).coerceIn(0.25f, 4f)
@@ -448,7 +451,7 @@ fun MainScreen() {
                                 scale = newScale
                                 pan = Offset(newPanX, newPanY) + panChange
                             }
-                        }
+                        }*/
                 ) {
                     // Node-level offsets to support dragging individual nodes (JavaFX-like)
                     val nodeOffsets = remember(project, projectLayout) {
@@ -465,7 +468,7 @@ fun MainScreen() {
                     TreeRenderer(
                         data = project,
                         selectedId = selectedId,
-                        onSelect = { id -> selection.select(id) },
+                        onSelect = { id -> selectedId = id },
                         onEditPerson = { id -> editPersonId = id },
                         onCenterOn = { id ->
                             project.individuals.find { it.id == id }?.let { centerOn(it) }
@@ -478,6 +481,7 @@ fun MainScreen() {
                         nodeOffsets = nodeOffsets,
                         scale = scale,
                         pan = pan,
+                        setPan = { pan = it },
                         onCanvasSize = { canvasSize = it },
                         showGrid = showGrid,
                         lineWidth = lineWidth
@@ -485,10 +489,11 @@ fun MainScreen() {
                 }
 
                 // Right inspector (scrollable)
-                Box(
-                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                    contentAlignment = Alignment.TopStart
-                ) {
+                if (PlatformEnv.isDesktop) {
+                    Box(
+                        modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
+                        contentAlignment = Alignment.TopStart
+                    ) {
                     val selected = project.individuals.find { it.id == selectedId }
                     if (selected == null) {
                         Column(Modifier.padding(12.dp).fillMaxWidth()) {
@@ -508,6 +513,7 @@ fun MainScreen() {
                             }
                         )
                     }
+                }
                 }
             }
         }
@@ -563,7 +569,7 @@ fun MainScreen() {
             println("[DEBUG_LOG] MainScreen LaunchedEffect: Applying loaded project with ${loaded.data.individuals.size} individuals")
             project = loaded.data
             projectLayout = loaded.layout
-            selection.clear()
+            selectedId = null
             // Apply viewport from layout if present; otherwise fit to content
             val layout = loaded.layout
             if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {

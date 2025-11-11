@@ -3,8 +3,11 @@ package com.family.tree.ui.render
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -61,6 +64,7 @@ fun TreeRenderer(
     nodeOffsets: Map<IndividualId, Offset>,
     scale: Float,
     pan: Offset,
+    setPan: (Offset) -> Unit,
     onCanvasSize: (IntSize) -> Unit,
     showGrid: Boolean,
     lineWidth: Float
@@ -237,6 +241,13 @@ fun TreeRenderer(
         )
     }
 
+    // Track whether current drag is on a node (to prevent canvas panning when dragging nodes)
+    var isDraggingNode by remember { mutableStateOf(false) }
+    
+    // Wrap pan in remembered State to ensure fresh reads inside pointerInput
+    val panState = remember { mutableStateOf(pan) }
+    panState.value = pan
+
     Box(
         Modifier
             .fillMaxSize()
@@ -245,6 +256,55 @@ fun TreeRenderer(
             .onSizeChanged { 
                 canvasSize = it
                 onCanvasSize(it) 
+            }
+            // Canvas panning: drag on empty space to pan the tree (like JavaFX version)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        // Wait for a down event
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val downPosition = down.position
+                        
+                        // Capture initial pan at drag start by reading from State (ensures fresh value)
+                        val initialPan = panState.value
+                        
+                        // Check if drag started on a node
+                        val clickedNode = visibleIndividuals.firstOrNull { ind ->
+                            val r = rectFor(ind.id)
+                            if (r != null) {
+                                val screenLeft = r.x + initialPan.x
+                                val screenTop = r.y + initialPan.y
+                                val screenRight = screenLeft + r.w
+                                val screenBottom = screenTop + r.h
+                                downPosition.x >= screenLeft && downPosition.x <= screenRight &&
+                                downPosition.y >= screenTop && downPosition.y <= screenBottom
+                            } else false
+                        }
+                        
+                        if (clickedNode != null) {
+                            isDraggingNode = true
+                            // Wait for up/cancel without panning
+                            waitForUpOrCancellation()
+                            isDraggingNode = false
+                        } else {
+                            // Canvas pan: track drag on empty space
+                            isDraggingNode = false
+                            var accumulatedDelta = Offset.Zero
+                            var lastPosition = downPosition
+                            
+                            drag(down.id) { change ->
+                                val delta = change.position - lastPosition
+                                lastPosition = change.position
+                                accumulatedDelta += delta
+                                change.consume()
+                                // Apply accumulated delta to initial pan (not current pan)
+                                setPan(initialPan + accumulatedDelta)
+                            }
+                            
+                            isDraggingNode = false
+                        }
+                    }
+                }
             }
     ) {
         // Pan offset container
@@ -494,7 +554,7 @@ private fun NodeCard(
                     onDoubleTap = { onDoubleTap() }
                 )
             }
-            // Removed detectDragGestures to avoid consuming touch events that should go to parent's detectTransformGestures
+            // Node drag gestures removed to allow canvas panning to work
     ) {
         Canvas(Modifier.fillMaxSize()) {
             // Скруглённая рамка у карточки узла
