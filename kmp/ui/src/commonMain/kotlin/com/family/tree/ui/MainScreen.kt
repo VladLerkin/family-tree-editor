@@ -318,95 +318,93 @@ fun MainScreen() {
             // Main content: left list, center canvas, right inspector
             Row(Modifier.fillMaxSize()) {
                 // Left panel: Individuals/Families tabs (like legacy JavaFX)
-                if (PlatformEnv.isDesktop) {
-                    Box(
-                        modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                    Column(Modifier.fillMaxSize()) {
-                        var leftTab by remember { mutableStateOf(0) }
-                        androidx.compose.material3.TabRow(selectedTabIndex = leftTab) {
-                            androidx.compose.material3.Tab(
-                                selected = leftTab == 0,
-                                onClick = { leftTab = 0 },
-                                text = { Text("Individuals") }
-                            )
-                            androidx.compose.material3.Tab(
-                                selected = leftTab == 1,
-                                onClick = { leftTab = 1 },
-                                text = { Text("Families") }
-                            )
-                        }
-                        when (leftTab) {
-                            0 -> {
-                                println("[DEBUG_LOG] MainScreen: Rendering individuals list with ${project.individuals.size} items")
-                                Column(Modifier.fillMaxSize().padding(12.dp)) {
-                                    LazyColumn(Modifier.weight(1f)) {
-                                        items(project.individuals) { ind ->
-                                            val isSelected = ind.id == selectedId
-                                            val bg = if (isSelected) Color(0x201976D2) else Color.Unspecified
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .background(bg)
-                                                    .combinedClickable(
-                                                        onClick = {
-                                                            selectedId = ind.id
-                                                            centerOn(ind)
-                                                        },
-                                                        onDoubleClick = { editPersonId = ind.id }
-                                                    )
-                                                    .padding(vertical = 4.dp, horizontal = 6.dp)
-                                            ) {
-                                                Text(
-                                                    "• ${ind.displayName}",
-                                                    color = if (isSelected) Color(0xFF0D47A1) else Color.Unspecified
+                Box(
+                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                Column(Modifier.fillMaxSize()) {
+                    var leftTab by remember { mutableStateOf(0) }
+                    androidx.compose.material3.TabRow(selectedTabIndex = leftTab) {
+                        androidx.compose.material3.Tab(
+                            selected = leftTab == 0,
+                            onClick = { leftTab = 0 },
+                            text = { Text("Individuals") }
+                        )
+                        androidx.compose.material3.Tab(
+                            selected = leftTab == 1,
+                            onClick = { leftTab = 1 },
+                            text = { Text("Families") }
+                        )
+                    }
+                    when (leftTab) {
+                        0 -> {
+                            println("[DEBUG_LOG] MainScreen: Rendering individuals list with ${project.individuals.size} items")
+                            Column(Modifier.fillMaxSize().padding(12.dp)) {
+                                LazyColumn(Modifier.weight(1f)) {
+                                    items(project.individuals) { ind ->
+                                        val isSelected = ind.id == selectedId
+                                        val bg = if (isSelected) Color(0x201976D2) else Color.Unspecified
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(bg)
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        selectedId = ind.id
+                                                        centerOn(ind)
+                                                    },
+                                                    onDoubleClick = { editPersonId = ind.id }
                                                 )
-                                            }
+                                                .padding(vertical = 4.dp, horizontal = 6.dp)
+                                        ) {
+                                            Text(
+                                                "• ${ind.displayName}",
+                                                color = if (isSelected) Color(0xFF0D47A1) else Color.Unspecified
+                                            )
                                         }
                                     }
                                 }
                             }
-                            1 -> {
-                                Column(Modifier.fillMaxSize().padding(12.dp)) {
-                                    // Helper to format spouse name as "LastName F." (JavaFX style)
-                                    fun formatSpouseName(indId: IndividualId?): String {
-                                        if (indId == null) return ""
-                                        val ind = project.individuals.find { it.id == indId } ?: return ""
-                                        val tokens = ind.displayName.trim().split(Regex("\\s+"))
-                                        val first = tokens.firstOrNull() ?: ""
-                                        val last = if (tokens.size > 1) tokens.drop(1).joinToString(" ") else ""
-                                        return if (last.isNotEmpty() && first.isNotEmpty()) {
-                                            "$last ${first.first().uppercaseChar()}."
-                                        } else if (last.isNotEmpty()) {
-                                            last
-                                        } else {
-                                            first
-                                        }
+                        }
+                        1 -> {
+                            Column(Modifier.fillMaxSize().padding(12.dp)) {
+                                // Helper to format spouse name as "LastName F." (JavaFX style)
+                                fun formatSpouseName(indId: IndividualId?): String {
+                                    if (indId == null) return ""
+                                    val ind = project.individuals.find { it.id == indId } ?: return ""
+                                    val tokens = ind.displayName.trim().split(Regex("\\s+"))
+                                    val first = tokens.firstOrNull() ?: ""
+                                    val last = if (tokens.size > 1) tokens.drop(1).joinToString(" ") else ""
+                                    return if (last.isNotEmpty() && first.isNotEmpty()) {
+                                        "$last ${first.first().uppercaseChar()}."
+                                    } else if (last.isNotEmpty()) {
+                                        last
+                                    } else {
+                                        first
                                     }
-                                    
-                                    LazyColumn(Modifier.weight(1f)) {
-                                        items(project.families) { fam ->
-                                            val kids = fam.childrenIds.size
-                                            val husbandName = formatSpouseName(fam.husbandId)
-                                            val wifeName = formatSpouseName(fam.wifeId)
-                                            val spousesText = when {
-                                                husbandName.isNotEmpty() && wifeName.isNotEmpty() -> "$husbandName - $wifeName"
-                                                husbandName.isNotEmpty() -> husbandName
-                                                wifeName.isNotEmpty() -> wifeName
-                                                else -> fam.id.value
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .combinedClickable(
-                                                        onClick = { /* select family in future */ },
-                                                        onDoubleClick = { editFamilyId = fam.id }
-                                                    )
-                                                    .padding(vertical = 4.dp, horizontal = 6.dp)
-                                            ) {
-                                                Text("• $spousesText ($kids)")
-                                            }
+                                }
+                                
+                                LazyColumn(Modifier.weight(1f)) {
+                                    items(project.families) { fam ->
+                                        val kids = fam.childrenIds.size
+                                        val husbandName = formatSpouseName(fam.husbandId)
+                                        val wifeName = formatSpouseName(fam.wifeId)
+                                        val spousesText = when {
+                                            husbandName.isNotEmpty() && wifeName.isNotEmpty() -> "$husbandName - $wifeName"
+                                            husbandName.isNotEmpty() -> husbandName
+                                            wifeName.isNotEmpty() -> wifeName
+                                            else -> fam.id.value
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .combinedClickable(
+                                                    onClick = { /* select family in future */ },
+                                                    onDoubleClick = { editFamilyId = fam.id }
+                                                )
+                                                .padding(vertical = 4.dp, horizontal = 6.dp)
+                                        ) {
+                                            Text("• $spousesText ($kids)")
                                         }
                                     }
                                 }
@@ -489,30 +487,28 @@ fun MainScreen() {
                 }
 
                 // Right inspector (scrollable)
-                if (PlatformEnv.isDesktop) {
-                    Box(
-                        modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                        contentAlignment = Alignment.TopStart
-                    ) {
-                    val selected = project.individuals.find { it.id == selectedId }
-                    if (selected == null) {
-                        Column(Modifier.padding(12.dp).fillMaxWidth()) {
-                            Text("Inspector\nSelect a person…")
-                        }
-                    } else {
-                        PropertiesInspector(
-                            individual = selected,
-                            project = project,
-                            onUpdateIndividual = { updated ->
-                                val idx = project.individuals.indexOfFirst { it.id == updated.id }
-                                if (idx >= 0) {
-                                    project = project.copy(
-                                        individuals = project.individuals.toMutableList().also { it[idx] = updated }
-                                    )
-                                }
-                            }
-                        )
+                Box(
+                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
+                    contentAlignment = Alignment.TopStart
+                ) {
+                val selected = project.individuals.find { it.id == selectedId }
+                if (selected == null) {
+                    Column(Modifier.padding(12.dp).fillMaxWidth()) {
+                        Text("Inspector\nSelect a person…")
                     }
+                } else {
+                    PropertiesInspector(
+                        individual = selected,
+                        project = project,
+                        onUpdateIndividual = { updated ->
+                            val idx = project.individuals.indexOfFirst { it.id == updated.id }
+                            if (idx >= 0) {
+                                project = project.copy(
+                                    individuals = project.individuals.toMutableList().also { it[idx] = updated }
+                                )
+                            }
+                        }
+                    )
                 }
                 }
             }
