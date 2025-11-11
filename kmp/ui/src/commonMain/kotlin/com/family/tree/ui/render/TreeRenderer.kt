@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clipToBounds
 import com.family.tree.core.ProjectData
 import com.family.tree.core.layout.SimpleTreeLayout
 import com.family.tree.core.model.IndividualId
+import com.family.tree.ui.PlatformEnv
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -258,54 +259,62 @@ fun TreeRenderer(
                 onCanvasSize(it) 
             }
             // Canvas panning: drag on empty space to pan the tree (like JavaFX version)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        // Wait for a down event
-                        val down = awaitFirstDown(requireUnconsumed = false)
-                        val downPosition = down.position
-                        
-                        // Capture initial pan at drag start by reading from State (ensures fresh value)
-                        val initialPan = panState.value
-                        
-                        // Check if drag started on a node
-                        val clickedNode = visibleIndividuals.firstOrNull { ind ->
-                            val r = rectFor(ind.id)
-                            if (r != null) {
-                                val screenLeft = r.x + initialPan.x
-                                val screenTop = r.y + initialPan.y
-                                val screenRight = screenLeft + r.w
-                                val screenBottom = screenTop + r.h
-                                downPosition.x >= screenLeft && downPosition.x <= screenRight &&
-                                downPosition.y >= screenTop && downPosition.y <= screenBottom
-                            } else false
-                        }
-                        
-                        if (clickedNode != null) {
-                            isDraggingNode = true
-                            // Wait for up/cancel without panning
-                            waitForUpOrCancellation()
-                            isDraggingNode = false
-                        } else {
-                            // Canvas pan: track drag on empty space
-                            isDraggingNode = false
-                            var accumulatedDelta = Offset.Zero
-                            var lastPosition = downPosition
-                            
-                            drag(down.id) { change ->
-                                val delta = change.position - lastPosition
-                                lastPosition = change.position
-                                accumulatedDelta += delta
-                                change.consume()
-                                // Apply accumulated delta to initial pan (not current pan)
-                                setPan(initialPan + accumulatedDelta)
+            // On mobile, pan/zoom is handled by platformWheelZoom in MainScreen via detectTransformGestures
+            // On desktop, we need custom pan handling since platformWheelZoom only handles wheel events
+            .then(
+                if (PlatformEnv.isDesktop) {
+                    Modifier.pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                // Wait for a down event
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val downPosition = down.position
+                                
+                                // Capture initial pan at drag start by reading from State (ensures fresh value)
+                                val initialPan = panState.value
+                                
+                                // Check if drag started on a node
+                                val clickedNode = visibleIndividuals.firstOrNull { ind ->
+                                    val r = rectFor(ind.id)
+                                    if (r != null) {
+                                        val screenLeft = r.x + initialPan.x
+                                        val screenTop = r.y + initialPan.y
+                                        val screenRight = screenLeft + r.w
+                                        val screenBottom = screenTop + r.h
+                                        downPosition.x >= screenLeft && downPosition.x <= screenRight &&
+                                        downPosition.y >= screenTop && downPosition.y <= screenBottom
+                                    } else false
+                                }
+                                
+                                if (clickedNode != null) {
+                                    isDraggingNode = true
+                                    // Wait for up/cancel without panning
+                                    waitForUpOrCancellation()
+                                    isDraggingNode = false
+                                } else {
+                                    // Canvas pan: track drag on empty space
+                                    isDraggingNode = false
+                                    var accumulatedDelta = Offset.Zero
+                                    var lastPosition = downPosition
+                                    
+                                    drag(down.id) { change ->
+                                        val delta = change.position - lastPosition
+                                        lastPosition = change.position
+                                        accumulatedDelta += delta
+                                        change.consume()
+                                        // Apply accumulated delta to initial pan (not current pan)
+                                        setPan(initialPan + accumulatedDelta)
+                                    }
+                                    
+                                    isDraggingNode = false
+                                }
                             }
-                            
-                            isDraggingNode = false
                         }
                     }
+                } else {
+                    Modifier
                 }
-            }
+            )
     ) {
         // Pan offset container
         Box(
