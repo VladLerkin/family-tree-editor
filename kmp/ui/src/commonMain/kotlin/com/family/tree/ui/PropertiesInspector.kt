@@ -22,6 +22,43 @@ import androidx.compose.ui.unit.dp
 import com.family.tree.core.ProjectData
 import com.family.tree.core.model.*
 
+// Предопределённые GEDCOM-типы событий (минимальный набор, как в классических редакторах)
+// При необходимости расширьте список до полного, совпадающего со старой JavaFX-версией.
+private val PREDEFINED_EVENT_TYPES = listOf(
+    // Жизненные события
+    "BIRT", // рождение
+    "CHR",  // крещение
+    "DEAT", // смерть
+    "BURI", // погребение
+    "CREM", // кремация
+    // Семейные события
+    "MARR", // брак
+    "DIV",  // развод
+    "ENGA", // помолвка (иногда "ENG")
+    // Религиозные/инициации
+    "BAPM", // крещение (взросл.)
+    "BARM", // бар-мицва
+    "BASM", // бат-мицва
+    "BLES", // благословение
+    "CONF", // конфирмация
+    // Миграция/гражданство
+    "IMMI", // иммиграция
+    "EMIG", // эмиграция
+    "NATU", // натурализация
+    // Быт/профессия
+    "CENS", // перепись
+    "OCCU", // профессия
+    "RESI", // проживание
+    "EDUC", // образование
+    "GRAD", // выпуск/диплом
+    "RETI", // выход на пенсию
+    // Юридические
+    "WILL", // завещание
+    "PROB", // утверждение завещания (пробейт)
+    // Общее событие
+    "EVEN"  // произвольное событие
+)
+
 @Composable
 fun PropertiesInspector(
     individual: Individual,
@@ -238,6 +275,7 @@ private fun EventsSection(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EventItem(
     event: GedcomEvent,
@@ -273,33 +311,79 @@ private fun EventItem(
         if (isSelected) {
             Spacer(Modifier.height(8.dp))
             
-            // Type field
-            var typeText by remember(event.id) { mutableStateOf(event.type) }
-            OutlinedTextField(
-                value = typeText,
-                onValueChange = { 
-                    typeText = it
-                    onUpdate(event.copy(type = it.trim()))
-                },
-                label = { Text("Type (BIRT, DEAT, MARR, etc.)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            // Type field with predefined GEDCOM types + свободный ввод
+            var typeText by remember(event.id) { mutableStateOf(event.type ?: "") }
+            var typeMenuExpanded by remember(event.id) { mutableStateOf(false) }
+
+            ExposedDropdownMenuBox(
+                expanded = typeMenuExpanded,
+                onExpandedChange = { typeMenuExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = typeText,
+                    onValueChange = {
+                        typeText = it
+                        onUpdate(event.copy(type = it.trim()))
+                    },
+                    label = { Text("Type (BIRT, DEAT, MARR, …)") },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    singleLine = true,
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuExpanded)
+                    }
+                )
+
+                ExposedDropdownMenu(
+                    expanded = typeMenuExpanded,
+                    onDismissRequest = { typeMenuExpanded = false }
+                ) {
+                    PREDEFINED_EVENT_TYPES.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option) },
+                            onClick = {
+                                typeText = option
+                                onUpdate(event.copy(type = option))
+                                typeMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
             
             Spacer(Modifier.height(4.dp))
             
-            // Date field
+            // Date field with picker dialog
             var dateText by remember(event.id) { mutableStateOf(event.date) }
-            OutlinedTextField(
-                value = dateText,
-                onValueChange = { 
-                    dateText = it
-                    onUpdate(event.copy(date = it.trim()))
-                },
-                label = { Text("Date") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            var showDateDialog by remember(event.id) { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedTextField(
+                    value = dateText,
+                    onValueChange = {
+                        dateText = it
+                        onUpdate(event.copy(date = it.trim()))
+                    },
+                    label = { Text("Date") },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+                Spacer(Modifier.width(6.dp))
+                IconButton(onClick = { showDateDialog = true }) {
+                    Icon(Icons.Default.ArrowDropDown, contentDescription = "Pick date")
+                }
+            }
+            if (showDateDialog) {
+                DatePhraseDialog(
+                    initial = dateText.orEmpty(),
+                    onConfirm = { value ->
+                        dateText = value
+                        onUpdate(event.copy(date = value))
+                        showDateDialog = false
+                    },
+                    onDismiss = { showDateDialog = false }
+                )
+            }
             
             Spacer(Modifier.height(4.dp))
             
@@ -567,7 +651,8 @@ private fun FamiliesSection(
         val first = tokens.firstOrNull() ?: ""
         val last = if (tokens.size > 1) tokens.drop(1).joinToString(" ") else ""
         return if (last.isNotEmpty() && first.isNotEmpty()) {
-            "$last ${first.first().uppercaseChar()}."
+            val initial = first.firstOrNull()?.uppercaseChar()
+            if (initial != null) "$last $initial." else last
         } else if (last.isNotEmpty()) {
             last
         } else {

@@ -453,7 +453,8 @@ fun MainScreen() {
                                     val first = tokens.firstOrNull() ?: ""
                                     val last = if (tokens.size > 1) tokens.drop(1).joinToString(" ") else ""
                                     return if (last.isNotEmpty() && first.isNotEmpty()) {
-                                        "$last ${first.first().uppercaseChar()}."
+                                        val initial = first.firstOrNull()?.uppercaseChar()
+                                        if (initial != null) "$last $initial." else last
                                     } else if (last.isNotEmpty()) {
                                         last
                                     } else {
