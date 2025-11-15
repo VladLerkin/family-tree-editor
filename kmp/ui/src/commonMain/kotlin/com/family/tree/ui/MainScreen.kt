@@ -59,16 +59,14 @@ import kotlin.math.roundToInt
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun MainScreen() {
-    // Project state: start from sample data
-    val sample = remember { SampleData.simpleThreeGen() }
+    // Project state: start from sample data with layout
+    val loadedSample = remember { SampleData.simpleThreeGenWithLayout() }
     var project by remember {
-        println("[DEBUG_LOG] MainScreen: Initializing project state with ${sample.first.size} individuals")
-        mutableStateOf(
-            ProjectData(individuals = sample.first, families = sample.second)
-        )
+        println("[DEBUG_LOG] MainScreen: Initializing project state with ${loadedSample.data.individuals.size} individuals")
+        mutableStateOf(loadedSample.data)
     }
     println("[DEBUG_LOG] MainScreen: Current project state has ${project.individuals.size} individuals, ${project.families.size} families")
-    var projectLayout by remember { mutableStateOf<com.family.tree.core.layout.ProjectLayout?>(null) }
+    var projectLayout by remember { mutableStateOf<com.family.tree.core.layout.ProjectLayout?>(loadedSample.layout) }
 
     // Selection state (single-select for now)
     var selectedId by remember { mutableStateOf<IndividualId?>(null) }
