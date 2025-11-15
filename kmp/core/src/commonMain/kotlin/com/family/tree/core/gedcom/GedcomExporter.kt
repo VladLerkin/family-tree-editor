@@ -99,6 +99,18 @@ class GedcomExporter {
                             appendLine(sb, "2 NOTE $nx")
                         }
                     }
+                    
+                    // Export event sources
+                    for (citation in event.sources) {
+                        val srcId = citation.sourceId
+                        if (srcId != null) {
+                            val sourceXref = "@S${srcId.value}@"
+                            appendLine(sb, "2 SOUR $sourceXref")
+                            if (citation.page.isNotBlank()) {
+                                appendLine(sb, "3 PAGE ${escapeValue(citation.page)}")
+                            }
+                        }
+                    }
                 }
             }
             
@@ -166,6 +178,18 @@ class GedcomExporter {
                         val nx = noteXref[note.id.value]
                         if (nx != null) {
                             appendLine(sb, "2 NOTE $nx")
+                        }
+                    }
+                    
+                    // Export event sources
+                    for (citation in event.sources) {
+                        val srcId = citation.sourceId
+                        if (srcId != null) {
+                            val sourceXref = "@S${srcId.value}@"
+                            appendLine(sb, "2 SOUR $sourceXref")
+                            if (citation.page.isNotBlank()) {
+                                appendLine(sb, "3 PAGE ${escapeValue(citation.page)}")
+                            }
                         }
                     }
                 }

@@ -217,6 +217,7 @@ private fun EventsSection(
             val isSelected = selectedEventIndex == index
             EventItem(
                 event = event,
+                sources = sources,
                 isSelected = isSelected,
                 onClick = { selectedEventIndex = if (isSelected) null else index },
                 onUpdate = { updated ->
@@ -255,6 +256,7 @@ private fun EventsSection(
 @Composable
 private fun EventItem(
     event: GedcomEvent,
+    sources: List<Source>,
     isSelected: Boolean,
     onClick: () -> Unit,
     onUpdate: (GedcomEvent) -> Unit,
@@ -375,6 +377,126 @@ private fun EventItem(
                 singleLine = true
             )
             
+            Spacer(Modifier.height(12.dp))
+            
+            // Sources section
+            Text(
+                text = "Sources:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(Modifier.height(4.dp))
+            
+            var selectedSourceIndex by remember(event.id) { mutableStateOf<Int?>(null) }
+            
+            // Display event sources
+            if (event.sources.isEmpty()) {
+                Text(
+                    "No sources",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            } else {
+                event.sources.forEachIndexed { srcIndex, citation ->
+                    val isSourceSelected = selectedSourceIndex == srcIndex
+                    val sourceTitle = if (citation.text.isNotBlank()) {
+                        citation.text
+                    } else {
+                        citation.sourceId?.let { srcId ->
+                            sources.firstOrNull { it.id == srcId }?.title?.takeIf { it.isNotBlank() }
+                        } ?: "Unknown source"
+                    }
+                    val displayText = if (citation.page.isNotBlank()) {
+                        "$sourceTitle — PAGE: ${citation.page}"
+                    } else {
+                        sourceTitle
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSourceSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                else Color.Transparent
+                            )
+                            .clickable { selectedSourceIndex = if (isSourceSelected) null else srcIndex }
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "• $displayText",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        IconButton(
+                            onClick = {
+                                val updatedSources = event.sources.toMutableList().also { it.removeAt(srcIndex) }
+                                onUpdate(event.copy(sources = updatedSources))
+                                if (selectedSourceIndex == srcIndex) selectedSourceIndex = null
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    
+                    // Page editor for selected source
+                    if (isSourceSelected) {
+                        Spacer(Modifier.height(4.dp))
+                        var pageText by remember(citation.id) { mutableStateOf(citation.page) }
+                        OutlinedTextField(
+                            value = pageText,
+                            onValueChange = { newPage ->
+                                pageText = newPage
+                                val updatedSources = event.sources.toMutableList().also {
+                                    it[srcIndex] = citation.copy(page = newPage.trim())
+                                }
+                                onUpdate(event.copy(sources = updatedSources))
+                            },
+                            label = { Text("PAGE") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            // Add source button
+            var showSourceDialog by remember(event.id) { mutableStateOf(false) }
+            Button(
+                onClick = { showSourceDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Source")
+                Spacer(Modifier.width(4.dp))
+                Text("Add Source")
+            }
+            
+            if (showSourceDialog) {
+                AddSourceDialog(
+                    sources = sources,
+                    onConfirm = { sourceId, page ->
+                        val newCitation = SourceCitation(
+                            id = SourceCitationId.generate(),
+                            sourceId = sourceId,
+                            page = page.trim()
+                        )
+                        val updatedSources = event.sources + newCitation
+                        onUpdate(event.copy(sources = updatedSources))
+                        showSourceDialog = false
+                    },
+                    onDismiss = { showSourceDialog = false }
+                )
+            }
+            
             Spacer(Modifier.height(8.dp))
             
             // Delete button
@@ -471,6 +593,7 @@ private fun NotesSection(
             val isSelected = selectedNoteIndex == index
             NoteItem(
                 note = note,
+                sources = sources,
                 isSelected = isSelected,
                 onClick = { selectedNoteIndex = if (isSelected) null else index },
                 onUpdate = { updated ->
@@ -508,6 +631,7 @@ private fun NotesSection(
 @Composable
 private fun NoteItem(
     note: Note,
+    sources: List<Source>,
     isSelected: Boolean,
     onClick: () -> Unit,
     onUpdate: (Note) -> Unit,
@@ -547,6 +671,126 @@ private fun NoteItem(
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 maxLines = 6
             )
+            
+            Spacer(Modifier.height(12.dp))
+            
+            // Sources section
+            Text(
+                text = "Sources:",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            
+            Spacer(Modifier.height(4.dp))
+            
+            var selectedSourceIndex by remember(note.id) { mutableStateOf<Int?>(null) }
+            
+            // Display note sources
+            if (note.sources.isEmpty()) {
+                Text(
+                    "No sources",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            } else {
+                note.sources.forEachIndexed { srcIndex, citation ->
+                    val isSourceSelected = selectedSourceIndex == srcIndex
+                    val sourceTitle = if (citation.text.isNotBlank()) {
+                        citation.text
+                    } else {
+                        citation.sourceId?.let { srcId ->
+                            sources.firstOrNull { it.id == srcId }?.title?.takeIf { it.isNotBlank() }
+                        } ?: "Unknown source"
+                    }
+                    val displayText = if (citation.page.isNotBlank()) {
+                        "$sourceTitle — PAGE: ${citation.page}"
+                    } else {
+                        sourceTitle
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                if (isSourceSelected) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                                else Color.Transparent
+                            )
+                            .clickable { selectedSourceIndex = if (isSourceSelected) null else srcIndex }
+                            .padding(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "• $displayText",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        IconButton(
+                            onClick = {
+                                val updatedSources = note.sources.toMutableList().also { it.removeAt(srcIndex) }
+                                onUpdate(note.copy(sources = updatedSources))
+                                if (selectedSourceIndex == srcIndex) selectedSourceIndex = null
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    
+                    // Page editor for selected source
+                    if (isSourceSelected) {
+                        Spacer(Modifier.height(4.dp))
+                        var pageText by remember(citation.id) { mutableStateOf(citation.page) }
+                        OutlinedTextField(
+                            value = pageText,
+                            onValueChange = { newPage ->
+                                pageText = newPage
+                                val updatedSources = note.sources.toMutableList().also {
+                                    it[srcIndex] = citation.copy(page = newPage.trim())
+                                }
+                                onUpdate(note.copy(sources = updatedSources))
+                            },
+                            label = { Text("PAGE") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                    }
+                    
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
+            
+            Spacer(Modifier.height(8.dp))
+            
+            // Add source button
+            var showSourceDialog by remember(note.id) { mutableStateOf(false) }
+            Button(
+                onClick = { showSourceDialog = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add Source")
+                Spacer(Modifier.width(4.dp))
+                Text("Add Source")
+            }
+            
+            if (showSourceDialog) {
+                AddSourceDialog(
+                    sources = sources,
+                    onConfirm = { sourceId, page ->
+                        val newCitation = SourceCitation(
+                            id = SourceCitationId.generate(),
+                            sourceId = sourceId,
+                            page = page.trim()
+                        )
+                        val updatedSources = note.sources + newCitation
+                        onUpdate(note.copy(sources = updatedSources))
+                        showSourceDialog = false
+                    },
+                    onDismiss = { showSourceDialog = false }
+                )
+            }
             
             Spacer(Modifier.height(8.dp))
             
@@ -701,4 +945,92 @@ private fun FamiliesSection(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+@Composable
+private fun AddSourceDialog(
+    sources: List<Source>,
+    onConfirm: (SourceId?, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedSourceIndex by remember { mutableStateOf<Int?>(null) }
+    var pageText by remember { mutableStateOf("") }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Source Citation") },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+            ) {
+                if (sources.isEmpty()) {
+                    Text(
+                        "No sources available in the project. Please add sources first.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else {
+                    Text(
+                        "Select a source:",
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    
+                    Spacer(Modifier.height(8.dp))
+                    
+                    sources.forEachIndexed { index, source ->
+                        val isSelected = selectedSourceIndex == index
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                    else Color.Transparent
+                                )
+                                .clickable { selectedSourceIndex = index }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { selectedSourceIndex = index }
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = source.title.takeIf { it.isNotBlank() } ?: source.id.value,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                    
+                    Spacer(Modifier.height(16.dp))
+                    
+                    OutlinedTextField(
+                        value = pageText,
+                        onValueChange = { pageText = it },
+                        label = { Text("PAGE (optional)") },
+                        placeholder = { Text("e.g., p. 123, Chapter 5, etc.") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val sourceId = selectedSourceIndex?.let { sources[it].id }
+                    onConfirm(sourceId, pageText)
+                },
+                enabled = sources.isNotEmpty() && selectedSourceIndex != null
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

@@ -178,7 +178,24 @@ class GedcomImporter {
                             if (ctx == "BIRT") curInd.birthPlace = value
                             else if (ctx == "DEAT") curInd.deathPlace = value
                         }
+                        "SOUR" -> {
+                            if (value != null) {
+                                val citation = SourceCitationRec(sourceXref = value)
+                                event.sources.add(citation)
+                                context.add("SOUR")
+                            }
+                        }
+                        "NOTE" -> if (value != null) event.noteXrefs.add(value)
                     }
+                }
+            }
+        } else if (level == 3) {
+            val ctx = context.lastOrNull()
+            if (ctx == "SOUR") {
+                val event = curInd.events.lastOrNull()
+                val citation = event?.sources?.lastOrNull()
+                if (citation != null && tag == "PAGE") {
+                    citation.page = value ?: ""
                 }
             }
         }
@@ -219,7 +236,24 @@ class GedcomImporter {
                             event.place = value
                             curFam.marrPlace = value
                         }
+                        "SOUR" -> {
+                            if (value != null) {
+                                val citation = SourceCitationRec(sourceXref = value)
+                                event.sources.add(citation)
+                                context.add("SOUR")
+                            }
+                        }
+                        "NOTE" -> if (value != null) event.noteXrefs.add(value)
                     }
+                }
+            }
+        } else if (level == 3) {
+            val ctx = context.lastOrNull()
+            if (ctx == "SOUR") {
+                val event = curFam.events.lastOrNull()
+                val citation = event?.sources?.lastOrNull()
+                if (citation != null && tag == "PAGE") {
+                    citation.page = value ?: ""
                 }
             }
         }
@@ -262,10 +296,24 @@ class GedcomImporter {
             val deathYear = GedcomMapper.extractYearFromDate(rec.deathDate)
             
             val gedcomEvents = rec.events.map { evt ->
+                val eventSources = evt.sources.map { srcRec ->
+                    SourceCitation(
+                        id = SourceCitationId.generate(),
+                        sourceId = srcRec.sourceXref?.let { SourceId(it.removePrefix("@").removeSuffix("@")) },
+                        page = srcRec.page
+                    )
+                }
+                val eventNotes = evt.noteXrefs.mapNotNull { noteXref ->
+                    notes[noteXref]?.let { noteRec ->
+                        Note(id = NoteId(generateId()), text = noteRec.text)
+                    }
+                }
                 GedcomEvent(
                     type = evt.type,
                     date = evt.date ?: "",
-                    place = evt.place ?: ""
+                    place = evt.place ?: "",
+                    sources = eventSources,
+                    notes = eventNotes
                 )
             }
             
@@ -303,12 +351,47 @@ class GedcomImporter {
             val wifeId = rec.wifeXref?.let { xrefToIndId[it] }
             val childrenIds = rec.childXrefs.mapNotNull { xrefToIndId[it] }
             
+            val gedcomEvents = rec.events.map { evt ->
+                val eventSources = evt.sources.map { srcRec ->
+                    SourceCitation(
+                        id = SourceCitationId.generate(),
+                        sourceId = srcRec.sourceXref?.let { SourceId(it.removePrefix("@").removeSuffix("@")) },
+                        page = srcRec.page
+                    )
+                }
+                val eventNotes = evt.noteXrefs.mapNotNull { noteXref ->
+                    notes[noteXref]?.let { noteRec ->
+                        Note(id = NoteId(generateId()), text = noteRec.text)
+                    }
+                }
+                GedcomEvent(
+                    type = evt.type,
+                    date = evt.date ?: "",
+                    place = evt.place ?: "",
+                    sources = eventSources,
+                    notes = eventNotes
+                )
+            }
+            
+            val notesList = rec.noteXrefs.mapNotNull { noteXref ->
+                notes[noteXref]?.let { noteRec ->
+                    Note(id = NoteId(generateId()), text = noteRec.text)
+                }
+            }
+            
+            val tagsList = rec.tags.map { tagName ->
+                Tag(id = TagId(generateId()), name = tagName)
+            }
+            
             families.add(
                 Family(
                     id = famId,
                     husbandId = husbandId,
                     wifeId = wifeId,
-                    childrenIds = childrenIds
+                    childrenIds = childrenIds,
+                    events = gedcomEvents,
+                    notes = notesList,
+                    tags = tagsList
                 )
             )
         }
@@ -367,6 +450,13 @@ class GedcomImporter {
     private data class EventRec(
         val type: String,
         var date: String? = null,
-        var place: String? = null
+        var place: String? = null,
+        val sources: MutableList<SourceCitationRec> = mutableListOf(),
+        val noteXrefs: MutableList<String> = mutableListOf()
+    )
+    
+    private data class SourceCitationRec(
+        var sourceXref: String? = null,
+        var page: String = ""
     )
 }

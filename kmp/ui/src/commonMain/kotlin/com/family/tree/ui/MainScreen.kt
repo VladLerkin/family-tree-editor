@@ -197,6 +197,8 @@ fun MainScreen() {
     var editPersonId by remember { mutableStateOf<IndividualId?>(null) }
     // Family editor dialog state
     var editFamilyId by remember { mutableStateOf<FamilyId?>(null) }
+    // Sources manager dialog state
+    var showSourcesDialog by remember { mutableStateOf(false) }
 
     // File dialog state for Android/platform file pickers
     var showOpenDialog by remember { mutableStateOf(false) }
@@ -353,6 +355,7 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; showSourcesDialog = true })
                             androidx.compose.material3.DropdownMenuItem(text = { Text(if (showGrid) "Grid: On" else "Grid: Off") }, onClick = { showMenu = false; AppActions.toggleGrid() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 1x") }, onClick = { showMenu = false; AppActions.setLineWidth1x() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 2x") }, onClick = { showMenu = false; AppActions.setLineWidth2x() })
@@ -368,6 +371,7 @@ fun MainScreen() {
                     }
                 )
             } else {
+                var showDesktopMenu by remember { mutableStateOf(false) }
                 Row(
                     Modifier.fillMaxWidth().padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -376,6 +380,40 @@ fun MainScreen() {
                     Text("Compose Multiplatform — Family Tree", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
                     Text("${(scale * 100).toInt()}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
+                    
+                    // Desktop menu
+                    Box {
+                        androidx.compose.material3.IconButton(onClick = { showDesktopMenu = true }) {
+                            androidx.compose.material3.Icon(
+                                imageVector = androidx.compose.material.icons.Icons.Filled.MoreVert,
+                                contentDescription = "Menu"
+                            )
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = showDesktopMenu,
+                            onDismissRequest = { showDesktopMenu = false }
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showDesktopMenu = false; AppActions.openPed() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showDesktopMenu = false; AppActions.savePed() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showDesktopMenu = false; AppActions.importRel() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.importGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.exportGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showDesktopMenu = false; showSourcesDialog = true })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(if (showGrid) "Grid: On" else "Grid: Off") }, onClick = { showDesktopMenu = false; AppActions.toggleGrid() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 1x") }, onClick = { showDesktopMenu = false; AppActions.setLineWidth1x() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 2x") }, onClick = { showDesktopMenu = false; AppActions.setLineWidth2x() })
+                            val selected = project.individuals.find { it.id == selectedId }
+                            if (selected != null) {
+                                androidx.compose.material3.DropdownMenuItem(text = { Text("Edit person…") }, onClick = { showDesktopMenu = false; editPersonId = selected.id })
+                                val fam = project.families.firstOrNull { it.husbandId == selected.id || it.wifeId == selected.id || it.childrenIds.contains(selected.id) }
+                                if (fam != null) {
+                                    androidx.compose.material3.DropdownMenuItem(text = { Text("Edit family…") }, onClick = { showDesktopMenu = false; editFamilyId = fam.id })
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -602,6 +640,17 @@ fun MainScreen() {
                 onDismiss = { editFamilyId = null }
             )
         }
+    }
+    
+    // Sources manager dialog
+    if (showSourcesDialog) {
+        SourcesManagerDialog(
+            project = project,
+            onDismiss = { showSourcesDialog = false },
+            onUpdateProject = { updatedProject ->
+                project = updatedProject
+            }
+        )
     }
 
     // Platform file dialogs (for Android and future cross-platform support)

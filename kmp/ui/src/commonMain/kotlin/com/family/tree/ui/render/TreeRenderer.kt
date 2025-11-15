@@ -135,6 +135,11 @@ fun TreeRenderer(
     
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
     
+    // Create a fast lookup map for individuals by ID (avoid repeated find() calls)
+    val individualsMap = remember(data.individuals) {
+        data.individuals.associateBy { it.id }
+    }
+    
     // Memoize layout computation - only recompute when data changes
     val positions = remember(data.individuals, data.families) {
         SimpleTreeLayout.layout(data.individuals, data.families).also {
@@ -268,21 +273,29 @@ fun TreeRenderer(
     // Use fixed base size scaled appropriately - good enough for culling, precise measurement happens later
     data class ApproxBounds(val x: Float, val y: Float, val w: Float, val h: Float)
     
-    val approxBounds: Map<IndividualId, ApproxBounds> = remember(data.individuals, positions, nodeOffsets, scale) {
+    // Calculate base positions without nodeOffsets to avoid recalc on drag
+    val baseApproxBounds: Map<IndividualId, ApproxBounds> = remember(data.individuals, positions, scale) {
         buildMap {
             data.individuals.forEach { ind ->
-                val off = nodeOffsets[ind.id]
-                val (baseX, baseY) = if (off != null) {
-                    Pair(off.x * scale, off.y * scale)
-                } else {
-                    val p = positions[ind.id] ?: return@forEach
-                    Pair(p.x * scale, p.y * scale)
-                }
+                val p = positions[ind.id] ?: return@forEach
+                val baseX = p.x * scale
+                val baseY = p.y * scale
                 // Use approximate size: min card dimensions scaled (updated for 3 lines)
                 val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
                 val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
                 put(ind.id, ApproxBounds(baseX, baseY, approxW, approxH))
             }
+        }
+    }
+    
+    // Function to get actual bounds including nodeOffsets (computed on-demand, not cached)
+    fun getApproxBounds(id: IndividualId): ApproxBounds? {
+        val base = baseApproxBounds[id] ?: return null
+        val off = nodeOffsets[id]
+        return if (off != null) {
+            ApproxBounds(off.x * scale, off.y * scale, base.w, base.h)
+        } else {
+            base
         }
     }
     
@@ -298,9 +311,10 @@ fun TreeRenderer(
     }
     
     // Filter visible individuals BEFORE expensive text measurement
-    val visibleIndividualIds = remember(approxBounds, pan, canvasSize, scale) {
+    // Now depends on nodeOffsets to recalc when nodes are dragged, but baseApproxBounds is cached
+    val visibleIndividualIds = remember(baseApproxBounds, nodeOffsets, pan, canvasSize, scale) {
         data.individuals.mapNotNull { ind ->
-            approxBounds[ind.id]?.let { bounds ->
+            getApproxBounds(ind.id)?.let { bounds ->
                 if (isVisibleApprox(bounds)) ind.id else null
             }
         }.also {
@@ -308,14 +322,25 @@ fun TreeRenderer(
         }
     }
     
+    // Simplified rendering mode for small scales (skip expensive text measurement)
+    val useSimplifiedRendering = scale < 0.5f && !PlatformEnv.isDesktop
+    
     // NOW measure text only for visible individuals (expensive but limited to visible set)
-    val measures: Map<IndividualId, NodeMeasure> = remember(visibleIndividualIds, data.individuals, scale, measurer) {
-        buildMap {
-            visibleIndividualIds.forEach { id ->
-                val ind = data.individuals.find { it.id == id } ?: return@forEach
-                val birthDate = extractEventDate(ind, "BIRT")
-                val deathDate = extractEventDate(ind, "DEAT")
-                put(id, measureNodePx(ind.firstName, ind.lastName, birthDate, deathDate))
+    // Skip measurement in simplified mode - use fixed sizes instead
+    val measures: Map<IndividualId, NodeMeasure> = remember(visibleIndividualIds, individualsMap, scale, useSimplifiedRendering) {
+        if (useSimplifiedRendering) {
+            // Use fixed approximate size for all nodes in simplified mode
+            val fixedW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
+            val fixedH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
+            visibleIndividualIds.associateWith { NodeMeasure(fixedW, fixedH, 3f) }
+        } else {
+            buildMap {
+                visibleIndividualIds.forEach { id ->
+                    val ind = individualsMap[id] ?: return@forEach
+                    val birthDate = extractEventDate(ind, "BIRT")
+                    val deathDate = extractEventDate(ind, "DEAT")
+                    put(id, measureNodePx(ind.firstName, ind.lastName, birthDate, deathDate))
+                }
             }
         }
     }
@@ -359,10 +384,10 @@ fun TreeRenderer(
         return RectF(baseX, baseY, approxW, approxH)
     }
     
-    // Convert visible IDs back to Individual objects for rendering
-    val visibleIndividuals = remember(visibleIndividualIds, data.individuals) {
+    // Convert visible IDs back to Individual objects for rendering (using fast map lookup)
+    val visibleIndividuals = remember(visibleIndividualIds, individualsMap) {
         visibleIndividualIds.mapNotNull { id ->
-            data.individuals.find { it.id == id }
+            individualsMap[id]
         }
     }
 
@@ -520,7 +545,7 @@ fun TreeRenderer(
                             var maxY = Float.NEGATIVE_INFINITY
                             
                             allIds.forEach { id ->
-                                val bounds = approxBounds[id]
+                                val bounds = getApproxBounds(id)
                                 if (bounds != null) {
                                     if (bounds.x < minX) minX = bounds.x
                                     if (bounds.x + bounds.w > maxX) maxX = bounds.x + bounds.w
@@ -699,19 +724,21 @@ fun TreeRenderer(
             }
 
             // Nodes (поверх рёбер) - only render visible nodes
+            // Use key() to stabilize node composition and avoid unnecessary recompositions
             visibleIndividuals.forEach { ind ->
-                val r = rectFor(ind.id) ?: return@forEach
-                val leftDp = with(density) { r.x.toDp() }
-                val topDp = with(density) { r.y.toDp() }
-                val wDp = with(density) { r.w.toDp() }
-                val hDp = with(density) { r.h.toDp() }
-                var showNodeMenu by androidx.compose.runtime.remember(ind.id) { androidx.compose.runtime.mutableStateOf(false) }
-                
-                // Extract birth and death dates from events
-                val birthDate = extractEventDate(ind, "BIRT")
-                val deathDate = extractEventDate(ind, "DEAT")
-                
-                NodeCard(
+                androidx.compose.runtime.key(ind.id) {
+                    val r = rectFor(ind.id) ?: return@forEach
+                    val leftDp = with(density) { r.x.toDp() }
+                    val topDp = with(density) { r.y.toDp() }
+                    val wDp = with(density) { r.w.toDp() }
+                    val hDp = with(density) { r.h.toDp() }
+                    var showNodeMenu by androidx.compose.runtime.remember(ind.id) { androidx.compose.runtime.mutableStateOf(false) }
+                    
+                    // Extract birth and death dates from events
+                    val birthDate = extractEventDate(ind, "BIRT")
+                    val deathDate = extractEventDate(ind, "DEAT")
+                    
+                    NodeCard(
                     firstName = ind.firstName,
                     lastName = ind.lastName,
                     gender = ind.gender,
@@ -724,6 +751,7 @@ fun TreeRenderer(
                     selected = (ind.id == selectedId),
                     fontScale = scale,
                     lastFsBaseSp = textFsFor(ind.id),
+                    simplified = useSimplifiedRendering,
                     onClick = { onSelect(ind.id) },
                     onDrag = { delta -> onNodeDrag(ind.id, delta) },
                     onLongPress = { showNodeMenu = true },
@@ -734,6 +762,7 @@ fun TreeRenderer(
                         DropdownMenuItem(text = { Text("Center on") }, onClick = { showNodeMenu = false; onCenterOn(ind.id) })
                         DropdownMenuItem(text = { Text("Reset") }, onClick = { showNodeMenu = false; onReset() })
                     }
+                }
                 }
             }
         }
@@ -754,6 +783,7 @@ private fun NodeCard(
     selected: Boolean,
     fontScale: Float,
     lastFsBaseSp: Float,
+    simplified: Boolean,
     onClick: () -> Unit,
     onDrag: (Offset) -> Unit,
     onLongPress: () -> Unit,
@@ -792,85 +822,89 @@ private fun NodeCard(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
             )
         }
-        // Три строки: имя (первая), фамилия (вторая), даты (третья)
-        val first = firstName
-        val last = lastName
         
-        // Используем те же формулы, что и в measureNodePx для полной синхронизации
-        fun lhFactorForScale(s: Float): Float {
-            val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f)
-            return 1.10f - 0.10f * u
-        }
-        fun lineGapPxForScale(s: Float): Float {
-            val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
-            return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
-        }
-        
-        val innerPadX = 4.5f * fontScale
-        val innerPadY = 4.5f * fontScale
-        val lineGapPx = lineGapPxForScale(fontScale)
-        val lhFactor = lhFactorForScale(fontScale)
-        val densityLocal = LocalDensity.current
-        val innerPadXdp = with(densityLocal) { innerPadX.toDp() }
-        val innerPadYdpClamped = with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
-        val lineGapDp = with(densityLocal) { lineGapPx.toDp() }
+        // Skip text rendering in simplified mode (small scale with many nodes)
+        if (!simplified) {
+            // Три строки: имя (первая), фамилия (вторая), даты (третья)
+            val first = firstName
+            val last = lastName
+            
+            // Используем те же формулы, что и в measureNodePx для полной синхронизации
+            fun lhFactorForScale(s: Float): Float {
+                val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f)
+                return 1.10f - 0.10f * u
+            }
+            fun lineGapPxForScale(s: Float): Float {
+                val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
+                return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
+            }
+            
+            val innerPadX = 4.5f * fontScale
+            val innerPadY = 4.5f * fontScale
+            val lineGapPx = lineGapPxForScale(fontScale)
+            val lhFactor = lhFactorForScale(fontScale)
+            val densityLocal = LocalDensity.current
+            val innerPadXdp = with(densityLocal) { innerPadX.toDp() }
+            val innerPadYdpClamped = with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
+            val lineGapDp = with(densityLocal) { lineGapPx.toDp() }
 
-        // Базовый кегль, который пришёл из измерителя, умноженный на текущий zoom
-        val baseFsSp = lastFsBaseSp.sp * fontScale
-        // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
-        // и текст масштабировался пропорционально карточке, избегая наложения при малых масштабах
-        val effFsSp = baseFsSp
-        
-        // Межстрочный интервал пропорционален размеру шрифта
-        val effLineHeightSp = effFsSp * lhFactor
-        androidx.compose.foundation.layout.Column(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Первая строка: имя (всегда показывается)
-            Text(
-                first,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                fontSize = effFsSp,
-                // Рисуем обычным (не жирным) начертанием, чтобы имена не выглядели «болдом» на канвасе
-                fontWeight = FontWeight.Normal,
-                lineHeight = effLineHeightSp,
-                softWrap = false,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                // Минимальная высота строки, чтобы избежать 0px на Android при округлениях
-                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
-            )
-            // Вторая строка: фамилия (всегда резервируется место)
-            androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
-            Text(
-                text = last.ifEmpty { "" },
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                fontSize = effFsSp,
-                lineHeight = effLineHeightSp,
-                softWrap = false,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
-            )
-            // Третья строка: даты (всегда резервируется место)
-            val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
-            androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
-            Text(
-                text = dateText,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                fontSize = effFsSp,
-                lineHeight = effLineHeightSp,
-                softWrap = false,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
-            )
+            // Базовый кегль, который пришёл из измерителя, умноженный на текущий zoom
+            val baseFsSp = lastFsBaseSp.sp * fontScale
+            // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
+            // и текст масштабировался пропорционально карточке, избегая наложения при малых масштабах
+            val effFsSp = baseFsSp
+            
+            // Межстрочный интервал пропорционален размеру шрифта
+            val effLineHeightSp = effFsSp * lhFactor
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Первая строка: имя (всегда показывается)
+                Text(
+                    first,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                    fontSize = effFsSp,
+                    // Рисуем обычным (не жирным) начертанием, чтобы имена не выглядели «болдом» на канвасе
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = effLineHeightSp,
+                    softWrap = false,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    // Минимальная высота строки, чтобы избежать 0px на Android при округлениях
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                )
+                // Вторая строка: фамилия (всегда резервируется место)
+                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+                Text(
+                    text = last.ifEmpty { "" },
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                    fontSize = effFsSp,
+                    lineHeight = effLineHeightSp,
+                    softWrap = false,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                )
+                // Третья строка: даты (всегда резервируется место)
+                val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
+                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+                Text(
+                    text = dateText,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    fontSize = effFsSp,
+                    lineHeight = effLineHeightSp,
+                    softWrap = false,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                )
+            }
         }
         // Встроенное контекстное меню для узла
         menuContent()
