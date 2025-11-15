@@ -16,5 +16,6 @@ expect fun Modifier.platformWheelZoom(
     setScale: (Float) -> Unit,
     getPan: () -> Offset,
     setPan: (Offset) -> Unit,
-    getCanvasSize: () -> IntSize
+    getCanvasSize: () -> IntSize,
+    leftPanelWidth: Float = 0f
 ): Modifier

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DropdownMenu
@@ -51,6 +52,66 @@ import com.family.tree.ui.PlatformEnv
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+
+/**
+ * Detects if the text contains Cyrillic characters.
+ */
+private fun isCyrillic(text: String?): Boolean {
+    if (text.isNullOrEmpty()) return false
+    for (c in text) {
+        if (c in '\u0400'..'\u04FF') {
+            return true
+        }
+    }
+    return false
+}
+
+/**
+ * Extracts event date from individual's events by type (e.g., "BIRT", "DEAT").
+ */
+private fun extractEventDate(ind: com.family.tree.core.model.Individual?, type: String?): String? {
+    if (ind == null || type == null) return null
+    val t = type.trim().uppercase()
+    for (ev in ind.events) {
+        val evType = ev.type
+        if (t == evType.trim().uppercase()) {
+            return ev.date
+        }
+    }
+    return null
+}
+
+/**
+ * Formats birth and death dates according to the requirements:
+ * - Both dates: "birthDate - deathDate"
+ * - Only birth: "b.:" or "род.:" prefix
+ * - Only death: "d.:" or "ум.:" prefix
+ * The language is detected from the individual's name.
+ */
+private fun formatDates(birthDate: String?, deathDate: String?, firstName: String?, lastName: String?): String? {
+    val hasBirth = !birthDate.isNullOrBlank()
+    val hasDeath = !deathDate.isNullOrBlank()
+
+    if (!hasBirth && !hasDeath) {
+        return null
+    }
+
+    // Detect language from names
+    val isCyrillicText = isCyrillic(firstName) || isCyrillic(lastName)
+
+    return if (hasBirth && hasDeath) {
+        // Both dates: show as "birthDate - deathDate"
+        birthDate!!.trim() + " - " + deathDate!!.trim()
+    } else if (hasBirth) {
+        // Only birth date
+        val prefix = if (isCyrillicText) "род.:" else "b.:"
+        prefix + birthDate!!.trim()
+    } else {
+        // Only death date
+        val prefix = if (isCyrillicText) "ум.:" else "d.:"
+        prefix + deathDate!!.trim()
+    }
+}
 
 @OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
 @Composable
@@ -96,7 +157,7 @@ fun TreeRenderer(
     }
 
     data class NodeMeasure(val w: Float, val h: Float, val baseFsSp: Float)
-    fun measureNodePx(firstName: String, lastName: String): NodeMeasure {
+    fun measureNodePx(firstName: String, lastName: String, birthDate: String?, deathDate: String?): NodeMeasure {
         fun lhFactorForScale(s: Float): Float {
             // Aggressive mid-scale compression: ~1.10 at s>=1.0 → ~1.02 at s=0.6 → ~1.00 at s<=0.4
             val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f) // 0 at 1.0, 1 at 0.4
@@ -108,9 +169,9 @@ fun TreeRenderer(
             val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
             return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
         }
-        // Минимальные размеры + паддинги масштабируются с зумом; измеряем две строки: имя и фамилия
-        val baseMinW = 74.25f
-        val baseMinH = 33.75f
+        // Минимальные размеры + паддинги масштабируются с зумом; измеряем три строки: имя, фамилия и даты
+        val baseMinW = if (PlatformEnv.isDesktop) 74.25f else 49.5f  // На мобильных уменьшаем в 1.5 раза
+        val baseMinH = if (PlatformEnv.isDesktop) 50.625f else 33.75f  // Увеличено для третьей строки (1.5x от старого значения)
         val extraFudge = 0f
         val minW = baseMinW * scale
         val minH = baseMinH * scale
@@ -120,24 +181,41 @@ fun TreeRenderer(
         val lineGap = lineGapPxForScale(scale)
         val first = firstName
         val last = lastName
-        // Подбираем общий кегль (sp) для имени и фамилии, чтобы обе строки гарантированно поместились
+        // Формируем строку с датами для измерения
+        val dateText = formatDates(birthDate, deathDate, firstName, lastName)
+        // Подбираем общий кегль (sp) для имени, фамилии и дат, чтобы все три строки гарантированно поместились
         val candidates = listOf(3.75f, 3.375f, 3f, 2.625f, 2.25f, 1.875f, 1.5f, 1.3125f, 1.125f)
         var chosenFsBaseSp = 3f
         var resFirstHeight = 0
         var resFirstWidth = 0
         var resLastHeight = 0
         var resLastWidth = 0
+        var resDateHeight = 0
+        var resDateWidth = 0
+        val isAndroid = !PlatformEnv.isDesktop
         for (fsBase in candidates) {
-            val fs = (fsBase.sp * scale)
+            // Базовый кегль в sp с учётом zoom
+            val baseFsSp = (fsBase.sp * scale)
+            // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
+            val effFsSp = baseFsSp
+
             val lhFactor = lhFactorForScale(scale)
+            // Предварительное значение lineHeight
+            val lineHeightSp = effFsSp * lhFactor
+
             val nameStyle = TextStyle(
-                fontSize = fs,
-                fontWeight = FontWeight.Medium,
-                lineHeight = fs * lhFactor
+                fontSize = effFsSp,
+                // Используем Normal, чтобы измерение соответствовало фактической отрисовке
+                fontWeight = FontWeight.Normal,
+                lineHeight = lineHeightSp
             )
             val lastStyle = TextStyle(
-                fontSize = fs,
-                lineHeight = fs * lhFactor
+                fontSize = effFsSp,
+                lineHeight = lineHeightSp
+            )
+            val dateStyle = TextStyle(
+                fontSize = effFsSp,
+                lineHeight = lineHeightSp
             )
             val rFirst = measurer.measure(
                 text = androidx.compose.ui.text.AnnotatedString(first),
@@ -149,19 +227,44 @@ fun TreeRenderer(
                 style = lastStyle,
                 softWrap = false
             ) else null
-            val contentH = rFirst.size.height + (if (last.isNotBlank()) lineGap.toInt() + (rLast?.size?.height ?: 0) else 0) + extraFudge
-            val totalH = contentH + padY * 2
+            val rDate = if (!dateText.isNullOrEmpty()) measurer.measure(
+                text = androidx.compose.ui.text.AnnotatedString(dateText),
+                style = dateStyle,
+                softWrap = false
+            ) else null
+            
+            // Рассчитываем высоту контента с учетом всех трех строк
+            var contentHTemp = rFirst.size.height.toFloat()
+            if (last.isNotBlank()) {
+                contentHTemp += lineGap + (rLast?.size?.height?.toFloat() ?: 0f)
+            }
+            if (dateText != null && dateText.isNotEmpty()) {
+                contentHTemp += lineGap + (rDate?.size?.height?.toFloat() ?: 0f)
+            }
+            contentHTemp += extraFudge
+            
+            val totalH = contentHTemp + padY * 2
             resFirstHeight = rFirst.size.height
             resFirstWidth = rFirst.size.width
             resLastHeight = rLast?.size?.height ?: 0
             resLastWidth = rLast?.size?.width ?: 0
+            resDateHeight = rDate?.size?.height ?: 0
+            resDateWidth = rDate?.size?.width ?: 0
             chosenFsBaseSp = fsBase
             if (totalH <= minH) break
         }
-        val contentW = max(resFirstWidth, resLastWidth)
-        val contentH = resFirstHeight + (if (last.isNotEmpty()) lineGap.toInt() + resLastHeight else 0) + extraFudge
-        // Add extra width buffer (8 * scale) to ensure text fits completely without cutoff
-        val w = max(minW, contentW + padX * 2 + 8f * scale)
+        // Учитываем ширину всех трех строк: имя, фамилия и даты
+        val contentW = max(resFirstWidth, max(resLastWidth, resDateWidth))
+        var contentH = resFirstHeight.toFloat()
+        if (last.isNotEmpty()) {
+            contentH += lineGap + resLastHeight.toFloat()
+        }
+        if (dateText != null && dateText.isNotEmpty()) {
+            contentH += lineGap + resDateHeight.toFloat()
+        }
+        contentH += extraFudge
+        // Add extra width buffer (16 * scale) to ensure wide cards don't overlap at medium/large scales
+        val w = max(minW, contentW + padX * 2 + 16f * scale)
         val h = max(minH, contentH + padY * 2)
         return NodeMeasure(w, h, chosenFsBaseSp)
     }
@@ -180,9 +283,9 @@ fun TreeRenderer(
                     val p = positions[ind.id] ?: return@forEach
                     Pair(p.x * scale, p.y * scale)
                 }
-                // Use approximate size: min card dimensions scaled
-                val approxW = 74.25f * scale
-                val approxH = 33.75f * scale
+                // Use approximate size: min card dimensions scaled (updated for 3 lines)
+                val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
+                val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
                 put(ind.id, ApproxBounds(baseX, baseY, approxW, approxH))
             }
         }
@@ -215,7 +318,9 @@ fun TreeRenderer(
         buildMap {
             visibleIndividualIds.forEach { id ->
                 val ind = data.individuals.find { it.id == id } ?: return@forEach
-                put(id, measureNodePx(ind.firstName, ind.lastName))
+                val birthDate = extractEventDate(ind, "BIRT")
+                val deathDate = extractEventDate(ind, "DEAT")
+                put(id, measureNodePx(ind.firstName, ind.lastName, birthDate, deathDate))
             }
         }
     }
@@ -239,6 +344,25 @@ fun TreeRenderer(
 
     fun rectFor(id: IndividualId): RectF? = rects[id]
     fun textFsFor(id: IndividualId): Float = measures[id]?.baseFsSp ?: 3f
+    
+    // Calculate rect for any node (even invisible) for line connections
+    fun rectForConnection(id: IndividualId): RectF? {
+        // First try visible rects
+        rects[id]?.let { return it }
+        
+        // If not visible, calculate approximate position from layout
+        val off = nodeOffsets[id]
+        val (baseX, baseY) = if (off != null) {
+            Pair(off.x * scale, off.y * scale)
+        } else {
+            val p = positions[id] ?: return null
+            Pair(p.x * scale, p.y * scale)
+        }
+        // Use approximate size for invisible nodes
+        val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
+        val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
+        return RectF(baseX, baseY, approxW, approxH)
+    }
     
     // Convert visible IDs back to Individual objects for rendering
     val visibleIndividuals = remember(visibleIndividualIds, data.individuals) {
@@ -279,7 +403,7 @@ fun TreeRenderer(
             .fillMaxSize()
             .clipToBounds()  // Clip rendering to green canvas boundaries
             .background(Color(0xFFD5E8D4))  // Light mint green background matching screenshot
-            .onSizeChanged { 
+            .onSizeChanged {
                 canvasSize = it
                 onCanvasSize(it) 
             }
@@ -351,19 +475,85 @@ fun TreeRenderer(
                 val edgeColor = Color(0xFF607D8B)
                 val barGap = 4.5f * scale  // gap below spouse boxes (scaled)
                 val childBarGap = 4.5f * scale  // gap above children (scaled)
-                val strokeW = 2f * scale  // line width (scaled to match JavaFX)
+                // Минимальная толщина линий для мобильных устройств при малых масштабах:
+                // при scale >= 1.0 → 2px, при малых масштабах → минимум 1.2px для видимости
+                val baseStroke = 2f * scale
+                val strokeW = if (PlatformEnv.isDesktop) baseStroke else max(baseStroke, 1.2f)
                 
                 // Build set of visible IDs for fast lookup
                 val visibleIds = visibleIndividuals.map { it.id }.toSet()
                 
+                // Helper: check if a line segment intersects viewport (considering pan offset)
+                fun lineIntersectsViewport(x1: Float, y1: Float, x2: Float, y2: Float): Boolean {
+                    val screenX1 = x1 + pan.x
+                    val screenY1 = y1 + pan.y
+                    val screenX2 = x2 + pan.x
+                    val screenY2 = y2 + pan.y
+                    
+                    val viewLeft = 0f
+                    val viewRight = canvasSize.width.toFloat()
+                    val viewTop = 0f
+                    val viewBottom = canvasSize.height.toFloat()
+                    
+                    // Check if line bounding box intersects viewport
+                    val lineLeft = min(screenX1, screenX2)
+                    val lineRight = max(screenX1, screenX2)
+                    val lineTop = min(screenY1, screenY2)
+                    val lineBottom = max(screenY1, screenY2)
+                    
+                    return lineRight >= viewLeft && lineLeft <= viewRight &&
+                           lineBottom >= viewTop && lineTop <= viewBottom
+                }
+                
                 data.families.forEach { fam ->
-                    // Skip family if none of its members are visible
-                    val hasVisibleMember = (fam.husbandId in visibleIds) || 
-                                          (fam.wifeId in visibleIds) || 
-                                          fam.childrenIds.any { it in visibleIds }
-                    if (!hasVisibleMember) return@forEach
-                    val husband = fam.husbandId?.let { rectFor(it) }
-                    val wife = fam.wifeId?.let { rectFor(it) }
+                    // Check if any children are visible - if so, always draw lines from parents
+                    val hasVisibleChild = fam.childrenIds.any { it in visibleIds }
+                    
+                    // Skip family only if no children are visible AND no parents are visible
+                    val hasVisibleParent = (fam.husbandId in visibleIds) || (fam.wifeId in visibleIds)
+                    
+                    // OPTIMIZATION: Use fast bounding box check instead of detailed segment checks
+                    var hasLinesThroughViewport = false
+                    if (!hasVisibleChild && !hasVisibleParent) {
+                        // Compute bounding box of the entire family (parents + children)
+                        val allIds = listOfNotNull(fam.husbandId, fam.wifeId) + fam.childrenIds
+                        if (allIds.isNotEmpty()) {
+                            // Use approximate bounds for fast check
+                            var minX = Float.POSITIVE_INFINITY
+                            var maxX = Float.NEGATIVE_INFINITY
+                            var minY = Float.POSITIVE_INFINITY
+                            var maxY = Float.NEGATIVE_INFINITY
+                            
+                            allIds.forEach { id ->
+                                val bounds = approxBounds[id]
+                                if (bounds != null) {
+                                    if (bounds.x < minX) minX = bounds.x
+                                    if (bounds.x + bounds.w > maxX) maxX = bounds.x + bounds.w
+                                    if (bounds.y < minY) minY = bounds.y
+                                    if (bounds.y + bounds.h > maxY) maxY = bounds.y + bounds.h
+                                }
+                            }
+                            
+                            // Expand bounding box to include connection lines (add gaps)
+                            minY -= childBarGap * 2f
+                            maxY += barGap * 2f
+                            
+                            // Check if family bounding box intersects viewport
+                            val screenLeft = minX + pan.x
+                            val screenRight = maxX + pan.x
+                            val screenTop = minY + pan.y
+                            val screenBottom = maxY + pan.y
+                            
+                            hasLinesThroughViewport = screenRight >= 0f && screenLeft <= canvasSize.width.toFloat() &&
+                                                     screenBottom >= 0f && screenTop <= canvasSize.height.toFloat()
+                        }
+                    }
+                    
+                    if (!hasVisibleChild && !hasVisibleParent && !hasLinesThroughViewport) return@forEach
+                    
+                    // Use rectForConnection to get parent positions even if they're off-screen
+                    val husband = fam.husbandId?.let { rectForConnection(it) }
+                    val wife = fam.wifeId?.let { rectForConnection(it) }
                     
                     when {
                         husband != null && wife != null -> {
@@ -386,7 +576,7 @@ fun TreeRenderer(
                             } else if (fam.childrenIds.size == 1) {
                                 // Single child: route toward child center with intermediate level
                                 val cid = fam.childrenIds.first()
-                                val c = rectFor(cid)
+                                val c = rectForConnection(cid)
                                 if (c != null) {
                                     val childBarY = c.top - childBarGap
                                     val midY = (yBar + childBarY) / 2f
@@ -411,7 +601,7 @@ fun TreeRenderer(
                                 val childAnchors = mutableListOf<Pair<Float, Float>>() // centerX, topY
                                 
                                 fam.childrenIds.forEach { cid ->
-                                    val c = rectFor(cid)
+                                    val c = rectForConnection(cid)
                                     if (c != null) {
                                         val cx = c.centerX
                                         val topY = c.top
@@ -459,7 +649,7 @@ fun TreeRenderer(
                             } else if (fam.childrenIds.size == 1) {
                                 // Single child
                                 val cid = fam.childrenIds.first()
-                                val c = rectFor(cid)
+                                val c = rectForConnection(cid)
                                 if (c != null) {
                                     val childBarY = c.top - childBarGap
                                     val midY = (yBar + childBarY) / 2f
@@ -480,7 +670,7 @@ fun TreeRenderer(
                                 val childAnchors = mutableListOf<Pair<Float, Float>>()
                                 
                                 fam.childrenIds.forEach { cid ->
-                                    val c = rectFor(cid)
+                                    val c = rectForConnection(cid)
                                     if (c != null) {
                                         val cx = c.centerX
                                         val topY = c.top
@@ -521,10 +711,17 @@ fun TreeRenderer(
                 val wDp = with(density) { r.w.toDp() }
                 val hDp = with(density) { r.h.toDp() }
                 var showNodeMenu by androidx.compose.runtime.remember(ind.id) { androidx.compose.runtime.mutableStateOf(false) }
+                
+                // Extract birth and death dates from events
+                val birthDate = extractEventDate(ind, "BIRT")
+                val deathDate = extractEventDate(ind, "DEAT")
+                
                 NodeCard(
                     firstName = ind.firstName,
                     lastName = ind.lastName,
                     gender = ind.gender,
+                    birthDate = birthDate,
+                    deathDate = deathDate,
                     x = leftDp,
                     y = topDp,
                     width = wDp,
@@ -553,6 +750,8 @@ private fun NodeCard(
     firstName: String,
     lastName: String,
     gender: com.family.tree.core.model.Gender?,
+    birthDate: String?,
+    deathDate: String?,
     x: Dp,
     y: Dp,
     width: Dp,
@@ -620,6 +819,15 @@ private fun NodeCard(
         val innerPadXdp = with(densityLocal) { innerPadX.toDp() }
         val innerPadYdpClamped = with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
         val lineGapDp = with(densityLocal) { lineGapPx.toDp() }
+
+        // Базовый кегль, который пришёл из измерителя, умноженный на текущий zoom
+        val baseFsSp = lastFsBaseSp.sp * fontScale
+        // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
+        // и текст масштабировался пропорционально карточке, избегая наложения при малых масштабах
+        val effFsSp = baseFsSp
+        
+        // Межстрочный интервал пропорционален размеру шрифта
+        val effLineHeightSp = effFsSp * lhFactor
         androidx.compose.foundation.layout.Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -629,23 +837,45 @@ private fun NodeCard(
             Text(
                 first,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                fontSize = lastFsBaseSp.sp * fontScale,
-                fontWeight = FontWeight.Medium,
-                lineHeight = lastFsBaseSp.sp * fontScale * lhFactor,
+                fontSize = effFsSp,
+                // Рисуем обычным (не жирным) начертанием, чтобы имена не выглядели «болдом» на канвасе
+                fontWeight = FontWeight.Normal,
+                lineHeight = effLineHeightSp,
                 softWrap = false,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                // Минимальная высота строки, чтобы избежать 0px на Android при округлениях
+                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
             )
             if (last.isNotEmpty()) {
                 androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
                 Text(
                     last,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    fontSize = lastFsBaseSp.sp * fontScale,
-                    lineHeight = lastFsBaseSp.sp * fontScale * lhFactor,
+                    fontSize = effFsSp,
+                    lineHeight = effLineHeightSp,
                     softWrap = false,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                )
+            }
+            // Third line: dates (birth and/or death)
+            val dateText = formatDates(birthDate, deathDate, firstName, lastName)
+            if (!dateText.isNullOrEmpty()) {
+                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+                Text(
+                    dateText,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                    fontSize = effFsSp,
+                    lineHeight = effLineHeightSp,
+                    softWrap = false,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
             }
         }

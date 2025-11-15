@@ -13,7 +13,8 @@ actual fun Modifier.platformWheelZoom(
     setScale: (Float) -> Unit,
     getPan: () -> Offset,
     setPan: (Offset) -> Unit,
-    getCanvasSize: () -> IntSize
+    getCanvasSize: () -> IntSize,
+    leftPanelWidth: Float
 ): Modifier = this.onPointerEvent(PointerEventType.Scroll) { event ->
     val first = event.changes.firstOrNull() ?: return@onPointerEvent
     val deltaY = first.scrollDelta.y
@@ -25,12 +26,14 @@ actual fun Modifier.platformWheelZoom(
     val newScale = (currentScale * step).coerceIn(0.25f, 4f)
 
     // Keep the point under cursor fixed by adjusting pan
-    val cursor = first.position
+    // Adjust cursor position to be relative to canvas (subtract left panel width)
+    val cursorRaw = first.position
+    val cursorCanvas = Offset(cursorRaw.x - leftPanelWidth, cursorRaw.y)
     val pan = getPan()
     val k = newScale / (currentScale.takeIf { it != 0f } ?: 1f)
     val newPan = Offset(
-        x = cursor.x - (cursor.x - pan.x) * k,
-        y = cursor.y - (cursor.y - pan.y) * k
+        x = cursorCanvas.x - (cursorCanvas.x - pan.x) * k,
+        y = cursorCanvas.y - (cursorCanvas.y - pan.y) * k
     )
 
     setScale(newScale)

@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -17,45 +18,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.family.tree.core.ProjectData
 import com.family.tree.core.model.*
 
-// Предопределённые GEDCOM-типы событий (минимальный набор, как в классических редакторах)
-// При необходимости расширьте список до полного, совпадающего со старой JavaFX-версией.
+// Предопределённые GEDCOM-типы событий (соответствует списку из JavaFX версии)
 private val PREDEFINED_EVENT_TYPES = listOf(
-    // Жизненные события
     "BIRT", // рождение
-    "CHR",  // крещение
     "DEAT", // смерть
     "BURI", // погребение
-    "CREM", // кремация
-    // Семейные события
     "MARR", // брак
-    "DIV",  // развод
-    "ENGA", // помолвка (иногда "ENG")
-    // Религиозные/инициации
-    "BAPM", // крещение (взросл.)
-    "BARM", // бар-мицва
-    "BASM", // бат-мицва
-    "BLES", // благословение
-    "CONF", // конфирмация
-    // Миграция/гражданство
-    "IMMI", // иммиграция
-    "EMIG", // эмиграция
-    "NATU", // натурализация
-    // Быт/профессия
-    "CENS", // перепись
-    "OCCU", // профессия
+    "ADOP", // усыновление
     "RESI", // проживание
-    "EDUC", // образование
-    "GRAD", // выпуск/диплом
-    "RETI", // выход на пенсию
-    // Юридические
-    "WILL", // завещание
-    "PROB", // утверждение завещания (пробейт)
-    // Общее событие
     "EVEN"  // произвольное событие
 )
 
@@ -311,7 +287,7 @@ private fun EventItem(
         if (isSelected) {
             Spacer(Modifier.height(8.dp))
             
-            // Type field with predefined GEDCOM types + свободный ввод
+            // Type field with predefined GEDCOM types (только выбор из списка)
             var typeText by remember(event.id) { mutableStateOf(event.type ?: "") }
             var typeMenuExpanded by remember(event.id) { mutableStateOf(false) }
 
@@ -321,11 +297,9 @@ private fun EventItem(
             ) {
                 OutlinedTextField(
                     value = typeText,
-                    onValueChange = {
-                        typeText = it
-                        onUpdate(event.copy(type = it.trim()))
-                    },
-                    label = { Text("Type (BIRT, DEAT, MARR, …)") },
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Type") },
                     modifier = Modifier
                         .menuAnchor()
                         .fillMaxWidth(),
@@ -366,7 +340,8 @@ private fun EventItem(
                     },
                     label = { Text("Date") },
                     modifier = Modifier.weight(1f),
-                    singleLine = true
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
                 Spacer(Modifier.width(6.dp))
                 IconButton(onClick = { showDateDialog = true }) {

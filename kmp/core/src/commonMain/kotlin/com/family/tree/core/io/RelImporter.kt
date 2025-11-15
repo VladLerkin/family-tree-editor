@@ -476,10 +476,10 @@ class RelImporter {
 
         // BIRT - extract date and place first
         val birtMatch = Regex("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
-        rec.birth = birtMatch?.groupValues?.get(1)?.trim()
+        rec.birth = cleanToken(birtMatch?.groupValues?.get(1)?.trim())
         
         val birtPlacMatch = Regex("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
-        rec.birthPlace = birtPlacMatch?.groupValues?.get(1)?.trim()
+        rec.birthPlace = cleanToken(birtPlacMatch?.groupValues?.get(1)?.trim())
         
         // Extract SOUR and PAGE inside BIRT block boundaries (matching JavaFX logic)
         val birtIdx = block.indexOf("BIRT", ignoreCase = true)
@@ -495,10 +495,10 @@ class RelImporter {
 
         // DEAT - extract date and place first
         val deatMatch = Regex("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
-        rec.death = deatMatch?.groupValues?.get(1)?.trim()
+        rec.death = cleanToken(deatMatch?.groupValues?.get(1)?.trim())
         
         val deatPlacMatch = Regex("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
-        rec.deathPlace = deatPlacMatch?.groupValues?.get(1)?.trim()
+        rec.deathPlace = cleanToken(deatPlacMatch?.groupValues?.get(1)?.trim())
         
         // Extract SOUR and PAGE inside DEAT block boundaries (matching JavaFX logic)
         val deatIdx = block.indexOf("DEAT", ignoreCase = true)

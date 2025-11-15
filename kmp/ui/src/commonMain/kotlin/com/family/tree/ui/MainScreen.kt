@@ -393,7 +393,21 @@ fun MainScreen() {
             }
 
             // Main content: left list, center canvas, right inspector
-            Row(Modifier.fillMaxSize()) {
+            // Left panel width for correct zoom cursor offset calculation
+            val leftPanelWidthPx = with(LocalDensity.current) { 260.dp.toPx() }
+            
+            Row(Modifier
+                .fillMaxSize()
+                // Touch zoom/pan for mobile: apply to entire Row so gestures work on side panels too
+                .platformWheelZoom(
+                    getScale = { scale },
+                    setScale = { setScaleAnimated(it) },
+                    getPan = { pan },
+                    setPan = { pan = it },
+                    getCanvasSize = { canvasSize },
+                    leftPanelWidth = leftPanelWidthPx
+                )
+            ) {
                 // Left panel: Individuals/Families tabs (like legacy JavaFX)
                 Box(
                     modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
@@ -498,36 +512,6 @@ fun MainScreen() {
                         .weight(1f)
                         .fillMaxHeight()
                         .onSizeChanged { canvasSize = it }
-                        // Desktop-only wheel zoom (no-op on Android) via expect/actual modifier
-                        .platformWheelZoom(
-                            getScale = { scale },
-                            setScale = { setScaleAnimated(it) },
-                            getPan = { pan },
-                            setPan = { pan = it },
-                            getCanvasSize = { canvasSize }
-                        )
-                        // Multi-touch gestures: pinch to zoom, drag to pan (mobile only)
-                        // TODO: Re-enable for mobile with proper event propagation to allow node taps
-                        // Currently disabled to fix node selection on Desktop
-                        /*.pointerInput(Unit) {
-                            detectTransformGestures { centroid, panChange, zoomChange, _ ->
-                                // Apply zoom change
-                                val newScale = (scale * zoomChange).coerceIn(0.25f, 4f)
-                                
-                                // Zoom toward centroid (touch point)
-                                // Before zoom: point P in world coords = (screenX - pan.x) / scale
-                                // After zoom: we want P to stay at same screen position
-                                // So: (screenX - newPan.x) / newScale = (screenX - pan.x) / scale
-                                // Solving: newPan.x = screenX - ((screenX - pan.x) / scale) * newScale
-                                val worldX = (centroid.x - pan.x) / scale
-                                val worldY = (centroid.y - pan.y) / scale
-                                val newPanX = centroid.x - worldX * newScale
-                                val newPanY = centroid.y - worldY * newScale
-                                
-                                scale = newScale
-                                pan = Offset(newPanX, newPanY) + panChange
-                            }
-                        }*/
                 ) {
                     TreeRenderer(
                         data = project,
