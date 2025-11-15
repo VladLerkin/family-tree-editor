@@ -127,9 +127,7 @@ fun TreeRenderer(
     scale: Float,
     pan: Offset,
     setPan: (Offset) -> Unit,
-    onCanvasSize: (IntSize) -> Unit,
-    showGrid: Boolean,
-    lineWidth: Float
+    onCanvasSize: (IntSize) -> Unit
 ) {
     println("[DEBUG_LOG] TreeRenderer: recomposing (total data: ${data.individuals.size} individuals, ${data.families.size} families), scale=$scale, pan=$pan")
     

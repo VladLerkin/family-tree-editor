@@ -11,8 +11,6 @@ sealed class UiAction {
     data class ExportSvg(val useFit: Boolean = false) : UiAction()
 
     // View
-    data object ToggleGrid : UiAction()
-    data class SetLineWidth(val width: Float) : UiAction()
     data object ZoomIn : UiAction()
     data object ZoomOut : UiAction()
     data object Reset : UiAction() // fit to view

@@ -78,10 +78,6 @@ fun MainScreen() {
     var pan by remember { mutableStateOf(Offset.Zero) }
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Render toggles
-    var showGrid by remember { mutableStateOf(true) }
-    var lineWidth by remember { mutableFloatStateOf(1f) }
-
     // Memoize layout computation - only recompute when data changes (same as TreeRenderer)
     val cachedPositions = remember(project.individuals, project.families) {
         SimpleTreeLayout.layout(project.individuals, project.families).also {
@@ -199,6 +195,8 @@ fun MainScreen() {
     var editFamilyId by remember { mutableStateOf<FamilyId?>(null) }
     // Sources manager dialog state
     var showSourcesDialog by remember { mutableStateOf(false) }
+    // About dialog state
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     // File dialog state for Android/platform file pickers
     var showOpenDialog by remember { mutableStateOf(false) }
@@ -288,12 +286,10 @@ fun MainScreen() {
     AppActions.exportSvgFit = { DesktopActions.exportSvgFit(project) }
     AppActions.exportPngCurrent = { DesktopActions.exportPng(project, scale = scale, pan = pan) }
     AppActions.exportPngFit = { DesktopActions.exportPngFit(project) }
-    AppActions.toggleGrid = { showGrid = !showGrid }
-    AppActions.setLineWidth1x = { lineWidth = 1f }
-    AppActions.setLineWidth2x = { lineWidth = 2f }
     AppActions.zoomIn = { setScaleAnimated(scale * 1.1f) }
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
+    AppActions.showAbout = { showAboutDialog = true }
 
     // Wire dialog actions for platform file dialogs (used by Android DesktopActions)
     DialogActions.triggerOpenDialog = { callback ->
@@ -356,17 +352,7 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; showSourcesDialog = true })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text(if (showGrid) "Grid: On" else "Grid: Off") }, onClick = { showMenu = false; AppActions.toggleGrid() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 1x") }, onClick = { showMenu = false; AppActions.setLineWidth1x() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 2x") }, onClick = { showMenu = false; AppActions.setLineWidth2x() })
-                            val selected = project.individuals.find { it.id == selectedId }
-                            if (selected != null) {
-                                androidx.compose.material3.DropdownMenuItem(text = { Text("Edit person…") }, onClick = { showMenu = false; editPersonId = selected.id })
-                                val fam = project.families.firstOrNull { it.husbandId == selected.id || it.wifeId == selected.id || it.childrenIds.contains(selected.id) }
-                                if (fam != null) {
-                                    androidx.compose.material3.DropdownMenuItem(text = { Text("Edit family…") }, onClick = { showMenu = false; editFamilyId = fam.id })
-                                }
-                            }
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
                         }
                     }
                 )
@@ -401,17 +387,6 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showDesktopMenu = false; showSourcesDialog = true })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text(if (showGrid) "Grid: On" else "Grid: Off") }, onClick = { showDesktopMenu = false; AppActions.toggleGrid() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 1x") }, onClick = { showDesktopMenu = false; AppActions.setLineWidth1x() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Lines: 2x") }, onClick = { showDesktopMenu = false; AppActions.setLineWidth2x() })
-                            val selected = project.individuals.find { it.id == selectedId }
-                            if (selected != null) {
-                                androidx.compose.material3.DropdownMenuItem(text = { Text("Edit person…") }, onClick = { showDesktopMenu = false; editPersonId = selected.id })
-                                val fam = project.families.firstOrNull { it.husbandId == selected.id || it.wifeId == selected.id || it.childrenIds.contains(selected.id) }
-                                if (fam != null) {
-                                    androidx.compose.material3.DropdownMenuItem(text = { Text("Edit family…") }, onClick = { showDesktopMenu = false; editFamilyId = fam.id })
-                                }
-                            }
                         }
                     }
                 }
@@ -568,9 +543,7 @@ fun MainScreen() {
                         scale = scale,
                         pan = pan,
                         setPan = { pan = it },
-                        onCanvasSize = { canvasSize = it },
-                        showGrid = showGrid,
-                        lineWidth = lineWidth
+                        onCanvasSize = { canvasSize = it }
                     )
                 }
 
@@ -651,6 +624,11 @@ fun MainScreen() {
                 project = updatedProject
             }
         )
+    }
+
+    // About dialog
+    if (showAboutDialog) {
+        AboutDialog(onDismiss = { showAboutDialog = false })
     }
 
     // Platform file dialogs (for Android and future cross-platform support)

@@ -27,15 +27,12 @@ fun main() = application {
                 }
             }
             Menu("View") {
-                Item("Grid On/Off") { AppActions.toggleGrid() }
-                Menu("Lines") {
-                    Item("1x") { AppActions.setLineWidth1x() }
-                    Item("2x") { AppActions.setLineWidth2x() }
-                }
-                Separator()
                 Item("Zoom In") { AppActions.zoomIn() }
                 Item("Zoom Out") { AppActions.zoomOut() }
                 Item("Reset / Fit") { AppActions.reset() }
+            }
+            Menu("Help") {
+                Item("About") { AppActions.showAbout() }
             }
         }
         App()

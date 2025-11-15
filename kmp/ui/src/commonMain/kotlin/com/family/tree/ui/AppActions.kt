@@ -3,24 +3,82 @@ package com.family.tree.ui
 /**
  * Global action endpoints that Desktop menu and other top-level UI can trigger.
  * MainScreen assigns these lambdas during composition. Defaults are no-ops.
+ * 
+ * Implementation uses private backing fields with public methods to ensure
+ * menu items always call the latest assigned action (fixes macOS system menu issue).
  */
 object AppActions {
-    // File
-    var openPed: () -> Unit = {}
-    var savePed: () -> Unit = {}
-    var importRel: () -> Unit = {}
-    var importGedcom: () -> Unit = {}
-    var exportGedcom: () -> Unit = {}
-    var exportSvgCurrent: () -> Unit = {}
-    var exportSvgFit: () -> Unit = {}
-    var exportPngCurrent: () -> Unit = {}
-    var exportPngFit: () -> Unit = {}
+    // File - backing fields
+    private var _openPed: () -> Unit = {}
+    private var _savePed: () -> Unit = {}
+    private var _importRel: () -> Unit = {}
+    private var _importGedcom: () -> Unit = {}
+    private var _exportGedcom: () -> Unit = {}
+    private var _exportSvgCurrent: () -> Unit = {}
+    private var _exportSvgFit: () -> Unit = {}
+    private var _exportPngCurrent: () -> Unit = {}
+    private var _exportPngFit: () -> Unit = {}
 
-    // View
-    var toggleGrid: () -> Unit = {}
-    var setLineWidth1x: () -> Unit = {}
-    var setLineWidth2x: () -> Unit = {}
-    var zoomIn: () -> Unit = {}
-    var zoomOut: () -> Unit = {}
-    var reset: () -> Unit = {}
+    // View - backing fields
+    private var _zoomIn: () -> Unit = {}
+    private var _zoomOut: () -> Unit = {}
+    private var _reset: () -> Unit = {}
+
+    // Help - backing fields
+    private var _showAbout: () -> Unit = {}
+
+    // File - public setters and call methods
+    var openPed: () -> Unit
+        get() = { _openPed() }
+        set(value) { _openPed = value }
+    
+    var savePed: () -> Unit
+        get() = { _savePed() }
+        set(value) { _savePed = value }
+    
+    var importRel: () -> Unit
+        get() = { _importRel() }
+        set(value) { _importRel = value }
+    
+    var importGedcom: () -> Unit
+        get() = { _importGedcom() }
+        set(value) { _importGedcom = value }
+    
+    var exportGedcom: () -> Unit
+        get() = { _exportGedcom() }
+        set(value) { _exportGedcom = value }
+    
+    var exportSvgCurrent: () -> Unit
+        get() = { _exportSvgCurrent() }
+        set(value) { _exportSvgCurrent = value }
+    
+    var exportSvgFit: () -> Unit
+        get() = { _exportSvgFit() }
+        set(value) { _exportSvgFit = value }
+    
+    var exportPngCurrent: () -> Unit
+        get() = { _exportPngCurrent() }
+        set(value) { _exportPngCurrent = value }
+    
+    var exportPngFit: () -> Unit
+        get() = { _exportPngFit() }
+        set(value) { _exportPngFit = value }
+
+    // View - public setters and call methods
+    var zoomIn: () -> Unit
+        get() = { _zoomIn() }
+        set(value) { _zoomIn = value }
+    
+    var zoomOut: () -> Unit
+        get() = { _zoomOut() }
+        set(value) { _zoomOut = value }
+    
+    var reset: () -> Unit
+        get() = { _reset() }
+        set(value) { _reset = value }
+
+    // Help - public setters and call methods
+    var showAbout: () -> Unit
+        get() = { _showAbout() }
+        set(value) { _showAbout = value }
 }
