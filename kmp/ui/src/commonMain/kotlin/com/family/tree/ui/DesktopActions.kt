@@ -7,6 +7,7 @@ import com.family.tree.core.io.LoadedProject
 expect object DesktopActions {
     fun openPed(onLoaded: (LoadedProject?) -> Unit)
     fun savePed(data: ProjectData): Boolean
+    fun savePedWithLayout(data: ProjectData, layout: com.family.tree.core.layout.ProjectLayout): Boolean
     fun importRel(onLoaded: (LoadedProject?) -> Unit)
     fun importGedcom(onLoaded: (ProjectData?) -> Unit)
     fun exportGedcom(data: ProjectData): Boolean

@@ -57,7 +57,7 @@ fun PropertiesInspector(
             .padding(12.dp)
     ) {
         // Header
-        Text("Inspector", style = MaterialTheme.typography.titleSmall)
+        Text("Properties", style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(8.dp))
         
         // Individual basic info

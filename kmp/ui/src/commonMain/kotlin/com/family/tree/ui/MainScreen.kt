@@ -246,7 +246,6 @@ fun MainScreen() {
             }
         }
     }
-    AppActions.savePed = { DesktopActions.savePed(project) }
     AppActions.importRel = {
         DesktopActions.importRel { loaded ->
             println("[DEBUG_LOG] MainScreen.importRel callback: loaded=$loaded")
@@ -403,6 +402,20 @@ fun MainScreen() {
                 }
             }
 
+            // Wire savePed action after nodeOffsets is defined
+            AppActions.savePed = {
+                // Build ProjectLayout from current nodeOffsets, scale and pan
+                val layout = com.family.tree.core.layout.ProjectLayout(
+                    zoom = scale.toDouble(),
+                    viewOriginX = pan.x.toDouble(),
+                    viewOriginY = pan.y.toDouble(),
+                    nodePositions = nodeOffsets.mapKeys { it.key.value }.mapValues { 
+                        com.family.tree.core.layout.NodePos(it.value.x.toDouble(), it.value.y.toDouble()) 
+                    }
+                )
+                DesktopActions.savePedWithLayout(project, layout)
+            }
+
             // Main content: left list, center canvas, right inspector
             // Left panel width for correct zoom cursor offset calculation
             val leftPanelWidthPx = with(LocalDensity.current) { 260.dp.toPx() }
@@ -553,7 +566,7 @@ fun MainScreen() {
                 val selected = project.individuals.find { it.id == selectedId }
                 if (selected == null) {
                     Column(Modifier.padding(12.dp).fillMaxWidth()) {
-                        Text("Inspector\nSelect a person…")
+                        Text("Properties\nSelect a person…")
                     }
                 } else {
                     PropertiesInspector(

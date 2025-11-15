@@ -60,6 +60,24 @@ actual object DesktopActions {
         }
     }
 
+    actual fun savePedWithLayout(data: ProjectData, layout: com.family.tree.core.layout.ProjectLayout): Boolean {
+        val fd = FileDialog(null as Frame?, "Save Project", FileDialog.SAVE)
+        fd.file = "*.ped"
+        fd.isVisible = true
+        val dir = fd.directory ?: return false
+        val file = fd.file ?: return false
+        val out = File(dir, if (file.endsWith(".ped")) file else "$file.ped")
+        return try {
+            val meta = ProjectMetadata() // TODO: track actual metadata
+            val bytes = relRepo.write(data, layout = layout, meta = meta)
+            out.writeBytes(bytes)
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     actual fun importRel(onLoaded: (com.family.tree.core.io.LoadedProject?) -> Unit) {
         println("[DEBUG_LOG] importRel: Dialog opening...")
         val fd = FileDialog(null as Frame?, "Import .rel", FileDialog.LOAD)

@@ -344,7 +344,8 @@ fun TreeRenderer(
     }
 
     // Precise rectangles only for visible individuals
-    val rects: Map<IndividualId, RectF> = remember(visibleIndividualIds, positions, nodeOffsets, scale, measures) {
+    // Use derivedStateOf to track changes inside mutableStateMapOf (nodeOffsets)
+    val rects: Map<IndividualId, RectF> by derivedStateOf {
         buildMap {
             visibleIndividualIds.forEach { id ->
                 val m = measures[id] ?: return@forEach
@@ -810,7 +811,12 @@ private fun NodeCard(
                     onDoubleTap = { onDoubleTap() }
                 )
             }
-            // Node drag gestures removed to allow canvas panning to work
+            .pointerInput("drag") {
+                detectDragGestures { change, dragAmount ->
+                    change.consume()
+                    onDrag(dragAmount / fontScale)
+                }
+            }
     ) {
         Canvas(Modifier.fillMaxSize()) {
             // Скруглённая рамка у карточки узла

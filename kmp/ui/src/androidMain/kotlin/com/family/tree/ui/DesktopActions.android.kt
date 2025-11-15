@@ -14,6 +14,12 @@ actual object DesktopActions {
         DialogActions.triggerSaveDialog(data)
         return true
     }
+    actual fun savePedWithLayout(data: ProjectData, layout: com.family.tree.core.layout.ProjectLayout): Boolean {
+        // TODO: Implement layout saving for Android
+        // For now, delegate to savePed (layout will be lost)
+        DialogActions.triggerSaveDialog(data)
+        return true
+    }
     actual fun importRel(onLoaded: (LoadedProject?) -> Unit) {
         // Same as openPed - trigger the platform file dialog
         DialogActions.triggerOpenDialog(onLoaded)
