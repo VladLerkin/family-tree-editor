@@ -222,46 +222,41 @@ fun TreeRenderer(
                 style = nameStyle,
                 softWrap = false
             )
-            val rLast = if (last.isNotBlank()) measurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(last),
+            // Всегда измеряем фамилию (даже если пустая), чтобы резервировать место
+            val rLast = measurer.measure(
+                text = androidx.compose.ui.text.AnnotatedString(if (last.isNotBlank()) last else " "),
                 style = lastStyle,
                 softWrap = false
-            ) else null
-            val rDate = if (!dateText.isNullOrEmpty()) measurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(dateText),
+            )
+            // Всегда измеряем даты (даже если пустые), чтобы резервировать место
+            val rDate = measurer.measure(
+                text = androidx.compose.ui.text.AnnotatedString(if (!dateText.isNullOrEmpty()) dateText else " "),
                 style = dateStyle,
                 softWrap = false
-            ) else null
+            )
             
-            // Рассчитываем высоту контента с учетом всех трех строк
+            // Рассчитываем высоту контента ВСЕГДА с учетом всех трех строк
             var contentHTemp = rFirst.size.height.toFloat()
-            if (last.isNotBlank()) {
-                contentHTemp += lineGap + (rLast?.size?.height?.toFloat() ?: 0f)
-            }
-            if (dateText != null && dateText.isNotEmpty()) {
-                contentHTemp += lineGap + (rDate?.size?.height?.toFloat() ?: 0f)
-            }
+            contentHTemp += lineGap + rLast.size.height.toFloat()
+            contentHTemp += lineGap + rDate.size.height.toFloat()
             contentHTemp += extraFudge
             
             val totalH = contentHTemp + padY * 2
             resFirstHeight = rFirst.size.height
             resFirstWidth = rFirst.size.width
-            resLastHeight = rLast?.size?.height ?: 0
-            resLastWidth = rLast?.size?.width ?: 0
-            resDateHeight = rDate?.size?.height ?: 0
-            resDateWidth = rDate?.size?.width ?: 0
+            resLastHeight = rLast.size.height
+            resLastWidth = rLast.size.width
+            resDateHeight = rDate.size.height
+            resDateWidth = rDate.size.width
             chosenFsBaseSp = fsBase
             if (totalH <= minH) break
         }
         // Учитываем ширину всех трех строк: имя, фамилия и даты
         val contentW = max(resFirstWidth, max(resLastWidth, resDateWidth))
+        // Высота ВСЕГДА включает три строки
         var contentH = resFirstHeight.toFloat()
-        if (last.isNotEmpty()) {
-            contentH += lineGap + resLastHeight.toFloat()
-        }
-        if (dateText != null && dateText.isNotEmpty()) {
-            contentH += lineGap + resDateHeight.toFloat()
-        }
+        contentH += lineGap + resLastHeight.toFloat()
+        contentH += lineGap + resDateHeight.toFloat()
         contentH += extraFudge
         // Add extra width buffer (16 * scale) to ensure wide cards don't overlap at medium/large scales
         val w = max(minW, contentW + padX * 2 + 16f * scale)
@@ -797,7 +792,7 @@ private fun NodeCard(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
             )
         }
-        // Две строки: имя (первая), фамилия (вторая) - как в JavaFX версии
+        // Три строки: имя (первая), фамилия (вторая), даты (третья)
         val first = firstName
         val last = lastName
         
@@ -834,6 +829,7 @@ private fun NodeCard(
                 .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Первая строка: имя (всегда показывается)
             Text(
                 first,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
@@ -848,36 +844,33 @@ private fun NodeCard(
                 // Минимальная высота строки, чтобы избежать 0px на Android при округлениях
                 modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
             )
-            if (last.isNotEmpty()) {
-                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
-                Text(
-                    last,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    fontSize = effFsSp,
-                    lineHeight = effLineHeightSp,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
-                )
-            }
-            // Third line: dates (birth and/or death)
-            val dateText = formatDates(birthDate, deathDate, firstName, lastName)
-            if (!dateText.isNullOrEmpty()) {
-                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
-                Text(
-                    dateText,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                    fontSize = effFsSp,
-                    lineHeight = effLineHeightSp,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
-                )
-            }
+            // Вторая строка: фамилия (всегда резервируется место)
+            androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+            Text(
+                text = last.ifEmpty { "" },
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                fontSize = effFsSp,
+                lineHeight = effLineHeightSp,
+                softWrap = false,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+            )
+            // Третья строка: даты (всегда резервируется место)
+            val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
+            androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+            Text(
+                text = dateText,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                fontSize = effFsSp,
+                lineHeight = effLineHeightSp,
+                softWrap = false,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+            )
         }
         // Встроенное контекстное меню для узла
         menuContent()

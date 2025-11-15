@@ -422,32 +422,33 @@ private fun TagsSection(
     }
     
     // Add tag input
-    Row(
+    OutlinedTextField(
+        value = newTagName,
+        onValueChange = { newTagName = it },
+        label = { Text("New tag") },
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        OutlinedTextField(
-            value = newTagName,
-            onValueChange = { newTagName = it },
-            label = { Text("New tag") },
-            modifier = Modifier.weight(1f),
-            singleLine = true
-        )
-        IconButton(
-            onClick = {
-                if (newTagName.isNotBlank()) {
-                    val newTag = Tag(
-                        id = TagId.generate(),
-                        name = newTagName.trim()
-                    )
-                    onUpdate(tags + newTag)
-                    newTagName = ""
-                }
+        singleLine = true
+    )
+    
+    Spacer(Modifier.height(8.dp))
+    
+    // Add tag button
+    Button(
+        onClick = {
+            if (newTagName.isNotBlank()) {
+                val newTag = Tag(
+                    id = TagId.generate(),
+                    name = newTagName.trim()
+                )
+                onUpdate(tags + newTag)
+                newTagName = ""
             }
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
-        }
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Default.Add, contentDescription = "Add Tag")
+        Spacer(Modifier.width(4.dp))
+        Text("Add Tag")
     }
 }
 

@@ -1,6 +1,7 @@
 package com.family.tree.core.model
 
 import kotlin.jvm.JvmInline
+import kotlin.random.Random
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -39,7 +40,7 @@ private fun uuid4(): String {
     return buildString(36) {
         for (i in 0 until 36) {
             if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-            else append(chars.random())
+            else append(chars[Random.nextInt(chars.length)])
         }
     }
 }
