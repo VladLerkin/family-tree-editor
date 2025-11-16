@@ -37,6 +37,138 @@ private val PREDEFINED_EVENT_TYPES = listOf(
 
 @Composable
 fun PropertiesInspector(
+    family: Family,
+    project: ProjectData,
+    onUpdateFamily: (Family) -> Unit
+) {
+    val scrollState = rememberScrollState()
+    
+    // Expandable section states
+    var eventsExpanded by remember { mutableStateOf(true) }
+    var tagsExpanded by remember { mutableStateOf(false) }
+    var notesExpanded by remember { mutableStateOf(false) }
+    var mediaExpanded by remember { mutableStateOf(false) }
+    var membersExpanded by remember { mutableStateOf(true) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(12.dp)
+    ) {
+        // Header
+        Text("Properties", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(8.dp))
+        
+        val individualsById = remember(project) { project.individuals.associateBy { it.id } }
+        val husband = individualsById[family.husbandId]
+        val wife = individualsById[family.wifeId]
+        
+        // Selection info - display family as "Husband I. — Wife I."
+        val familyLabel = buildFamilyLabel(husband, wife)
+        Text("Family: ${familyLabel}", style = MaterialTheme.typography.bodyMedium)
+        
+        Spacer(Modifier.height(16.dp))
+        
+        // Members section
+        ExpandableSection(
+            title = "Members",
+            expanded = membersExpanded,
+            onToggle = { membersExpanded = !membersExpanded },
+            count = listOfNotNull(family.husbandId, family.wifeId).size + family.childrenIds.size
+        ) {
+            if (husband != null) {
+                Text("Husband: ${husband.displayName}", style = MaterialTheme.typography.bodySmall)
+            }
+            if (wife != null) {
+                Text("Wife: ${wife.displayName}", style = MaterialTheme.typography.bodySmall)
+            }
+            if (family.childrenIds.isNotEmpty()) {
+                Spacer(Modifier.height(4.dp))
+                Text("Children:", style = MaterialTheme.typography.labelMedium)
+                family.childrenIds.forEach { childId ->
+                    val child = individualsById[childId]
+                    if (child != null) {
+                        Text("  • ${child.displayName}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        // Events section (GEDCOM)
+        ExpandableSection(
+            title = "Events (GEDCOM)",
+            expanded = eventsExpanded,
+            onToggle = { eventsExpanded = !eventsExpanded },
+            count = family.events.size
+        ) {
+            EventsSection(
+                events = family.events,
+                sources = project.sources,
+                onUpdate = { updatedEvents ->
+                    onUpdateFamily(family.copy(events = updatedEvents))
+                }
+            )
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        // Tags section
+        ExpandableSection(
+            title = "Tags",
+            expanded = tagsExpanded,
+            onToggle = { tagsExpanded = !tagsExpanded },
+            count = family.tags.size
+        ) {
+            TagsSection(
+                tags = family.tags,
+                onUpdate = { updatedTags ->
+                    onUpdateFamily(family.copy(tags = updatedTags))
+                }
+            )
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        // Notes section
+        ExpandableSection(
+            title = "Notes",
+            expanded = notesExpanded,
+            onToggle = { notesExpanded = !notesExpanded },
+            count = family.notes.size
+        ) {
+            NotesSection(
+                notes = family.notes,
+                sources = project.sources,
+                onUpdate = { updatedNotes ->
+                    onUpdateFamily(family.copy(notes = updatedNotes))
+                }
+            )
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        // Media section
+        ExpandableSection(
+            title = "Media",
+            expanded = mediaExpanded,
+            onToggle = { mediaExpanded = !mediaExpanded },
+            count = family.media.size
+        ) {
+            MediaSection(
+                media = family.media,
+                onUpdate = { updatedMedia ->
+                    onUpdateFamily(family.copy(media = updatedMedia))
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun PropertiesInspector(
     individual: Individual,
     project: ProjectData,
     onUpdateIndividual: (Individual) -> Unit
@@ -1033,4 +1165,35 @@ private fun AddSourceDialog(
             }
         }
     )
+}
+
+// Helper function to build family label in format "Husband I. — Wife I."
+private fun buildFamilyLabel(husband: Individual?, wife: Individual?): String {
+    val husbandInitials = buildInitials(husband)
+    val wifeInitials = buildInitials(wife)
+    
+    return when {
+        husbandInitials.isNotBlank() && wifeInitials.isNotBlank() -> "$husbandInitials — $wifeInitials"
+        husbandInitials.isNotBlank() -> husbandInitials
+        wifeInitials.isNotBlank() -> wifeInitials
+        else -> "Family"
+    }
+}
+
+// Helper function to build initials for an individual
+private fun buildInitials(person: Individual?): String {
+    if (person == null) return ""
+    
+    val lastName = person.lastName.trim()
+    val firstName = person.firstName.trim()
+    
+    return when {
+        lastName.isNotBlank() && firstName.isNotBlank() -> {
+            val initial = firstName.firstOrNull()?.uppercaseChar() ?: return lastName
+            "$lastName $initial."
+        }
+        lastName.isNotBlank() -> lastName
+        firstName.isNotBlank() -> firstName
+        else -> ""
+    }
 }

@@ -117,7 +117,7 @@ private fun formatDates(birthDate: String?, deathDate: String?, firstName: Strin
 @Composable
 fun TreeRenderer(
     data: ProjectData,
-    selectedId: IndividualId?,
+    selectedIds: Set<IndividualId>,
     onSelect: (IndividualId?) -> Unit,
     onEditPerson: (IndividualId) -> Unit,
     onCenterOn: (IndividualId) -> Unit,
@@ -747,7 +747,7 @@ fun TreeRenderer(
                     y = topDp,
                     width = wDp,
                     height = hDp,
-                    selected = (ind.id == selectedId),
+                    selected = selectedIds.contains(ind.id),
                     fontScale = scale,
                     lastFsBaseSp = textFsFor(ind.id),
                     simplified = useSimplifiedRendering,

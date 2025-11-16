@@ -19,6 +19,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -48,6 +49,7 @@ import com.family.tree.core.model.IndividualId
 import com.family.tree.core.model.FamilyId
 import com.family.tree.core.sample.SampleData
 import com.family.tree.core.platform.FileGateway
+import com.family.tree.core.search.QuickSearchService
 import com.family.tree.ui.render.TreeRenderer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -68,8 +70,14 @@ fun MainScreen() {
     println("[DEBUG_LOG] MainScreen: Current project state has ${project.individuals.size} individuals, ${project.families.size} families")
     var projectLayout by remember { mutableStateOf<com.family.tree.core.layout.ProjectLayout?>(loadedSample.layout) }
 
-    // Selection state (single-select for now)
-    var selectedId by remember { mutableStateOf<IndividualId?>(null) }
+    // Search service and state
+    val searchService = remember(project) { QuickSearchService(project) }
+    var individualsSearchQuery by remember { mutableStateOf("") }
+    var familiesSearchQuery by remember { mutableStateOf("") }
+
+    // Selection state (supports multi-select for family highlighting)
+    var selectedIds by remember { mutableStateOf<Set<IndividualId>>(emptySet()) }
+    var selectedFamilyId by remember { mutableStateOf<FamilyId?>(null) }
 
     // Viewport state (simplified without Animatable to unblock compile)
     var scale by remember { mutableFloatStateOf(1f) }
@@ -152,6 +160,47 @@ fun MainScreen() {
         
         println("[DEBUG_LOG] MainScreen.centerOn: centered on ${ind.displayName}, new pan=$newPan")
     }
+
+    fun centerOnFamilyMembersImmediate(memberIds: Set<IndividualId>, customOffsets: Map<IndividualId, Offset>) {
+        if (memberIds.isEmpty()) return
+        if (canvasSize.width == 0 || canvasSize.height == 0) return
+        
+        // Collect positions for all family members (both from customOffsets and cachedPositions)
+        var sumX = 0f
+        var sumY = 0f
+        var count = 0
+        
+        for (id in memberIds) {
+            val (posX, posY) = if (id in customOffsets) {
+                val offset = customOffsets[id]!!
+                offset.x to offset.y
+            } else {
+                val vec2 = cachedPositions[id] ?: continue
+                vec2.x to vec2.y
+            }
+            sumX += posX
+            sumY += posY
+            count++
+        }
+        
+        if (count == 0) return
+        
+        // Calculate average position (center of family members)
+        val avgX = sumX / count
+        val avgY = sumY / count
+        
+        val cx = canvasSize.width / 2f
+        val cy = canvasSize.height / 2f
+        val nodeW = 120f * scale
+        val nodeH = 60f * scale
+        val targetX = avgX * scale + nodeW / 2
+        val targetY = avgY * scale + nodeH / 2
+        val newPan = Offset(cx - targetX, cy - targetY)
+        
+        pan = newPan
+        
+        println("[DEBUG_LOG] MainScreen.centerOnFamilyMembers: centered on $count family members at avg position ($avgX, $avgY), new pan=$newPan")
+    }
     
     // Throttled centerOn to prevent ANR when rapidly selecting persons in large trees
     fun centerOn(ind: Individual, customOffsets: Map<IndividualId, Offset>) {
@@ -229,7 +278,7 @@ fun MainScreen() {
                 project = loaded.data
                 projectLayout = loaded.layout
                 println("[DEBUG_LOG] MainScreen.openPed: Updated project state, layout has ${loaded.layout?.nodePositions?.size ?: 0} node positions")
-                selectedId = null
+                selectedIds = emptySet()
                 // Apply viewport from layout if present; otherwise fit to content
                 val layout = loaded.layout
                 if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {
@@ -254,7 +303,7 @@ fun MainScreen() {
                 project = loaded.data
                 projectLayout = loaded.layout
                 println("[DEBUG_LOG] MainScreen.importRel: Updated project state, layout has ${loaded.layout?.nodePositions?.size ?: 0} node positions")
-                selectedId = null
+                selectedIds = emptySet()
                 shouldAutoFit = true
                 println("[DEBUG_LOG] MainScreen.importRel: Set shouldAutoFit=true, final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
             } else {
@@ -270,7 +319,7 @@ fun MainScreen() {
                 project = data
                 projectLayout = null
                 println("[DEBUG_LOG] MainScreen.importGedcom: Updated project state")
-                selectedId = null
+                selectedIds = emptySet()
                 fitToView()
                 println("[DEBUG_LOG] MainScreen.importGedcom: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
             } else {
@@ -320,7 +369,7 @@ fun MainScreen() {
                 .fillMaxSize()
                 .focusRequester(focusRequester)
                 .platformKeyboardShortcuts(
-                    onEscape = { selectedId = null },
+                    onEscape = { selectedIds = emptySet() },
                     onZoomIn = { setScaleAnimated(scale * 1.1f) },
                     onZoomOut = { setScaleAnimated(scale * 0.9f) }
                 )
@@ -455,9 +504,27 @@ fun MainScreen() {
                         0 -> {
                             println("[DEBUG_LOG] MainScreen: Rendering individuals list with ${project.individuals.size} items")
                             Column(Modifier.fillMaxSize().padding(12.dp)) {
+                                // Search field for individuals
+                                OutlinedTextField(
+                                    value = individualsSearchQuery,
+                                    onValueChange = { individualsSearchQuery = it },
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    placeholder = { Text("Filter by tag...") },
+                                    singleLine = true
+                                )
+                                
+                                // Filter individuals based on search query
+                                val filteredIndividuals = remember(individualsSearchQuery, project.individuals) {
+                                    if (individualsSearchQuery.isBlank()) {
+                                        project.individuals
+                                    } else {
+                                        searchService.findIndividualsByName(individualsSearchQuery)
+                                    }
+                                }
+                                
                                 LazyColumn(Modifier.weight(1f)) {
-                                    items(project.individuals) { ind ->
-                                        val isSelected = ind.id == selectedId
+                                    items(filteredIndividuals) { ind ->
+                                        val isSelected = selectedIds.contains(ind.id)
                                         val bg = if (isSelected) Color(0x201976D2) else Color.Unspecified
                                         Box(
                                             modifier = Modifier
@@ -465,7 +532,8 @@ fun MainScreen() {
                                                 .background(bg)
                                                 .combinedClickable(
                                                     onClick = {
-                                                        selectedId = ind.id
+                                                        selectedFamilyId = null
+                                                        selectedIds = setOf(ind.id)
                                                         centerOn(ind, nodeOffsets)
                                                     },
                                                     onDoubleClick = { editPersonId = ind.id }
@@ -486,41 +554,111 @@ fun MainScreen() {
                                 // Helper to format spouse name as "LastName F." (JavaFX style)
                                 fun formatSpouseName(indId: IndividualId?): String {
                                     if (indId == null) return ""
-                                    val ind = project.individuals.find { it.id == indId } ?: return ""
-                                    val tokens = ind.displayName.trim().split(Regex("\\s+"))
-                                    val first = tokens.firstOrNull() ?: ""
-                                    val last = if (tokens.size > 1) tokens.drop(1).joinToString(" ") else ""
-                                    return if (last.isNotEmpty() && first.isNotEmpty()) {
-                                        val initial = first.firstOrNull()?.uppercaseChar()
-                                        if (initial != null) "$last $initial." else last
-                                    } else if (last.isNotEmpty()) {
-                                        last
+                                    val ind = project.individuals.find { it.id == indId } ?: return indId.value
+                                    
+                                    // Extract first and last name
+                                    val lastName = ind.lastName?.trim() ?: ""
+                                    val firstName = ind.firstName?.trim() ?: ""
+                                    
+                                    // Format as "LastName F." (JavaFX style)
+                                    val sb = StringBuilder()
+                                    if (lastName.isNotEmpty()) sb.append(lastName)
+                                    if (firstName.isNotEmpty()) {
+                                        if (sb.isNotEmpty()) sb.append(' ')
+                                        sb.append(firstName.first().uppercaseChar()).append('.')
+                                    }
+                                    val result = sb.toString()
+                                    return if (result.isBlank()) indId.value else result
+                                }
+                                
+                                // Search field for families
+                                OutlinedTextField(
+                                    value = familiesSearchQuery,
+                                    onValueChange = { familiesSearchQuery = it },
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    placeholder = { Text("Filter by tag...") },
+                                    singleLine = true
+                                )
+                                
+                                // Filter families based on search query
+                                val filteredFamilies = remember(familiesSearchQuery, project.families, project.individuals) {
+                                    if (familiesSearchQuery.isBlank()) {
+                                        project.families
                                     } else {
-                                        first
+                                        searchService.findFamiliesBySpouseName(familiesSearchQuery)
                                     }
                                 }
                                 
+                                // Column headers (JavaFX style)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp, horizontal = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "Husband",
+                                        modifier = Modifier.weight(1f),
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        text = "Wife",
+                                        modifier = Modifier.weight(1f),
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    Text(
+                                        text = "Children",
+                                        modifier = Modifier.width(40.dp),
+                                        fontSize = 12.sp,
+                                        color = Color.Gray,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                                
                                 LazyColumn(Modifier.weight(1f)) {
-                                    items(project.families) { fam ->
-                                        val kids = fam.childrenIds.size
+                                    items(filteredFamilies) { fam ->
                                         val husbandName = formatSpouseName(fam.husbandId)
                                         val wifeName = formatSpouseName(fam.wifeId)
-                                        val spousesText = when {
-                                            husbandName.isNotEmpty() && wifeName.isNotEmpty() -> "$husbandName - $wifeName"
-                                            husbandName.isNotEmpty() -> husbandName
-                                            wifeName.isNotEmpty() -> wifeName
-                                            else -> fam.id.value
-                                        }
-                                        Box(
+                                        val childrenCount = fam.childrenIds.size.toString()
+                                        
+                                        Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .combinedClickable(
-                                                    onClick = { /* select family in future */ },
+                                                    onClick = {
+                                                        // Select the family and highlight all family members
+                                                        selectedFamilyId = fam.id
+                                                        val familyMemberIds = mutableSetOf<IndividualId>()
+                                                        fam.husbandId?.let { familyMemberIds.add(it) }
+                                                        fam.wifeId?.let { familyMemberIds.add(it) }
+                                                        familyMemberIds.addAll(fam.childrenIds)
+                                                        selectedIds = familyMemberIds
+                                                        // Center canvas on average position of all family members
+                                                        centerOnFamilyMembersImmediate(familyMemberIds, nodeOffsets)
+                                                    },
                                                     onDoubleClick = { editFamilyId = fam.id }
                                                 )
-                                                .padding(vertical = 4.dp, horizontal = 6.dp)
+                                                .padding(vertical = 4.dp, horizontal = 6.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text("• $spousesText ($kids)")
+                                            Text(
+                                                text = husbandName,
+                                                modifier = Modifier.weight(1f),
+                                                fontSize = 13.sp
+                                            )
+                                            Text(
+                                                text = wifeName,
+                                                modifier = Modifier.weight(1f),
+                                                fontSize = 13.sp
+                                            )
+                                            Text(
+                                                text = childrenCount,
+                                                modifier = Modifier.width(40.dp),
+                                                fontSize = 13.sp,
+                                                textAlign = TextAlign.Center
+                                            )
                                         }
                                     }
                                 }
@@ -539,8 +677,8 @@ fun MainScreen() {
                 ) {
                     TreeRenderer(
                         data = project,
-                        selectedId = selectedId,
-                        onSelect = { id -> selectedId = id },
+                        selectedIds = selectedIds,
+                        onSelect = { id -> selectedIds = if (id != null) setOf(id) else emptySet() },
                         onEditPerson = { id -> editPersonId = id },
                         onCenterOn = { id ->
                             project.individuals.find { it.id == id }?.let { centerOn(it, nodeOffsets) }
@@ -563,24 +701,43 @@ fun MainScreen() {
                     modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
                     contentAlignment = Alignment.TopStart
                 ) {
-                val selected = project.individuals.find { it.id == selectedId }
-                if (selected == null) {
-                    Column(Modifier.padding(12.dp).fillMaxWidth()) {
-                        Text("Properties\nSelect a person…")
-                    }
-                } else {
+                // Show properties for selected family or individual
+                val selectedFamily = selectedFamilyId?.let { id -> project.families.find { it.id == id } }
+                if (selectedFamily != null) {
+                    // Show family properties
                     PropertiesInspector(
-                        individual = selected,
+                        family = selectedFamily,
                         project = project,
-                        onUpdateIndividual = { updated ->
-                            val idx = project.individuals.indexOfFirst { it.id == updated.id }
+                        onUpdateFamily = { updated ->
+                            val idx = project.families.indexOfFirst { it.id == updated.id }
                             if (idx >= 0) {
                                 project = project.copy(
-                                    individuals = project.individuals.toMutableList().also { it[idx] = updated }
+                                    families = project.families.toMutableList().also { it[idx] = updated }
                                 )
                             }
                         }
                     )
+                } else {
+                    // Show individual properties
+                    val selected = selectedIds.firstOrNull()?.let { id -> project.individuals.find { it.id == id } }
+                    if (selected == null) {
+                        Column(Modifier.padding(12.dp).fillMaxWidth()) {
+                            Text("Properties\nSelect a person or family…")
+                        }
+                    } else {
+                        PropertiesInspector(
+                            individual = selected,
+                            project = project,
+                            onUpdateIndividual = { updated ->
+                                val idx = project.individuals.indexOfFirst { it.id == updated.id }
+                                if (idx >= 0) {
+                                    project = project.copy(
+                                        individuals = project.individuals.toMutableList().also { it[idx] = updated }
+                                    )
+                                }
+                            }
+                        )
+                    }
                 }
                 }
             }
@@ -653,7 +810,7 @@ fun MainScreen() {
             println("[DEBUG_LOG] MainScreen LaunchedEffect: Applying loaded project with ${loaded.data.individuals.size} individuals")
             project = loaded.data
             projectLayout = loaded.layout
-            selectedId = null
+            selectedIds = emptySet()
             // Apply viewport from layout if present; otherwise fit to content
             val layout = loaded.layout
             if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {
