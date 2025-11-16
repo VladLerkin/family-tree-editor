@@ -162,7 +162,7 @@ class FamilyDialog {
             override fun fromString(string: String?): Individual? = null
         }
 
-        val lChildren = Label("Children:").apply { minWidth = Region.USE_PREF_SIZE }
+        val lChildren = Label("Kids:").apply { minWidth = Region.USE_PREF_SIZE }
         val lvChildrenAvailable = ListView<Individual>().apply {
             id = "childrenAvailable"
             items.addAll(data.individuals)

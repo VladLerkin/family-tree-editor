@@ -24,14 +24,32 @@ import androidx.compose.ui.unit.dp
 import com.family.tree.core.ProjectData
 import com.family.tree.core.model.*
 
-// Предопределённые GEDCOM-типы событий (соответствует списку из JavaFX версии)
-private val PREDEFINED_EVENT_TYPES = listOf(
+// Предопределённые GEDCOM-типы событий для персон
+private val INDIVIDUAL_EVENT_TYPES = listOf(
     "BIRT", // рождение
     "DEAT", // смерть
     "BURI", // погребение
-    "MARR", // брак
+    "CHR",  // крещение
+    "BAPM", // крещение (баптизм)
+    "CREM", // кремация
     "ADOP", // усыновление
     "RESI", // проживание
+    "GRAD", // окончание учебы
+    "RETI", // выход на пенсию
+    "PROB", // завещание (пробация)
+    "WILL", // завещание
+    "EVEN"  // произвольное событие
+)
+
+// Предопределённые GEDCOM-типы событий для семей
+private val FAMILY_EVENT_TYPES = listOf(
+    "MARR", // брак
+    "ENGA", // помолвка
+    "DIV",  // развод
+    "ANUL", // аннулирование брака
+    "MARS", // брачный договор
+    "MARB", // публикация о браке
+    "MARL", // лицензия на брак
     "EVEN"  // произвольное событие
 )
 
@@ -107,6 +125,7 @@ fun PropertiesInspector(
             EventsSection(
                 events = family.events,
                 sources = project.sources,
+                eventTypes = FAMILY_EVENT_TYPES,
                 onUpdate = { updatedEvents ->
                     onUpdateFamily(family.copy(events = updatedEvents))
                 }
@@ -214,6 +233,7 @@ fun PropertiesInspector(
             EventsSection(
                 events = individual.events,
                 sources = project.sources,
+                eventTypes = INDIVIDUAL_EVENT_TYPES,
                 onUpdate = { updatedEvents ->
                     onUpdateIndividual(individual.copy(events = updatedEvents))
                 }
@@ -334,6 +354,7 @@ private fun ExpandableSection(
 private fun EventsSection(
     events: List<GedcomEvent>,
     sources: List<Source>,
+    eventTypes: List<String>,
     onUpdate: (List<GedcomEvent>) -> Unit
 ) {
     var selectedEventIndex by remember { mutableStateOf<Int?>(null) }
@@ -350,6 +371,7 @@ private fun EventsSection(
             EventItem(
                 event = event,
                 sources = sources,
+                eventTypes = eventTypes,
                 isSelected = isSelected,
                 onClick = { selectedEventIndex = if (isSelected) null else index },
                 onUpdate = { updated ->
@@ -389,6 +411,7 @@ private fun EventsSection(
 private fun EventItem(
     event: GedcomEvent,
     sources: List<Source>,
+    eventTypes: List<String>,
     isSelected: Boolean,
     onClick: () -> Unit,
     onUpdate: (GedcomEvent) -> Unit,
@@ -447,7 +470,7 @@ private fun EventItem(
                     expanded = typeMenuExpanded,
                     onDismissRequest = { typeMenuExpanded = false }
                 ) {
-                    PREDEFINED_EVENT_TYPES.forEach { option ->
+                    eventTypes.forEach { option ->
                         DropdownMenuItem(
                             text = { Text(option) },
                             onClick = {

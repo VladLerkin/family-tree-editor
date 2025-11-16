@@ -38,7 +38,7 @@ class FamiliesListView {
     private var lastProgrammaticSelectionId: String? = null
 
     init {
-        tagFilter.promptText = "Filter by tag..."
+        tagFilter.promptText = "Filter by name or tag..."
         header.children.addAll(Label("Tags:"), tagFilter, btnAdd, btnEdit, btnDelete)
 
         val colA = TableColumn<Family, String>("Husband")
@@ -47,7 +47,7 @@ class FamiliesListView {
         val colB = TableColumn<Family, String>("Wife")
         colB.setCellValueFactory { c -> SimpleStringProperty(formatSpouse(c.value.wifeId)) }
 
-        val colChildren = TableColumn<Family, String>("Children")
+        val colChildren = TableColumn<Family, String>("Kids")
         colChildren.setCellValueFactory { c -> SimpleStringProperty(c.value.childrenIds.size.toString()) }
 
         table.columns.addAll(colA, colB, colChildren)

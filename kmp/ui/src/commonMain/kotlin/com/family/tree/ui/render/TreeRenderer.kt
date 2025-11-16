@@ -127,7 +127,9 @@ fun TreeRenderer(
     scale: Float,
     pan: Offset,
     setPan: (Offset) -> Unit,
-    onCanvasSize: (IntSize) -> Unit
+    onCanvasSize: (IntSize) -> Unit,
+    onAddPerson: (Offset) -> Unit = {},
+    onDeletePerson: (IndividualId) -> Unit = {}
 ) {
     println("[DEBUG_LOG] TreeRenderer: recomposing (total data: ${data.individuals.size} individuals, ${data.families.size} families), scale=$scale, pan=$pan")
     
@@ -413,6 +415,10 @@ fun TreeRenderer(
     // Track whether current drag is on a node (to prevent canvas panning when dragging nodes)
     var isDraggingNode by remember { mutableStateOf(false) }
     
+    // Canvas context menu state
+    var showCanvasMenu by remember { mutableStateOf(false) }
+    var canvasMenuPosition by remember { mutableStateOf(Offset.Zero) }
+    
     // Wrap pan in remembered State to ensure fresh reads inside pointerInput
     val panState = remember { mutableStateOf(pan) }
     panState.value = pan
@@ -425,6 +431,31 @@ fun TreeRenderer(
             .onSizeChanged {
                 canvasSize = it
                 onCanvasSize(it) 
+            }
+            // Context menu on long press on empty canvas space
+            .pointerInput("canvasMenu") {
+                detectTapGestures(
+                    onLongPress = { tapPosition ->
+                        // Check if tap is on a node
+                        val clickedNode = visibleIndividuals.firstOrNull { ind ->
+                            val r = rectFor(ind.id)
+                            if (r != null) {
+                                val screenLeft = r.x + pan.x
+                                val screenTop = r.y + pan.y
+                                val screenRight = screenLeft + r.w
+                                val screenBottom = screenTop + r.h
+                                tapPosition.x >= screenLeft && tapPosition.x <= screenRight &&
+                                tapPosition.y >= screenTop && tapPosition.y <= screenBottom
+                            } else false
+                        }
+                        
+                        // Only show canvas menu if not on a node
+                        if (clickedNode == null) {
+                            canvasMenuPosition = tapPosition
+                            showCanvasMenu = true
+                        }
+                    }
+                )
             }
             // Canvas panning: drag on empty space to pan the tree (like JavaFX version)
             // On mobile, pan/zoom is handled by platformWheelZoom in MainScreen via detectTransformGestures
@@ -759,11 +790,28 @@ fun TreeRenderer(
                     DropdownMenu(expanded = showNodeMenu, onDismissRequest = { showNodeMenu = false }) {
                         DropdownMenuItem(text = { Text("Edit person…") }, onClick = { showNodeMenu = false; onEditPerson(ind.id) })
                         DropdownMenuItem(text = { Text("Center on") }, onClick = { showNodeMenu = false; onCenterOn(ind.id) })
+                        DropdownMenuItem(text = { Text("Delete person") }, onClick = { showNodeMenu = false; onDeletePerson(ind.id) })
                         DropdownMenuItem(text = { Text("Reset") }, onClick = { showNodeMenu = false; onReset() })
                     }
                 }
                 }
             }
+        }
+        
+        // Canvas context menu
+        val density = LocalDensity.current
+        val menuOffsetDp = with(density) {
+            androidx.compose.ui.unit.DpOffset(
+                x = canvasMenuPosition.x.toDp(),
+                y = canvasMenuPosition.y.toDp()
+            )
+        }
+        DropdownMenu(
+            expanded = showCanvasMenu,
+            onDismissRequest = { showCanvasMenu = false },
+            offset = menuOffsetDp
+        ) {
+            DropdownMenuItem(text = { Text("Add person") }, onClick = { showCanvasMenu = false; onAddPerson(canvasMenuPosition) })
         }
     }
 }

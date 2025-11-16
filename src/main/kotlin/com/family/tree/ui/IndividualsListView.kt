@@ -32,7 +32,7 @@ class IndividualsListView {
     private var data: ProjectRepository.ProjectData? = null
 
     init {
-        tagFilter.promptText = "Filter by tag..."
+        tagFilter.promptText = "Filter by name or tag..."
         header.children.addAll(Label("Tags:"), tagFilter, btnAdd, btnEdit, btnDelete)
 
         val colFirst = TableColumn<Individual, String>("First Name")

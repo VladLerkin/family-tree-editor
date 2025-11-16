@@ -378,7 +378,7 @@ fun MainScreen() {
             if (!PlatformEnv.isDesktop) {
                 var showMenu by remember { mutableStateOf(false) }
                 androidx.compose.material3.TopAppBar(
-                    title = { Text("Compose Multiplatform — Family Tree") },
+                    title = { Text("Family Tree Editor") },
                     actions = {
                         androidx.compose.material3.IconButton(onClick = { showMenu = true }) {
                             androidx.compose.material3.Icon(
@@ -440,13 +440,13 @@ fun MainScreen() {
 
             // Node-level offsets to support dragging individual nodes (JavaFX-like)
             // Initialize from ProjectLayout coordinates if available (for REL format)
-            val nodeOffsets = remember(project, projectLayout) {
+            // NOTE: Only depend on projectLayout, NOT on project, to preserve manual position changes
+            // when individuals are added/removed
+            val nodeOffsets = remember(projectLayout) {
                 mutableStateMapOf<IndividualId, Offset>().apply {
                     projectLayout?.nodePositions?.forEach { (idString, nodePos) ->
                         val id = IndividualId(idString)
-                        if (project.individuals.any { it.id == id }) {
-                            put(id, Offset(nodePos.x.toFloat(), nodePos.y.toFloat()))
-                        }
+                        put(id, Offset(nodePos.x.toFloat(), nodePos.y.toFloat()))
                     }
                 }
             }
@@ -609,7 +609,7 @@ fun MainScreen() {
                                         color = Color.Gray
                                     )
                                     Text(
-                                        text = "Children",
+                                        text = "Kids",
                                         modifier = Modifier.width(40.dp),
                                         fontSize = 12.sp,
                                         color = Color.Gray,
@@ -692,7 +692,50 @@ fun MainScreen() {
                         scale = scale,
                         pan = pan,
                         setPan = { pan = it },
-                        onCanvasSize = { canvasSize = it }
+                        onCanvasSize = { canvasSize = it },
+                        onAddPerson = { clickPosition ->
+                            // Generate new unique ID
+                            val existingIds = project.individuals.map { it.id.value }
+                            var newIdNum = 1
+                            while (existingIds.contains("I$newIdNum")) {
+                                newIdNum++
+                            }
+                            val newIndividual = Individual(
+                                id = IndividualId("I$newIdNum"),
+                                firstName = "New",
+                                lastName = "Person"
+                            )
+                            // Convert screen coordinates to layout space
+                            // nodeOffsets stores positions in layout space (unscaled)
+                            // TreeRenderer multiplies by scale when rendering: baseX = off.x * scale
+                            // So we need to store unscaled coordinates in nodeOffsets
+                            val layoutPosition = Offset(
+                                x = (clickPosition.x - pan.x) / scale,
+                                y = (clickPosition.y - pan.y) / scale
+                            )
+                            // Set position for new individual in nodeOffsets (layout space)
+                            nodeOffsets[newIndividual.id] = layoutPosition
+                            // Update project with new individual
+                            project = project.copy(
+                                individuals = project.individuals + newIndividual
+                            )
+                            selectedIds = setOf(newIndividual.id)
+                            editPersonId = newIndividual.id
+                        },
+                        onDeletePerson = { idToDelete ->
+                            // Remove individual and related data
+                            project = project.copy(
+                                individuals = project.individuals.filter { it.id != idToDelete },
+                                families = project.families.map { family ->
+                                    family.copy(
+                                        husbandId = if (family.husbandId == idToDelete) null else family.husbandId,
+                                        wifeId = if (family.wifeId == idToDelete) null else family.wifeId,
+                                        childrenIds = family.childrenIds.filter { it != idToDelete }
+                                    )
+                                }
+                            )
+                            selectedIds = emptySet()
+                        }
                     )
                 }
 
