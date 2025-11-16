@@ -18,6 +18,7 @@ actual object DesktopActions {
         println("[DEBUG_LOG] openPed: Dialog opening...")
         val fd = FileDialog(null as Frame?, "Open Project", FileDialog.LOAD)
         fd.file = "*.ped"
+        fd.setFilenameFilter { _, name -> name.endsWith(".ped", ignoreCase = true) }
         fd.isVisible = true
         val dir = fd.directory
         val file = fd.file

@@ -27,6 +27,10 @@ actual fun PlatformFileDialogs(
     showSave: Boolean,
     onDismissSave: () -> Unit,
     bytesToSave: () -> ByteArray,
+    // .rel import dialog
+    showRelImport: Boolean,
+    onDismissRelImport: () -> Unit,
+    onRelImportResult: (bytes: ByteArray?) -> Unit,
     // GEDCOM dialogs
     showGedcomImport: Boolean,
     onDismissGedcomImport: () -> Unit,
@@ -53,9 +57,21 @@ actual fun PlatformFileDialogs(
                 ) {
                     println("[DEBUG_LOG] PlatformFileDialogs.ios: documentPicker callback - file picked: $didPickDocumentAtURL")
                     val url = didPickDocumentAtURL
+                    
+                    // Start accessing security-scoped resource (required for files from UIDocumentPicker)
+                    val accessGranted = url.startAccessingSecurityScopedResource()
+                    println("[DEBUG_LOG] PlatformFileDialogs.ios: Security-scoped access granted: $accessGranted")
+                    
                     val data = NSData.create(contentsOfURL = url)
                     val bytes = data?.let { nsDataToByteArray(it) }
                     println("[DEBUG_LOG] PlatformFileDialogs.ios: Read ${bytes?.size ?: 0} bytes from file")
+                    
+                    // Stop accessing security-scoped resource
+                    if (accessGranted) {
+                        url.stopAccessingSecurityScopedResource()
+                        println("[DEBUG_LOG] PlatformFileDialogs.ios: Stopped accessing security-scoped resource")
+                    }
+                    
                     onOpenResult(bytes)
                     onDismissOpen()
                 }
@@ -73,7 +89,8 @@ actual fun PlatformFileDialogs(
             val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
             println("[DEBUG_LOG] PlatformFileDialogs.ios: rootViewController = $rootViewController")
             if (rootViewController != null) {
-                val documentTypes = listOf("public.json", "public.data", "public.content")
+                // Allow all file types for .ped (ZIP with JSON), JSON, and other formats
+                val documentTypes = listOf("public.item")
                 val picker = UIDocumentPickerViewController(
                     documentTypes = documentTypes,
                     inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
@@ -125,7 +142,7 @@ actual fun PlatformFileDialogs(
                 // Write to temporary file first using NSFileManager
                 val fileManager = NSFileManager.defaultManager
                 val tempDir = platform.Foundation.NSTemporaryDirectory()
-                val tempPath = "${tempDir}project.json"
+                val tempPath = "${tempDir}project.ped"
                 val tempFileUrl = NSURL.fileURLWithPath(tempPath)
                 
                 // Write data to temporary file
@@ -159,6 +176,59 @@ actual fun PlatformFileDialogs(
         }
     }
     
+    // REL Import dialog
+    if (showRelImport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    val url = didPickDocumentAtURL
+                    
+                    // Start accessing security-scoped resource (required for files from UIDocumentPicker)
+                    val accessGranted = url.startAccessingSecurityScopedResource()
+                    println("[DEBUG_LOG] PlatformFileDialogs.ios: REL Import - Security-scoped access granted: $accessGranted")
+                    
+                    val data = NSData.create(contentsOfURL = url)
+                    val bytes = data?.let { nsDataToByteArray(it) }
+                    println("[DEBUG_LOG] PlatformFileDialogs.ios: REL Import - Read ${bytes?.size ?: 0} bytes from file")
+                    
+                    // Stop accessing security-scoped resource
+                    if (accessGranted) {
+                        url.stopAccessingSecurityScopedResource()
+                        println("[DEBUG_LOG] PlatformFileDialogs.ios: REL Import - Stopped accessing security-scoped resource")
+                    }
+                    
+                    onRelImportResult(bytes)
+                    onDismissRelImport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onRelImportResult(null)
+                    onDismissRelImport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                // Allow all file types for .rel files
+                val documentTypes = listOf("public.item")
+                val picker = UIDocumentPickerViewController(
+                    documentTypes = documentTypes,
+                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                )
+                picker.setDelegate(delegate)
+                rootViewController.presentViewController(picker, animated = true, completion = null)
+            } else {
+                onRelImportResult(null)
+                onDismissRelImport()
+            }
+        }
+    }
+    
     // GEDCOM Import dialog
     if (showGedcomImport) {
         val delegate = remember {
@@ -184,7 +254,7 @@ actual fun PlatformFileDialogs(
         LaunchedEffect(Unit) {
             val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
             if (rootViewController != null) {
-                val documentTypes = listOf("public.plain-text", "public.data", "public.content")
+                val documentTypes = listOf("public.data", "public.plain-text")
                 val picker = UIDocumentPickerViewController(
                     documentTypes = documentTypes,
                     inMode = UIDocumentPickerMode.UIDocumentPickerModeImport

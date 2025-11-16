@@ -15,6 +15,10 @@ actual fun PlatformFileDialogs(
     showSave: Boolean,
     onDismissSave: () -> Unit,
     bytesToSave: () -> ByteArray,
+    // .rel import dialog (unused on Desktop - uses native dialogs in DesktopActions)
+    showRelImport: Boolean,
+    onDismissRelImport: () -> Unit,
+    onRelImportResult: (bytes: ByteArray?) -> Unit,
     // GEDCOM dialogs (unused on Desktop - uses native dialogs in DesktopActions)
     showGedcomImport: Boolean,
     onDismissGedcomImport: () -> Unit,

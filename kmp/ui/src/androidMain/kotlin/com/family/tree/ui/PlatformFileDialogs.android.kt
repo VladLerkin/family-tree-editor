@@ -17,6 +17,10 @@ actual fun PlatformFileDialogs(
     showSave: Boolean,
     onDismissSave: () -> Unit,
     bytesToSave: () -> ByteArray,
+    // .rel import dialog
+    showRelImport: Boolean,
+    onDismissRelImport: () -> Unit,
+    onRelImportResult: (bytes: ByteArray?) -> Unit,
     // GEDCOM dialogs
     showGedcomImport: Boolean,
     onDismissGedcomImport: () -> Unit,
@@ -53,7 +57,7 @@ actual fun PlatformFileDialogs(
 
     // SAVE — SAF CREATE_DOCUMENT
     val createLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("application/json"),
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream"),
         onResult = { uri: Uri? ->
             if (uri != null) {
                 runCatching {
@@ -64,6 +68,23 @@ actual fun PlatformFileDialogs(
                 }
             }
             onDismissSave()
+        }
+    )
+
+    // REL IMPORT — SAF OPEN_DOCUMENT
+    val relImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            if (uri == null) {
+                onRelImportResult(null)
+                onDismissRelImport()
+            } else {
+                val bytes = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                }.getOrNull()
+                onRelImportResult(bytes)
+                onDismissRelImport()
+            }
         }
     )
 
@@ -134,21 +155,28 @@ actual fun PlatformFileDialogs(
 
     if (showOpen) {
         LaunchedEffect(Unit) {
-            // JSON first, allow any as fallback via user picker
-            openLauncher.launch(arrayOf("application/json", "text/*", "application/*"))
+            // .ped files (ZIP/octet-stream), JSON, and allow all files
+            openLauncher.launch(arrayOf("application/octet-stream", "application/zip", "application/json", "*/*"))
         }
     }
 
     if (showSave) {
         LaunchedEffect(Unit) {
             // Suggest a default filename
-            createLauncher.launch("project.json")
+            createLauncher.launch("project.ped")
+        }
+    }
+
+    if (showRelImport) {
+        LaunchedEffect(Unit) {
+            // .rel files (legacy binary format)
+            relImportLauncher.launch(arrayOf("application/octet-stream"))
         }
     }
 
     if (showGedcomImport) {
         LaunchedEffect(Unit) {
-            gedcomImportLauncher.launch(arrayOf("application/x-gedcom", "text/*", "*/*"))
+            gedcomImportLauncher.launch(arrayOf("application/x-gedcom", "*/*"))
         }
     }
 

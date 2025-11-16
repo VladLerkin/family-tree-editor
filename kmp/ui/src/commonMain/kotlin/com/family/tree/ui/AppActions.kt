@@ -26,6 +26,7 @@ object AppActions {
 
     // Help - backing fields
     private var _showAbout: () -> Unit = {}
+    private var _exit: () -> Unit = {}
 
     // File - public setters and call methods
     var openPed: () -> Unit
@@ -81,4 +82,8 @@ object AppActions {
     var showAbout: () -> Unit
         get() = { _showAbout() }
         set(value) { _showAbout = value }
+    
+    var exit: () -> Unit
+        get() = { _exit() }
+        set(value) { _exit = value }
 }

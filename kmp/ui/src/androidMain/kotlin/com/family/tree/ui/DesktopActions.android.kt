@@ -21,8 +21,8 @@ actual object DesktopActions {
         return true
     }
     actual fun importRel(onLoaded: (LoadedProject?) -> Unit) {
-        // Same as openPed - trigger the platform file dialog
-        DialogActions.triggerOpenDialog(onLoaded)
+        // Trigger the dedicated .rel import dialog
+        DialogActions.triggerRelImport(onLoaded)
     }
     actual fun importGedcom(onLoaded: (ProjectData?) -> Unit) {
         // Trigger the platform file dialog via DialogActions

@@ -10,6 +10,10 @@ expect fun PlatformFileDialogs(
     showSave: Boolean,
     onDismissSave: () -> Unit,
     bytesToSave: () -> ByteArray,
+    // .rel import dialog
+    showRelImport: Boolean = false,
+    onDismissRelImport: () -> Unit = {},
+    onRelImportResult: (bytes: ByteArray?) -> Unit = {},
     // GEDCOM dialogs
     showGedcomImport: Boolean = false,
     onDismissGedcomImport: () -> Unit = {},

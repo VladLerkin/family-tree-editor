@@ -12,6 +12,7 @@ import com.family.tree.core.io.LoadedProject
 object DialogActions {
     var triggerOpenDialog: ((LoadedProject?) -> Unit) -> Unit = {}
     var triggerSaveDialog: (ProjectData) -> Unit = {}
+    var triggerRelImport: ((LoadedProject?) -> Unit) -> Unit = {}
     var triggerGedcomImport: ((ProjectData?) -> Unit) -> Unit = {}
     var triggerGedcomExport: (ProjectData) -> Unit = {}
     var triggerSvgExport: (ProjectData, Float, Offset) -> Unit = { _, _, _ -> }

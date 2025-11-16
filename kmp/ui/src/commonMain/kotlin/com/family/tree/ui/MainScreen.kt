@@ -251,6 +251,10 @@ fun MainScreen() {
     var pendingOpenCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
     var pendingSaveData by remember { mutableStateOf<ProjectData?>(null) }
     
+    // .rel import dialog state
+    var showRelImportDialog by remember { mutableStateOf(false) }
+    var pendingRelImportCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
+    
     // GEDCOM dialog state
     var showGedcomImportDialog by remember { mutableStateOf(false) }
     var showGedcomExportDialog by remember { mutableStateOf(false) }
@@ -346,6 +350,10 @@ fun MainScreen() {
         pendingSaveData = data
         showSaveDialog = true
     }
+    DialogActions.triggerRelImport = { callback ->
+        pendingRelImportCallback = callback
+        showRelImportDialog = true
+    }
     DialogActions.triggerGedcomImport = { callback ->
         pendingGedcomImportCallback = callback
         showGedcomImportDialog = true
@@ -377,6 +385,7 @@ fun MainScreen() {
             // Top toolbar
             if (!PlatformEnv.isDesktop) {
                 var showMenu by remember { mutableStateOf(false) }
+                var shouldExit by remember { mutableStateOf(false) }
                 androidx.compose.material3.TopAppBar(
                     title = { Text("Family Tree Editor") },
                     actions = {
@@ -399,11 +408,16 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; showSourcesDialog = true })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showMenu = false; shouldExit = true })
                         }
                     }
                 )
+                if (shouldExit) {
+                    ExitAppAction(onExit = { AppActions.exit() })
+                }
             } else {
                 var showDesktopMenu by remember { mutableStateOf(false) }
+                var shouldExitDesktop by remember { mutableStateOf(false) }
                 Row(
                     Modifier.fillMaxWidth().padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -433,8 +447,12 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showDesktopMenu = false; showSourcesDialog = true })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showDesktopMenu = false; shouldExitDesktop = true })
                         }
                     }
+                }
+                if (shouldExitDesktop) {
+                    ExitAppAction(onExit = { AppActions.exit() })
                 }
             }
 
@@ -609,7 +627,7 @@ fun MainScreen() {
                                         color = Color.Gray
                                     )
                                     Text(
-                                        text = "Kids",
+                                        text = "Child",
                                         modifier = Modifier.width(40.dp),
                                         fontSize = 12.sp,
                                         color = Color.Gray,
@@ -879,7 +897,11 @@ fun MainScreen() {
             println("[DEBUG_LOG] MainScreen.onOpenResult: callback=$callback")
             if (bytes != null) {
                 val loaded = runCatching {
-                    // Use RelImporter for .rel binary TLV format (starts with "Rela" header)
+                    // Try RelRepository first (for .ped ZIP format with JSON)
+                    RelRepository().read(bytes)
+                }.recoverCatching {
+                    // Fallback to RelImporter for legacy .rel binary TLV format
+                    println("[DEBUG_LOG] MainScreen.onOpenResult: RelRepository failed, trying RelImporter for legacy .rel format")
                     RelImporter().importFromBytes(bytes)
                 }.getOrNull()
                 println("[DEBUG_LOG] MainScreen.onOpenResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
@@ -904,6 +926,33 @@ fun MainScreen() {
         bytesToSave = {
             val data = pendingSaveData ?: project
             RelRepository().write(data, projectLayout, null)
+        },
+        // .rel import
+        showRelImport = showRelImportDialog,
+        onDismissRelImport = {
+            showRelImportDialog = false
+            pendingRelImportCallback = null
+        },
+        onRelImportResult = { bytes ->
+            println("[DEBUG_LOG] MainScreen.onRelImportResult: received bytes=${bytes?.size ?: 0} bytes")
+            val callback = pendingRelImportCallback
+            if (bytes != null) {
+                val loaded = runCatching {
+                    // Use RelImporter for legacy .rel binary TLV format
+                    println("[DEBUG_LOG] MainScreen.onRelImportResult: Using RelImporter for .rel format")
+                    RelImporter().importFromBytes(bytes)
+                }.getOrNull()
+                println("[DEBUG_LOG] MainScreen.onRelImportResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
+                if (loaded != null) {
+                    loadedProjectTemp = loaded
+                }
+                callback?.invoke(loaded)
+            } else {
+                println("[DEBUG_LOG] MainScreen.onRelImportResult: bytes is null")
+                callback?.invoke(null)
+            }
+            showRelImportDialog = false
+            pendingRelImportCallback = null
         },
         // GEDCOM import
         showGedcomImport = showGedcomImportDialog,
