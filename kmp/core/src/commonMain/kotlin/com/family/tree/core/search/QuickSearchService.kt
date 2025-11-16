@@ -22,7 +22,7 @@ class QuickSearchService(private val data: ProjectData) {
         if (query.isNullOrBlank()) return emptyList()
         val q = normalize(query)
 
-        val resultIds: Set<String> = prefixToIds.getOrDefault(q, emptySet())
+        val resultIds: Set<String> = prefixToIds[q] ?: emptySet()
 
         val prefixMatches = data.individuals.filter { resultIds.contains(it.id.value) }
         val substringMatches = data.individuals
@@ -62,7 +62,7 @@ class QuickSearchService(private val data: ProjectData) {
         for (token in tokensFor(individual)) {
             for (i in 1..token.length) {
                 val prefix = token.substring(0, i)
-                prefixToIds.computeIfAbsent(prefix) { mutableSetOf() }.add(individual.id.value)
+                prefixToIds.getOrPut(prefix) { mutableSetOf() }.add(individual.id.value)
             }
         }
     }
