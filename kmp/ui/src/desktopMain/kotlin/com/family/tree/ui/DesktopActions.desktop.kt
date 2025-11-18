@@ -182,6 +182,70 @@ actual object DesktopActions {
         }
     }
 
+    actual fun importAiText(onLoaded: (com.family.tree.core.io.LoadedProject?) -> Unit, onProgress: (String) -> Unit) {
+        println("[DEBUG_LOG] importAiText: Dialog opening...")
+        val fd = FileDialog(null as Frame?, "Import AI Text", FileDialog.LOAD)
+        fd.file = "*.txt"
+        fd.setFilenameFilter { _, name -> name.endsWith(".txt", ignoreCase = true) || name.endsWith(".json", ignoreCase = true) }
+        fd.isVisible = true
+        val dir = fd.directory
+        val file = fd.file
+        println("[DEBUG_LOG] importAiText: dir=$dir, file=$file")
+        if (dir == null || file == null) {
+            println("[DEBUG_LOG] importAiText: User cancelled or no file selected")
+            return onLoaded(null)
+        }
+        val selected = File(dir, file)
+        println("[DEBUG_LOG] importAiText: Selected file: ${selected.absolutePath}, exists=${selected.exists()}")
+        
+        // Загружаем сохранённые настройки AI
+        val storage = com.family.tree.core.ai.AiSettingsStorage()
+        val config = storage.loadConfig()
+        
+        // Запускаем AI импорт в отдельном потоке
+        Thread {
+            try {
+                onProgress("Чтение файла...")
+                val content = selected.readText(StandardCharsets.UTF_8)
+                println("[DEBUG_LOG] importAiText: Read ${content.length} chars, processing with ${config.provider}/${config.model}")
+                
+                // Определяем тип файла и обрабатываем
+                val importer = com.family.tree.core.ai.AiTextImporter(config)
+                val loaded = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
+                    // JSON format - parse directly
+                    println("[DEBUG_LOG] importAiText: Detected JSON format")
+                    onProgress("Обработка JSON...")
+                    importer.importFromAiResult(content)
+                } else {
+                    // Plain text - call AI
+                    println("[DEBUG_LOG] importAiText: Detected plain text, calling AI...")
+                    onProgress("Отправка запроса к AI (${config.model})...")
+                    kotlinx.coroutines.runBlocking {
+                        importer.importFromText(content)
+                    }
+                }
+                
+                onProgress("Создание генеалогического древа...")
+                println("[DEBUG_LOG] importAiText: Success - ${loaded.data.individuals.size} individuals, ${loaded.data.families.size} families")
+                onLoaded(loaded)
+            } catch (e: Exception) {
+                println("[DEBUG_LOG] importAiText: ERROR - ${e.message}")
+                e.printStackTrace()
+                onLoaded(null)
+                
+                // Show error dialog
+                java.awt.EventQueue.invokeLater {
+                    javax.swing.JOptionPane.showMessageDialog(
+                        null,
+                        "Failed to import with AI:\n${e.message}\n\nPlease check AI Settings (menu: AI Settings...).",
+                        "AI Import Error",
+                        javax.swing.JOptionPane.ERROR_MESSAGE
+                    )
+                }
+            }
+        }.start()
+    }
+
     actual fun exportGedcom(data: ProjectData): Boolean {
         val fd = FileDialog(null as Frame?, "Export GEDCOM", FileDialog.SAVE)
         fd.file = "*.ged"

@@ -32,7 +32,11 @@ actual fun PlatformFileDialogs(
     svgBytesToSave: () -> ByteArray,
     showSvgExportFit: Boolean,
     onDismissSvgExportFit: () -> Unit,
-    svgFitBytesToSave: () -> ByteArray
+    svgFitBytesToSave: () -> ByteArray,
+    // AI text import dialog (unused on Desktop - uses native dialogs in DesktopActions)
+    showAiTextImport: Boolean,
+    onDismissAiTextImport: () -> Unit,
+    onAiTextImportResult: (bytes: ByteArray?) -> Unit
 ) {
     // Open dialog (AwtWindow wrapper)
     if (showOpen) {

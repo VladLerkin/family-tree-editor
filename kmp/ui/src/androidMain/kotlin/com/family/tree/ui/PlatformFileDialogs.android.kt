@@ -34,7 +34,11 @@ actual fun PlatformFileDialogs(
     svgBytesToSave: () -> ByteArray,
     showSvgExportFit: Boolean,
     onDismissSvgExportFit: () -> Unit,
-    svgFitBytesToSave: () -> ByteArray
+    svgFitBytesToSave: () -> ByteArray,
+    // AI text import dialog
+    showAiTextImport: Boolean,
+    onDismissAiTextImport: () -> Unit,
+    onAiTextImportResult: (bytes: ByteArray?) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -101,6 +105,124 @@ actual fun PlatformFileDialogs(
                 }.getOrNull()
                 onGedcomImportResult(bytes)
                 onDismissGedcomImport()
+            }
+        }
+    )
+
+    // AI TEXT IMPORT — SAF OPEN_DOCUMENT
+    val aiTextImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            println("[DEBUG_LOG] PlatformFileDialogs.android: aiTextImportLauncher.onResult called with uri=$uri")
+            if (uri == null) {
+                println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - uri is null, calling onAiTextImportResult(null)")
+                onAiTextImportResult(null)
+                onDismissAiTextImport()
+            } else {
+                println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - reading file from uri")
+                // Take persistable URI permission for files from cloud providers (Google Drive, etc.)
+                try {
+                    context.contentResolver.takePersistableUriPermission(
+                        uri,
+                        android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                    println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - takePersistableUriPermission successful")
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - takePersistableUriPermission failed (not needed): ${e.message}")
+                }
+                
+                val bytes = runCatching {
+                    // Check if this is a virtual file (e.g., from Google Drive) and get its MIME type
+                    val fileInfo = context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val flagsIndex = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_FLAGS)
+                            val mimeIndex = cursor.getColumnIndex(android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE)
+                            
+                            val isVirtual = if (flagsIndex >= 0) {
+                                val flags = cursor.getInt(flagsIndex)
+                                (flags and android.provider.DocumentsContract.Document.FLAG_VIRTUAL_DOCUMENT) != 0
+                            } else {
+                                false
+                            }
+                            
+                            val mimeType = if (mimeIndex >= 0) {
+                                cursor.getString(mimeIndex)
+                            } else {
+                                null
+                            }
+                            
+                            Pair(isVirtual, mimeType)
+                        } else {
+                            Pair(false, null)
+                        }
+                    } ?: Pair(false, null)
+                    
+                    val (isVirtual, documentMimeType) = fileInfo
+                    println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - isVirtual=$isVirtual, documentMimeType=$documentMimeType")
+                    
+                    if (isVirtual) {
+                        // For virtual files from Google Drive, we need to export them to a readable format
+                        println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - virtual file detected, attempting export")
+                        
+                        // Try different export MIME types in order of preference
+                        val exportMimeTypes = when {
+                            documentMimeType?.startsWith("application/vnd.google-apps.document") == true -> 
+                                listOf(
+                                    "text/plain",
+                                    "text/html", 
+                                    "application/rtf",
+                                    "application/vnd.oasis.opendocument.text",
+                                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                                    "application/pdf"
+                                )
+                            documentMimeType?.startsWith("application/vnd.google-apps") == true -> 
+                                listOf("text/plain", "application/pdf")
+                            else -> 
+                                listOf("text/plain", "*/*")
+                        }
+                        
+                        var data: ByteArray? = null
+                        for (exportMime in exportMimeTypes) {
+                            println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - trying export with MIME type: $exportMime")
+                            try {
+                                val assetFileDescriptor = context.contentResolver.openTypedAssetFileDescriptor(
+                                    uri,
+                                    exportMime,
+                                    null
+                                )
+                                
+                                data = assetFileDescriptor?.use { afd ->
+                                    val inputStream = afd.createInputStream()
+                                    val bytes = inputStream.readBytes()
+                                    println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - successfully read ${bytes.size} bytes with $exportMime")
+                                    bytes
+                                }
+                                
+                                if (data != null) break
+                            } catch (e: Exception) {
+                                println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - failed with $exportMime: ${e.message}")
+                            }
+                        }
+                        
+                        data
+                    } else {
+                        // For regular files, use openInputStream
+                        println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - using openInputStream for regular file")
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - openInputStream returned: $inputStream")
+                        inputStream?.use { stream ->
+                            val data = stream.readBytes()
+                            println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - readBytes returned ${data.size} bytes")
+                            data
+                        }
+                    }
+                }.onFailure { e ->
+                    println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - ERROR reading bytes: ${e.message}")
+                    e.printStackTrace()
+                }.getOrNull()
+                println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - final bytes size: ${bytes?.size ?: 0}, calling onAiTextImportResult")
+                onAiTextImportResult(bytes)
+                onDismissAiTextImport()
             }
         }
     )
@@ -177,6 +299,15 @@ actual fun PlatformFileDialogs(
     if (showGedcomImport) {
         LaunchedEffect(Unit) {
             gedcomImportLauncher.launch(arrayOf("application/x-gedcom", "*/*"))
+        }
+    }
+
+    if (showAiTextImport) {
+        LaunchedEffect(Unit) {
+            println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - LaunchedEffect triggered")
+            // Text files (.txt, .json for AI results)
+            aiTextImportLauncher.launch(arrayOf("text/plain", "application/json", "*/*"))
+            println("[DEBUG_LOG] PlatformFileDialogs.android: AI Text Import - Launcher started")
         }
     }
 

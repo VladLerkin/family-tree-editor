@@ -10,6 +10,7 @@ expect object DesktopActions {
     fun savePedWithLayout(data: ProjectData, layout: com.family.tree.core.layout.ProjectLayout): Boolean
     fun importRel(onLoaded: (LoadedProject?) -> Unit)
     fun importGedcom(onLoaded: (ProjectData?) -> Unit)
+    fun importAiText(onLoaded: (LoadedProject?) -> Unit, onProgress: (String) -> Unit = {})
     fun exportGedcom(data: ProjectData): Boolean
     fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean
     fun exportSvgFit(project: ProjectData): Boolean

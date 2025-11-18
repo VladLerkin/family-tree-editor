@@ -61,6 +61,9 @@ import kotlin.math.roundToInt
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun MainScreen() {
+    // Get platform context (Android Context or null on other platforms)
+    val platformContext = rememberPlatformContext()
+    
     // Project state: start from sample data with layout
     val loadedSample = remember { SampleData.simpleThreeGenWithLayout() }
     var project by remember {
@@ -244,6 +247,8 @@ fun MainScreen() {
     var showSourcesDialog by remember { mutableStateOf(false) }
     // About dialog state
     var showAboutDialog by remember { mutableStateOf(false) }
+    // AI Settings dialog state
+    var showAiSettingsDialog by remember { mutableStateOf(false) }
 
     // File dialog state for Android/platform file pickers
     var showOpenDialog by remember { mutableStateOf(false) }
@@ -266,12 +271,35 @@ fun MainScreen() {
     var showSvgExportFitDialog by remember { mutableStateOf(false) }
     var pendingSvgExportData by remember { mutableStateOf<Triple<ProjectData, Float, Offset>?>(null) }
     var pendingSvgExportFitData by remember { mutableStateOf<ProjectData?>(null) }
+    
+    // AI text import dialog state
+    var showAiTextImportDialog by remember { mutableStateOf(false) }
+    var pendingAiTextImportCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
+    
+    // AI import progress state
+    var showAiImportProgress by remember { mutableStateOf(false) }
+    var aiImportProgressMessage by remember { mutableStateOf("") }
+    
+    // AI import info dialog state
+    var showAiImportInfoDialog by remember { mutableStateOf(false) }
+    var aiImportInfoMessage by remember { mutableStateOf("") }
+    
+    // Store loaded project temporarily to ensure state update happens in composition scope
+    var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
 
+    // Coroutine scope for AI operations
+    val scope = rememberCoroutineScope()
+    
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
     var isSpacePressed by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+    // Auto-focus only on desktop to avoid keyboard popup on mobile
+    LaunchedEffect(Unit) { 
+        if (PlatformEnv.isDesktop) {
+            focusRequester.requestFocus()
+        }
+    }
 
     // Wire global app actions for Desktop menu and other entry points
     AppActions.openPed = {
@@ -331,6 +359,35 @@ fun MainScreen() {
             }
         }
     }
+    AppActions.importAiText = {
+        // Show progress dialog
+        showAiImportProgress = true
+        aiImportProgressMessage = "Подготовка..."
+        
+        DesktopActions.importAiText(
+            onLoaded = { loaded ->
+                println("[DEBUG_LOG] MainScreen.importAiText callback: loaded=$loaded")
+                // Hide progress dialog
+                showAiImportProgress = false
+                
+                if (loaded != null) {
+                    println("[DEBUG_LOG] MainScreen.importAiText: Received data with ${loaded.data.individuals.size} individuals, ${loaded.data.families.size} families")
+                    project = loaded.data
+                    projectLayout = loaded.layout
+                    println("[DEBUG_LOG] MainScreen.importAiText: Updated project state")
+                    selectedIds = emptySet()
+                    fitToView()
+                    println("[DEBUG_LOG] MainScreen.importAiText: Final state - project.individuals=${project.individuals.size}, project.families=${project.families.size}")
+                } else {
+                    println("[DEBUG_LOG] MainScreen.importAiText: loaded is null (user cancelled or error)")
+                }
+            },
+            onProgress = { message ->
+                println("[DEBUG_LOG] MainScreen.importAiText progress: $message")
+                aiImportProgressMessage = message
+            }
+        )
+    }
     AppActions.exportGedcom = { DesktopActions.exportGedcom(project) }
     AppActions.exportSvgCurrent = { DesktopActions.exportSvg(project, scale = scale, pan = pan) }
     AppActions.exportSvgFit = { DesktopActions.exportSvgFit(project) }
@@ -340,6 +397,7 @@ fun MainScreen() {
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
     AppActions.showAbout = { showAboutDialog = true }
+    AppActions.showAiSettings = { showAiSettingsDialog = true }
 
     // Wire dialog actions for platform file dialogs (used by Android DesktopActions)
     DialogActions.triggerOpenDialog = { callback ->
@@ -369,6 +427,10 @@ fun MainScreen() {
     DialogActions.triggerSvgExportFit = { data ->
         pendingSvgExportFitData = data
         showSvgExportFitDialog = true
+    }
+    DialogActions.triggerAiTextImport = { callback ->
+        pendingAiTextImportCallback = callback
+        showAiTextImportDialog = true
     }
 
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -403,10 +465,12 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showMenu = false; AppActions.savePed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showMenu = false; AppActions.importRel() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showMenu = false; AppActions.importGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showMenu = false; AppActions.importAiText() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; showSourcesDialog = true })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showMenu = false; AppActions.showAiSettings() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showMenu = false; shouldExit = true })
                         }
@@ -443,10 +507,12 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showDesktopMenu = false; AppActions.savePed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showDesktopMenu = false; AppActions.importRel() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.importGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showDesktopMenu = false; AppActions.importAiText() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showDesktopMenu = false; showSourcesDialog = true })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showDesktopMenu = false; AppActions.showAiSettings() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showDesktopMenu = false; shouldExitDesktop = true })
                         }
                     }
@@ -859,11 +925,117 @@ fun MainScreen() {
     if (showAboutDialog) {
         AboutDialog(onDismiss = { showAboutDialog = false })
     }
+    
+    // AI Settings dialog
+    if (showAiSettingsDialog) {
+        val storage = remember { com.family.tree.core.ai.AiSettingsStorage() }
+        val savedConfig = remember { storage.loadConfig() }
+        
+        AiConfigDialog(
+            initialConfig = savedConfig,
+            onDismiss = { showAiSettingsDialog = false },
+            onConfirm = { config ->
+                storage.saveConfig(config)
+                showAiSettingsDialog = false
+            }
+        )
+    }
+    
+    // AI Import Progress dialog
+    if (showAiImportProgress) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { /* Cannot dismiss during import */ }
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .width(400.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Text(
+                        text = "AI импорт",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(64.dp),
+                        strokeWidth = 6.dp
+                    )
+                    
+                    Text(
+                        text = aiImportProgressMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+    
+    // AI Import Info dialog (for errors/warnings like PDF detection)
+    if (showAiImportInfoDialog) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {
+                showAiImportInfoDialog = false
+                showAiTextImportDialog = false
+                pendingAiTextImportCallback?.invoke(null)
+                pendingAiTextImportCallback = null
+            }
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .width(500.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Информация",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    
+                    Text(
+                        text = aiImportInfoMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                showAiImportInfoDialog = false
+                                showAiTextImportDialog = false
+                                pendingAiTextImportCallback?.invoke(null)
+                                pendingAiTextImportCallback = null
+                            }
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // Platform file dialogs (for Android and future cross-platform support)
-    // Store loaded project temporarily to ensure state update happens in composition scope
-    var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
-    
     // Effect to apply loaded project data to main state
     LaunchedEffect(loadedProjectTemp) {
         val loaded = loadedProjectTemp
@@ -1007,6 +1179,168 @@ fun MainScreen() {
             // TODO: Implement SVG exporter for KMP
             val data = pendingSvgExportFitData ?: project
             "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
+        },
+        // AI text import
+        showAiTextImport = showAiTextImportDialog,
+        onDismissAiTextImport = {
+            showAiTextImportDialog = false
+            pendingAiTextImportCallback = null
+        },
+        onAiTextImportResult = { bytes ->
+            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: received bytes=${bytes?.size ?: 0} bytes")
+            val callback = pendingAiTextImportCallback
+            if (bytes != null) {
+                // Check if file is PDF (starts with %PDF-)
+                val isPdf = bytes.size >= 5 && 
+                           bytes[0] == '%'.code.toByte() &&
+                           bytes[1] == 'P'.code.toByte() &&
+                           bytes[2] == 'D'.code.toByte() &&
+                           bytes[3] == 'F'.code.toByte() &&
+                           bytes[4] == '-'.code.toByte()
+                
+                if (isPdf) {
+                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected PDF format, extracting text")
+                    
+                    // Show progress dialog
+                    showAiImportProgress = true
+                    aiImportProgressMessage = "Извлечение текста из PDF..."
+                    
+                    // Extract text from PDF in background
+                    scope.launch {
+                        try {
+                            val pdfExtractor = com.family.tree.core.platform.PdfTextExtractor(platformContext)
+                            val extractedText = pdfExtractor.extractText(bytes)
+                            
+                            if (extractedText.isNullOrBlank()) {
+                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: PDF text extraction failed or returned empty text")
+                                
+                                // Show error dialog
+                                showAiImportProgress = false
+                                aiImportInfoMessage = """
+                                    Не удалось извлечь текст из PDF файла.
+                                    
+                                    Возможные причины:
+                                    - PDF содержит только изображения (отсканированный документ)
+                                    - PDF защищён от копирования
+                                    - PDF повреждён или имеет неподдерживаемый формат
+                                    
+                                    Пожалуйста, попробуйте:
+                                    1. Откройте docs.google.com в браузере
+                                    2. Файл → Скачать → Обычный текст (.txt)
+                                    3. Импортируйте полученный .txt файл
+                                """.trimIndent()
+                                showAiImportInfoDialog = true
+                            } else {
+                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Successfully extracted ${extractedText.length} chars from PDF")
+                                
+                                // Process extracted text
+                                aiImportProgressMessage = "Обработка текста..."
+                                
+                                // Загружаем сохранённые настройки AI
+                                val storage = com.family.tree.core.ai.AiSettingsStorage()
+                                val config = storage.loadConfig()
+                                
+                                // Определяем тип файла и обрабатываем
+                                val importer = com.family.tree.core.ai.AiTextImporter(config)
+                                val imported = if (extractedText.trimStart().startsWith("{") || extractedText.trimStart().startsWith("[")) {
+                                    // JSON format - parse directly
+                                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format in PDF")
+                                    aiImportProgressMessage = "Обработка JSON..."
+                                    importer.importFromAiResult(extractedText)
+                                } else {
+                                    // Plain text - call AI
+                                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text in PDF, calling AI...")
+                                    aiImportProgressMessage = "Отправка запроса к AI (${config.model})..."
+                                    importer.importFromText(extractedText)
+                                }
+                                
+                                aiImportProgressMessage = "Создание генеалогического древа..."
+                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
+                                
+                                // Hide progress dialog
+                                showAiImportProgress = false
+                                
+                                loadedProjectTemp = imported
+                                callback?.invoke(imported)
+                                
+                                // Reset dialog state
+                                showAiTextImportDialog = false
+                                pendingAiTextImportCallback = null
+                            }
+                        } catch (e: Exception) {
+                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: ERROR extracting/processing PDF - ${e.message}")
+                            e.printStackTrace()
+                            
+                            // Hide progress dialog and show error
+                            showAiImportProgress = false
+                            aiImportInfoMessage = """
+                                Ошибка при обработке PDF файла: ${e.message ?: "Неизвестная ошибка"}
+                                
+                                Пожалуйста, попробуйте:
+                                1. Откройте docs.google.com в браузере
+                                2. Файл → Скачать → Обычный текст (.txt)
+                                3. Импортируйте полученный .txt файл
+                            """.trimIndent()
+                            showAiImportInfoDialog = true
+                        }
+                    }
+                } else {
+                    // Show progress dialog
+                    showAiImportProgress = true
+                    aiImportProgressMessage = "Чтение файла..."
+                    
+                    // Process in background
+                    scope.launch {
+                        try {
+                            val content = bytes.decodeToString()
+                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Read ${content.length} chars")
+                            
+                            // Загружаем сохранённые настройки AI
+                            val storage = com.family.tree.core.ai.AiSettingsStorage()
+                            val config = storage.loadConfig()
+                            
+                            // Определяем тип файла и обрабатываем
+                            val importer = com.family.tree.core.ai.AiTextImporter(config)
+                            val imported = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
+                                // JSON format - parse directly
+                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format")
+                                aiImportProgressMessage = "Обработка JSON..."
+                                importer.importFromAiResult(content)
+                            } else {
+                                // Plain text - call AI
+                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text, calling AI...")
+                                aiImportProgressMessage = "Отправка запроса к AI (${config.model})..."
+                                importer.importFromText(content)
+                            }
+                            
+                            aiImportProgressMessage = "Создание генеалогического древа..."
+                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
+                            
+                            // Hide progress dialog
+                            showAiImportProgress = false
+                            
+                            loadedProjectTemp = imported
+                            callback?.invoke(imported)
+                        } catch (e: Exception) {
+                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: ERROR - ${e.message}")
+                            e.printStackTrace()
+                            
+                            // Hide progress dialog
+                            showAiImportProgress = false
+                            
+                            callback?.invoke(null)
+                        }
+                    }
+                    // Reset only after processing text/JSON file
+                    showAiTextImportDialog = false
+                    pendingAiTextImportCallback = null
+                }
+            } else {
+                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: bytes is null")
+                callback?.invoke(null)
+                showAiTextImportDialog = false
+                pendingAiTextImportCallback = null
+            }
         }
     )
 }

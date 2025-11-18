@@ -13,6 +13,7 @@ object AppActions {
     private var _savePed: () -> Unit = {}
     private var _importRel: () -> Unit = {}
     private var _importGedcom: () -> Unit = {}
+    private var _importAiText: () -> Unit = {}
     private var _exportGedcom: () -> Unit = {}
     private var _exportSvgCurrent: () -> Unit = {}
     private var _exportSvgFit: () -> Unit = {}
@@ -26,6 +27,7 @@ object AppActions {
 
     // Help - backing fields
     private var _showAbout: () -> Unit = {}
+    private var _showAiSettings: () -> Unit = {}
     private var _exit: () -> Unit = {}
 
     // File - public setters and call methods
@@ -44,6 +46,10 @@ object AppActions {
     var importGedcom: () -> Unit
         get() = { _importGedcom() }
         set(value) { _importGedcom = value }
+    
+    var importAiText: () -> Unit
+        get() = { _importAiText() }
+        set(value) { _importAiText = value }
     
     var exportGedcom: () -> Unit
         get() = { _exportGedcom() }
@@ -82,6 +88,10 @@ object AppActions {
     var showAbout: () -> Unit
         get() = { _showAbout() }
         set(value) { _showAbout = value }
+    
+    var showAiSettings: () -> Unit
+        get() = { _showAiSettings() }
+        set(value) { _showAiSettings = value }
     
     var exit: () -> Unit
         get() = { _exit() }

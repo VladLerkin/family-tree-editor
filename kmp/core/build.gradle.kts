@@ -16,6 +16,23 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+            implementation("io.ktor:ktor-client-core:2.3.12")
+        }
+        
+        androidMain.dependencies {
+            implementation("io.ktor:ktor-client-okhttp:2.3.12")
+            implementation("androidx.security:security-crypto:1.1.0-alpha06")
+            implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+        }
+        
+        val desktopMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-cio:2.3.12")
+            }
+        }
+        
+        iosMain.dependencies {
+            implementation("io.ktor:ktor-client-darwin:2.3.12")
         }
     }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 17

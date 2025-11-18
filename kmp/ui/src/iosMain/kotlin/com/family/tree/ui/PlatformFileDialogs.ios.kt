@@ -44,7 +44,11 @@ actual fun PlatformFileDialogs(
     svgBytesToSave: () -> ByteArray,
     showSvgExportFit: Boolean,
     onDismissSvgExportFit: () -> Unit,
-    svgFitBytesToSave: () -> ByteArray
+    svgFitBytesToSave: () -> ByteArray,
+    // AI text import dialog
+    showAiTextImport: Boolean,
+    onDismissAiTextImport: () -> Unit,
+    onAiTextImportResult: (bytes: ByteArray?) -> Unit
 ) {
     // Open dialog
     if (showOpen) {
@@ -264,6 +268,56 @@ actual fun PlatformFileDialogs(
             } else {
                 onGedcomImportResult(null)
                 onDismissGedcomImport()
+            }
+        }
+    }
+    
+    // AI Text Import dialog
+    if (showAiTextImport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    val url = didPickDocumentAtURL
+                    
+                    // Start accessing security-scoped resource
+                    val accessGranted = url.startAccessingSecurityScopedResource()
+                    
+                    val data = NSData.create(contentsOfURL = url)
+                    val bytes = data?.let { nsDataToByteArray(it) }
+                    
+                    // Stop accessing security-scoped resource
+                    if (accessGranted) {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                    
+                    onAiTextImportResult(bytes)
+                    onDismissAiTextImport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onAiTextImportResult(null)
+                    onDismissAiTextImport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                // Allow text and JSON files for AI import
+                val documentTypes = listOf("public.plain-text", "public.json", "public.data")
+                val picker = UIDocumentPickerViewController(
+                    documentTypes = documentTypes,
+                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                )
+                picker.setDelegate(delegate)
+                rootViewController.presentViewController(picker, animated = true, completion = null)
+            } else {
+                onAiTextImportResult(null)
+                onDismissAiTextImport()
             }
         }
     }

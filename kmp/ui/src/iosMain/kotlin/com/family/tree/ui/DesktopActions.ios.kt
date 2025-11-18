@@ -28,6 +28,11 @@ actual object DesktopActions {
         // Trigger the platform file dialog via DialogActions
         DialogActions.triggerGedcomImport(onLoaded)
     }
+    actual fun importAiText(onLoaded: (LoadedProject?) -> Unit, onProgress: (String) -> Unit) {
+        // Trigger the platform file dialog via DialogActions
+        // Note: iOS version doesn't support progress updates yet (uses platform file picker)
+        DialogActions.triggerAiTextImport(onLoaded)
+    }
     actual fun exportGedcom(data: ProjectData): Boolean {
         // Trigger the platform save dialog via DialogActions
         DialogActions.triggerGedcomExport(data)

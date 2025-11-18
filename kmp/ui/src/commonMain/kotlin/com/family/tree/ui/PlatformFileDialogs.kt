@@ -27,5 +27,9 @@ expect fun PlatformFileDialogs(
     svgBytesToSave: () -> ByteArray = { ByteArray(0) },
     showSvgExportFit: Boolean = false,
     onDismissSvgExportFit: () -> Unit = {},
-    svgFitBytesToSave: () -> ByteArray = { ByteArray(0) }
+    svgFitBytesToSave: () -> ByteArray = { ByteArray(0) },
+    // AI text import dialog
+    showAiTextImport: Boolean = false,
+    onDismissAiTextImport: () -> Unit = {},
+    onAiTextImportResult: (bytes: ByteArray?) -> Unit = {}
 )

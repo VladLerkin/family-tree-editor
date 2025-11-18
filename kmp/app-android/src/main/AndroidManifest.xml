@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.family.tree.android">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="Family Tree"
         android:allowBackup="true"

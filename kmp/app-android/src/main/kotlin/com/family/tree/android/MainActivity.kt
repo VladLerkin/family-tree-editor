@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.family.tree.core.ai.AiSettingsStorage
 import com.family.tree.ui.App
 
 class MainActivity : ComponentActivity() {
@@ -14,6 +15,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize AI settings storage for Android
+        AiSettingsStorage.setContext(this)
         
         // Enable edge-to-edge and hide system bars
         enableEdgeToEdge()
