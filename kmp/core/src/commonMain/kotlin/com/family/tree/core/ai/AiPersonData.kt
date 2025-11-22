@@ -8,10 +8,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AiPersonData(
     val firstName: String = "",
+    val middleName: String = "",
     val lastName: String = "",
     val gender: String? = null,  // "MALE", "FEMALE", "UNKNOWN"
-    val birthYear: Int? = null,
-    val deathYear: Int? = null,
+    val birthDate: String? = null,
+    val deathDate: String? = null,
     val notes: String = ""
 )
 

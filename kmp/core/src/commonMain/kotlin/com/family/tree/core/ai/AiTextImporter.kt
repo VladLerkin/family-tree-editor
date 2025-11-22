@@ -72,10 +72,11 @@ Return a JSON object with this exact structure:
   "persons": [
     {
       "firstName": "string",
+      "middleName": "string",
       "lastName": "string",
       "gender": "MALE" | "FEMALE" | "UNKNOWN",
-      "birthYear": number or null,
-      "deathYear": number or null,
+      "birthDate": "string or null",
+      "deathDate": "string or null",
       "notes": "string"
     }
   ],
@@ -92,8 +93,13 @@ Rules:
 - Use "PARENT" when personIndex is parent of relatedPersonIndex
 - Use "CHILD" when personIndex is child of relatedPersonIndex
 - Use "SPOUSE" when personIndex and relatedPersonIndex are married
-- Extract birth and death years as numbers (e.g., 1950), not ranges
+- Extract birth and death dates as strings in format "DD.MM.YYYY" or "YYYY" if only year is known
+- If only year is available, use just the year (e.g., "1950")
+- If full date is available, use format "DD.MM.YYYY" (e.g., "15.03.1950")
+- If date is unclear or not mentioned, use null
 - If gender is unclear, use "UNKNOWN"
+- For Russian names, extract patronymic (отчество) as middleName if present
+- If middleName is not present, use empty string ""
 - Put any additional information in the "notes" field
 
 Text to analyze:
@@ -156,6 +162,32 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
+     * Извлекает год из строки даты.
+     * Поддерживает форматы: "YYYY", "DD.MM.YYYY", "DD/MM/YYYY"
+     */
+    private fun extractYear(dateString: String?): Int? {
+        if (dateString.isNullOrBlank()) return null
+        
+        // Попытка извлечь 4-значный год из строки
+        val yearRegex = Regex("""\b(\d{4})\b""")
+        val match = yearRegex.find(dateString)
+        return match?.groupValues?.get(1)?.toIntOrNull()
+    }
+    
+    /**
+     * Создает событие GEDCOM из даты.
+     */
+    private fun createEvent(type: String, date: String?, index: Int): GedcomEvent? {
+        if (date.isNullOrBlank()) return null
+        return GedcomEvent(
+            id = GedcomEventId.generate(),
+            type = type,
+            date = date,
+            place = ""
+        )
+    }
+    
+    /**
      * Преобразует результаты AI-анализа в ProjectData.
      */
     private fun convertToProject(aiResult: AiAnalysisResult): LoadedProject {
@@ -166,14 +198,31 @@ Return ONLY the JSON object, no explanations.
         
         // Создаём персон
         aiResult.persons.forEachIndexed { index, aiPerson ->
-            println("[DEBUG_LOG] AiTextImporter.convertToProject: Creating person $index: ${aiPerson.firstName} ${aiPerson.lastName}")
+            // Объединяем firstName и middleName в одно поле firstName
+            val fullFirstName = if (aiPerson.middleName.isNotBlank()) {
+                "${aiPerson.firstName} ${aiPerson.middleName}"
+            } else {
+                aiPerson.firstName
+            }
+            println("[DEBUG_LOG] AiTextImporter.convertToProject: Creating person $index: $fullFirstName ${aiPerson.lastName}")
+            
+            // Извлекаем годы из дат
+            val birthYear = extractYear(aiPerson.birthDate)
+            val deathYear = extractYear(aiPerson.deathDate)
+            
+            // Создаём события для дат рождения и смерти
+            val events = mutableListOf<GedcomEvent>()
+            createEvent("BIRT", aiPerson.birthDate, index)?.let { events.add(it) }
+            createEvent("DEAT", aiPerson.deathDate, index)?.let { events.add(it) }
+            
             val individual = Individual(
                 id = IndividualId("ai_person_$index"),
-                firstName = aiPerson.firstName,
+                firstName = fullFirstName,
                 lastName = aiPerson.lastName,
                 gender = parseGender(aiPerson.gender),
-                birthYear = aiPerson.birthYear,
-                deathYear = aiPerson.deathYear,
+                birthYear = birthYear,
+                deathYear = deathYear,
+                events = events,
                 notes = if (aiPerson.notes.isNotBlank()) {
                     listOf(Note(id = NoteId("note_$index"), text = aiPerson.notes))
                 } else {
