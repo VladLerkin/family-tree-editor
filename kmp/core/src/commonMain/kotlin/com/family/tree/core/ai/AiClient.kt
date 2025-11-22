@@ -12,6 +12,17 @@ interface AiClient {
      * @return Ответ от AI
      */
     suspend fun sendPrompt(prompt: String, config: AiConfig): String
+    
+    /**
+     * Транскрибирует аудио в текст (поддерживается только OpenAI).
+     * 
+     * @param audioData Аудио данные (поддерживаемые форматы: m4a, mp3, wav, webm)
+     * @param config Конфигурация AI
+     * @return Транскрибированный текст
+     */
+    suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
+        throw UnsupportedOperationException("Audio transcription is not supported by this AI provider")
+    }
 }
 
 /**

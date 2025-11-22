@@ -14,6 +14,7 @@ object AppActions {
     private var _importRel: () -> Unit = {}
     private var _importGedcom: () -> Unit = {}
     private var _importAiText: () -> Unit = {}
+    private var _voiceInput: () -> Unit = {}
     private var _exportGedcom: () -> Unit = {}
     private var _exportSvgCurrent: () -> Unit = {}
     private var _exportSvgFit: () -> Unit = {}
@@ -50,6 +51,10 @@ object AppActions {
     var importAiText: () -> Unit
         get() = { _importAiText() }
         set(value) { _importAiText = value }
+    
+    var voiceInput: () -> Unit
+        get() = { _voiceInput() }
+        set(value) { _voiceInput = value }
     
     var exportGedcom: () -> Unit
         get() = { _exportGedcom() }

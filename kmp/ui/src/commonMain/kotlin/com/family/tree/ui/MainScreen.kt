@@ -283,12 +283,24 @@ fun MainScreen() {
     // AI import info dialog state
     var showAiImportInfoDialog by remember { mutableStateOf(false) }
     var aiImportInfoMessage by remember { mutableStateOf("") }
+    var isPermissionError by remember { mutableStateOf(false) }
+    
+    // Voice input state
+    var isVoiceRecording by remember { mutableStateOf(false) }
+    var voiceInputStatus by remember { mutableStateOf("") }
+    var showVoiceInputDialog by remember { mutableStateOf(false) }
     
     // Store loaded project temporarily to ensure state update happens in composition scope
     var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
 
     // Coroutine scope for AI operations
     val scope = rememberCoroutineScope()
+    
+    // Voice input processor
+    val voiceInputProcessor = remember {
+        val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
+        com.family.tree.core.ai.VoiceInputProcessor(voiceRecorder, scope)
+    }
     
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
@@ -388,6 +400,61 @@ fun MainScreen() {
             }
         )
     }
+    AppActions.voiceInput = {
+        run {
+            if (!voiceInputProcessor.isVoiceInputAvailable()) {
+                aiImportInfoMessage = "Голосовой ввод недоступен на этой платформе"
+                showAiImportInfoDialog = true
+                return@run
+            }
+            
+            if (voiceInputProcessor.isRecording()) {
+                // Already recording, stop it
+                voiceInputProcessor.stopRecording()
+                isVoiceRecording = false
+                voiceInputStatus = ""
+                return@run
+            }
+            
+            // Start recording
+            println("[DEBUG_LOG] MainScreen.voiceInput: Starting voice input")
+            isVoiceRecording = true
+            voiceInputStatus = "Говорите..."
+            showVoiceInputDialog = true
+            
+            voiceInputProcessor.startVoiceInput(
+                onSuccess = { loaded ->
+                    println("[DEBUG_LOG] MainScreen.voiceInput: Success - ${loaded.data.individuals.size} individuals, ${loaded.data.families.size} families")
+                    isVoiceRecording = false
+                    showVoiceInputDialog = false
+                    voiceInputStatus = ""
+                    
+                    // Update project
+                    project = loaded.data
+                    projectLayout = loaded.layout
+                    selectedIds = emptySet()
+                    fitToView()
+                },
+                onError = { errorMessage ->
+                    println("[DEBUG_LOG] MainScreen.voiceInput: Error - $errorMessage")
+                    isVoiceRecording = false
+                    voiceInputStatus = ""
+                    showVoiceInputDialog = false
+                    
+                    // Check if it's a permission error
+                    isPermissionError = errorMessage.contains("разрешений") || errorMessage.contains("RECORD_AUDIO")
+                    
+                    // Show error dialog
+                    aiImportInfoMessage = "Ошибка голосового ввода:\n$errorMessage"
+                    showAiImportInfoDialog = true
+                },
+                onRecognized = { recognizedText ->
+                    println("[DEBUG_LOG] MainScreen.voiceInput: Recognized - $recognizedText")
+                    voiceInputStatus = "Распознано: \"$recognizedText\"\nОбработка через AI..."
+                }
+            )
+        }
+    }
     AppActions.exportGedcom = { DesktopActions.exportGedcom(project) }
     AppActions.exportSvgCurrent = { DesktopActions.exportSvg(project, scale = scale, pan = pan) }
     AppActions.exportSvgFit = { DesktopActions.exportSvgFit(project) }
@@ -466,6 +533,7 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showMenu = false; AppActions.importRel() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showMenu = false; AppActions.importGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showMenu = false; AppActions.importAiText() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showMenu = false; AppActions.voiceInput() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
@@ -508,6 +576,7 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showDesktopMenu = false; AppActions.importRel() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.importGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showDesktopMenu = false; AppActions.importAiText() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showDesktopMenu = false; AppActions.voiceInput() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
@@ -1017,14 +1086,33 @@ fun MainScreen() {
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
+                        // Show "Open Settings" button if it's a permission error
+                        if (isPermissionError) {
+                            androidx.compose.material3.TextButton(
+                                onClick = {
+                                    // Open app settings on Android
+                                    val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
+                                    voiceRecorder.openAppSettings()
+                                    showAiImportInfoDialog = false
+                                    showAiTextImportDialog = false
+                                    pendingAiTextImportCallback?.invoke(null)
+                                    pendingAiTextImportCallback = null
+                                    isPermissionError = false
+                                }
+                            ) {
+                                Text("Открыть настройки")
+                            }
+                        }
+                        
                         androidx.compose.material3.TextButton(
                             onClick = {
                                 showAiImportInfoDialog = false
                                 showAiTextImportDialog = false
                                 pendingAiTextImportCallback?.invoke(null)
                                 pendingAiTextImportCallback = null
+                                isPermissionError = false
                             }
                         ) {
                             Text("OK")
@@ -1033,6 +1121,67 @@ fun MainScreen() {
                 }
             }
         }
+    }
+    
+    // Voice input dialog
+    if (showVoiceInputDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = {
+                voiceInputProcessor.cancelRecording()
+                isVoiceRecording = false
+                showVoiceInputDialog = false
+                voiceInputStatus = ""
+            },
+            modifier = Modifier.widthIn(min = 400.dp),
+            title = { Text("Голосовой ввод") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (isVoiceRecording) {
+                        androidx.compose.material3.CircularProgressIndicator()
+                    }
+                    Text(
+                        text = voiceInputStatus,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Кнопка "Остановить запись" (показывается только во время записи)
+                    if (isVoiceRecording && voiceInputStatus == "Говорите...") {
+                        Button(
+                            onClick = {
+                                println("[DEBUG_LOG] MainScreen: User clicked 'Stop Recording' button")
+                                voiceInputProcessor.stopRecording()
+                                isVoiceRecording = false
+                                voiceInputStatus = "Обработка записи..."
+                            }
+                        ) {
+                            Text("Stop Recording")
+                        }
+                    }
+                    // Кнопка "Отмена" (всегда показывается)
+                    Button(
+                        onClick = {
+                            println("[DEBUG_LOG] MainScreen: User clicked 'Cancel' button")
+                            voiceInputProcessor.cancelRecording()
+                            isVoiceRecording = false
+                            showVoiceInputDialog = false
+                            voiceInputStatus = ""
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+                }
+            }
+        )
     }
 
     // Platform file dialogs (for Android and future cross-platform support)

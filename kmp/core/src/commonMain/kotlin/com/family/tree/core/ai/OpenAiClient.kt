@@ -3,8 +3,10 @@ package com.family.tree.core.ai
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.utils.io.core.*
 import kotlinx.serialization.json.*
 
 /**
@@ -67,6 +69,53 @@ class OpenAiClient : AiClient {
             }
             
             return content
+        } finally {
+            client.close()
+        }
+    }
+    
+    override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
+        if (config.apiKey.isBlank()) {
+            throw IllegalArgumentException("OpenAI API key is required")
+        }
+        
+        val baseUrl = config.baseUrl.ifBlank { "https://api.openai.com/v1" }
+        val url = "$baseUrl/audio/transcriptions"
+        
+        val client = HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 120_000 // 120 seconds for audio processing
+                connectTimeoutMillis = 30_000
+                socketTimeoutMillis = 120_000
+            }
+        }
+        
+        try {
+            val response = client.submitFormWithBinaryData(
+                url = url,
+                formData = formData {
+                    append("file", audioData, Headers.build {
+                        append(HttpHeaders.ContentType, "audio/m4a")
+                        append(HttpHeaders.ContentDisposition, "filename=\"audio.m4a\"")
+                    })
+                    append("model", "whisper-1")
+                    append("language", "ru")
+                }
+            ) {
+                header("Authorization", "Bearer ${config.apiKey}")
+            }
+            
+            val responseText = response.bodyAsText()
+            val responseJson = json.parseToJsonElement(responseText).jsonObject
+            
+            // Извлекаем транскрибированный текст
+            val text = responseJson["text"]?.jsonPrimitive?.content
+            
+            if (text == null) {
+                throw Exception("No text in Whisper API response")
+            }
+            
+            return text
         } finally {
             client.close()
         }
