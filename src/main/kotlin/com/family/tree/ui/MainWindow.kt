@@ -682,7 +682,13 @@ class MainWindow {
         }
 
         canvasView.layout = computed
-        canvasPane.draw()
+        
+        // Auto-fit tree to canvas for new projects or projects without saved viewport
+        if (persisted == null || (persisted.zoom == 1.0 && persisted.viewOriginX == 0.0 && persisted.viewOriginY == 0.0)) {
+            fitTreeToCanvas()
+        } else {
+            canvasPane.draw()
+        }
 
         individualsList.setData(data!!)
         familiesList.setData(data!!)

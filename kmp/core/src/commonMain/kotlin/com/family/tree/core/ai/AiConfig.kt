@@ -97,13 +97,6 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val OPENAI_GPT4_TURBO = AiConfig(
-        provider = "OPENAI",
-        model = "gpt-4-turbo-preview",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
     val ANTHROPIC_CLAUDE_SONNET = AiConfig(
         provider = "ANTHROPIC",
         model = "claude-3-5-sonnet-20241022",
@@ -132,13 +125,6 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val GOOGLE_GEMINI_1_5_FLASH = AiConfig(
-        provider = "GOOGLE",
-        model = "gemini-1.5-flash",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
     val OLLAMA_LLAMA3 = AiConfig(
         provider = "OLLAMA",
         model = "llama3.2",
@@ -158,12 +144,10 @@ object AiPresets {
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (рекомендуется)" to OPENAI_GPT4O_MINI,
         "OpenAI GPT-4o" to OPENAI_GPT4O,
-        "OpenAI GPT-4 Turbo" to OPENAI_GPT4_TURBO,
         "Claude 3.5 Sonnet" to ANTHROPIC_CLAUDE_SONNET,
         "Claude 3.5 Haiku" to ANTHROPIC_CLAUDE_HAIKU,
         "Google Gemini 2.0 Flash" to GOOGLE_GEMINI_2_0_FLASH,
         "Google Gemini 1.5 Pro" to GOOGLE_GEMINI_1_5_PRO,
-        "Google Gemini 1.5 Flash" to GOOGLE_GEMINI_1_5_FLASH,
         "Ollama Llama 3.2" to OLLAMA_LLAMA3,
         "Ollama Mistral" to OLLAMA_MISTRAL
     )
