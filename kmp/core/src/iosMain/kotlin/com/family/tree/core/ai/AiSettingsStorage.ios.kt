@@ -16,11 +16,16 @@ actual class AiSettingsStorage {
     private val defaults = NSUserDefaults.standardUserDefaults
     
     actual fun saveConfig(config: AiConfig) {
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig called")
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=${config.provider}, apiKey=${if (config.apiKey.isBlank()) "empty" else "present (${config.apiKey.length} chars)"}")
+        
         defaults.setObject(config.provider, KEY_PROVIDER)
         // Сохраняем API ключ в Keychain для безопасности
         if (config.apiKey.isNotBlank()) {
+            println("[DEBUG_LOG] AiSettingsStorage (iOS): Saving API key to Keychain")
             saveToKeychain(KEYCHAIN_KEY_API_KEY, config.apiKey)
         } else {
+            println("[DEBUG_LOG] AiSettingsStorage (iOS): Deleting API key from Keychain")
             deleteFromKeychain(KEYCHAIN_KEY_API_KEY)
         }
         defaults.setObject(config.model, KEY_MODEL)
@@ -28,19 +33,32 @@ actual class AiSettingsStorage {
         defaults.setDouble(config.temperature, KEY_TEMPERATURE)
         defaults.setInteger(config.maxTokens.toLong(), KEY_MAX_TOKENS)
         defaults.synchronize()
+        
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig completed")
     }
     
     actual fun loadConfig(): AiConfig {
         // Загружаем API ключ из Keychain
         val apiKey = loadFromKeychain(KEYCHAIN_KEY_API_KEY) ?: ""
         
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): loadConfig called")
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): apiKey from Keychain = ${if (apiKey.isBlank()) "empty" else "present (${apiKey.length} chars)"}")
+        
+        val provider = defaults.stringForKey(KEY_PROVIDER) ?: AiPresets.OPENAI_GPT4O_MINI.provider
+        val model = defaults.stringForKey(KEY_MODEL) ?: AiPresets.OPENAI_GPT4O_MINI.model
+        val baseUrl = defaults.stringForKey(KEY_BASE_URL) ?: ""
+        val temperature = defaults.doubleForKey(KEY_TEMPERATURE).takeIf { it != 0.0 } ?: 0.7
+        val maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
+        
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=$provider, model=$model")
+        
         return AiConfig(
-            provider = defaults.stringForKey(KEY_PROVIDER) ?: AiPresets.OPENAI_GPT4O_MINI.provider,
+            provider = provider,
             apiKey = apiKey,
-            model = defaults.stringForKey(KEY_MODEL) ?: AiPresets.OPENAI_GPT4O_MINI.model,
-            baseUrl = defaults.stringForKey(KEY_BASE_URL) ?: "",
-            temperature = defaults.doubleForKey(KEY_TEMPERATURE).takeIf { it != 0.0 } ?: 0.7,
-            maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
+            model = model,
+            baseUrl = baseUrl,
+            temperature = temperature,
+            maxTokens = maxTokens
         )
     }
     
@@ -68,16 +86,32 @@ actual class AiSettingsStorage {
             NSData.create(bytes = pinned.addressOf(0), length = valueData.size.toULong())
         }
         
-        // Создаём словарь атрибутов для Keychain
-        val query = mapOf(
-            kSecClass to kSecClassGenericPassword,
-            kSecAttrAccount to key,
-            kSecValueData to nsData,
-            kSecAttrAccessible to kSecAttrAccessibleWhenUnlocked
-        )
-        
-        // Сохраняем в Keychain
-        SecItemAdd(query as CFDictionaryRef, null)
+        memScoped {
+            // Создаём CFString из Kotlin String
+            val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
+            
+            // Преобразуем NSData в CFTypeRef через reinterpret
+            val cfData: CFTypeRef? = interpretCPointer(nsData.objcPtr())
+            
+            // Создаём массивы ключей и значений для CFDictionary
+            val keys = allocArrayOf(kSecClass, kSecAttrAccount, kSecValueData, kSecAttrAccessible)
+            val values = allocArrayOf(kSecClassGenericPassword, cfKey, cfData, kSecAttrAccessibleWhenUnlocked)
+            
+            val query = CFDictionaryCreate(
+                null,
+                keys.reinterpret(),
+                values.reinterpret(),
+                4,
+                null,
+                null
+            )
+            
+            // Сохраняем в Keychain
+            val addStatus = SecItemAdd(query, null)
+            println("[DEBUG_LOG] AiSettingsStorage (iOS): saveToKeychain status=$addStatus for key=$key (errSecSuccess=0, errSecDuplicateItem=-25299)")
+            CFRelease(query)
+            if (cfKey != null) CFRelease(cfKey)
+        }
     }
     
     /**
@@ -85,31 +119,59 @@ actual class AiSettingsStorage {
      */
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     private fun loadFromKeychain(key: String): String? {
+        println("[DEBUG_LOG] AiSettingsStorage (iOS): loadFromKeychain called for key=$key")
+        
         memScoped {
-            val query = mapOf(
-                kSecClass to kSecClassGenericPassword,
-                kSecAttrAccount to key,
-                kSecReturnData to kCFBooleanTrue,
-                kSecMatchLimit to kSecMatchLimitOne
+            // Создаём CFString из Kotlin String
+            val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
+            
+            // Создаём массивы ключей и значений для CFDictionary
+            val keys = allocArrayOf(kSecClass, kSecAttrAccount, kSecReturnData, kSecMatchLimit)
+            val values = allocArrayOf(kSecClassGenericPassword, cfKey, kCFBooleanTrue, kSecMatchLimitOne)
+            
+            val query = CFDictionaryCreate(
+                null,
+                keys.reinterpret(),
+                values.reinterpret(),
+                4,
+                null,
+                null
             )
             
             val result = alloc<CFTypeRefVar>()
-            val status = SecItemCopyMatching(query as CFDictionaryRef, result.ptr)
+            val status = SecItemCopyMatching(query, result.ptr)
             
-            if (status == errSecSuccess) {
-                val data = result.value as? NSData
-                return data?.let {
-                    val bytes = ByteArray(it.length.toInt())
+            println("[DEBUG_LOG] AiSettingsStorage (iOS): Keychain query status=$status (errSecSuccess=0, errSecItemNotFound=-25300)")
+            
+            var resultString: String? = null
+            
+            if (status == errSecSuccess && result.value != null) {
+                // Правильное преобразование CFTypeRef в NSData
+                // CFTypeRef это указатель на ObjC объект, извлекаем rawValue и преобразуем
+                val cfDataPtr = result.value
+                val nsData: NSData? = interpretObjCPointer(cfDataPtr.rawValue)
+                
+                println("[DEBUG_LOG] AiSettingsStorage (iOS): NSData cast result: ${if (nsData != null) "success, length=${nsData.length}" else "failed"}")
+                
+                if (nsData != null) {
+                    val bytes = ByteArray(nsData.length.toInt())
                     if (bytes.isNotEmpty()) {
                         bytes.usePinned { pinned ->
-                            memcpy(pinned.addressOf(0), it.bytes, it.length)
+                            memcpy(pinned.addressOf(0), nsData.bytes, nsData.length)
                         }
                     }
-                    bytes.decodeToString()
+                    resultString = bytes.decodeToString()
+                    println("[DEBUG_LOG] AiSettingsStorage (iOS): Loaded from Keychain: ${resultString.length} chars")
                 }
+            } else {
+                println("[DEBUG_LOG] AiSettingsStorage (iOS): SecItemCopyMatching failed with status=$status")
             }
             
-            return null
+            // Освобождаем ресурсы после извлечения данных
+            CFRelease(query)
+            if (cfKey != null) CFRelease(cfKey)
+            
+            return resultString
         }
     }
     
@@ -118,12 +180,27 @@ actual class AiSettingsStorage {
      */
     @OptIn(ExperimentalForeignApi::class)
     private fun deleteFromKeychain(key: String) {
-        val query = mapOf(
-            kSecClass to kSecClassGenericPassword,
-            kSecAttrAccount to key
-        )
-        
-        SecItemDelete(query as CFDictionaryRef)
+        memScoped {
+            // Создаём CFString из Kotlin String
+            val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
+            
+            // Создаём массивы ключей и значений для CFDictionary
+            val keys = allocArrayOf(kSecClass, kSecAttrAccount)
+            val values = allocArrayOf(kSecClassGenericPassword, cfKey)
+            
+            val query = CFDictionaryCreate(
+                null,
+                keys.reinterpret(),
+                values.reinterpret(),
+                2,
+                null,
+                null
+            )
+            
+            SecItemDelete(query)
+            CFRelease(query)
+            if (cfKey != null) CFRelease(cfKey)
+        }
     }
     
     companion object {
