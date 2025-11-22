@@ -20,7 +20,7 @@ actual class AiSettingsStorage {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=${config.provider}, apiKey=${if (config.apiKey.isBlank()) "empty" else "present (${config.apiKey.length} chars)"}")
         
         defaults.setObject(config.provider, KEY_PROVIDER)
-        // Сохраняем API ключ в Keychain для безопасности
+        // Сохраняем API ключ в Keychain для безопасности (deprecated, для обратной совместимости)
         if (config.apiKey.isNotBlank()) {
             println("[DEBUG_LOG] AiSettingsStorage (iOS): Saving API key to Keychain")
             saveToKeychain(KEYCHAIN_KEY_API_KEY, config.apiKey)
@@ -32,14 +32,49 @@ actual class AiSettingsStorage {
         defaults.setObject(config.baseUrl, KEY_BASE_URL)
         defaults.setDouble(config.temperature, KEY_TEMPERATURE)
         defaults.setInteger(config.maxTokens.toLong(), KEY_MAX_TOKENS)
+        defaults.setObject(config.language, KEY_LANGUAGE)
+        defaults.setObject(config.transcriptionProvider, KEY_TRANSCRIPTION_PROVIDER)
+        // Сохраняем Google API ключ в Keychain для безопасности (deprecated)
+        if (config.googleApiKey.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY, config.googleApiKey)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY)
+        }
+        
+        // Сохраняем новые API ключи для групп провайдеров в Keychain
+        if (config.openaiApiKey.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_OPENAI_API_KEY, config.openaiApiKey)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
+        }
+        
+        if (config.anthropicApiKey.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY, config.anthropicApiKey)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY)
+        }
+        
+        if (config.googleAiApiKey.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
+        }
+        
         defaults.synchronize()
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig completed")
     }
     
     actual fun loadConfig(): AiConfig {
-        // Загружаем API ключ из Keychain
+        // Загружаем API ключ из Keychain (deprecated)
         val apiKey = loadFromKeychain(KEYCHAIN_KEY_API_KEY) ?: ""
+        // Загружаем Google API ключ из Keychain (deprecated)
+        val googleApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY) ?: ""
+        
+        // Загружаем новые API ключи для групп провайдеров из Keychain
+        val openaiApiKey = loadFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY) ?: ""
+        val anthropicApiKey = loadFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY) ?: ""
+        val googleAiApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY) ?: ""
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): loadConfig called")
         println("[DEBUG_LOG] AiSettingsStorage (iOS): apiKey from Keychain = ${if (apiKey.isBlank()) "empty" else "present (${apiKey.length} chars)"}")
@@ -49,6 +84,8 @@ actual class AiSettingsStorage {
         val baseUrl = defaults.stringForKey(KEY_BASE_URL) ?: ""
         val temperature = defaults.doubleForKey(KEY_TEMPERATURE).takeIf { it != 0.0 } ?: 0.7
         val maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
+        val language = defaults.stringForKey(KEY_LANGUAGE) ?: ""
+        val transcriptionProvider = defaults.stringForKey(KEY_TRANSCRIPTION_PROVIDER) ?: "OPENAI_WHISPER"
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=$provider, model=$model")
         
@@ -58,7 +95,15 @@ actual class AiSettingsStorage {
             model = model,
             baseUrl = baseUrl,
             temperature = temperature,
-            maxTokens = maxTokens
+            maxTokens = maxTokens,
+            language = language,
+            transcriptionProvider = transcriptionProvider,
+            googleApiKey = googleApiKey,
+            
+            // Новые поля для отдельных ключей групп провайдеров
+            openaiApiKey = openaiApiKey,
+            anthropicApiKey = anthropicApiKey,
+            googleAiApiKey = googleAiApiKey
         )
     }
     
@@ -69,6 +114,15 @@ actual class AiSettingsStorage {
         defaults.removeObjectForKey(KEY_BASE_URL)
         defaults.removeObjectForKey(KEY_TEMPERATURE)
         defaults.removeObjectForKey(KEY_MAX_TOKENS)
+        defaults.removeObjectForKey(KEY_LANGUAGE)
+        defaults.removeObjectForKey(KEY_TRANSCRIPTION_PROVIDER)
+        deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY)
+        
+        // Удаляем новые ключи из Keychain
+        deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
+        deleteFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY)
+        deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
+        
         defaults.synchronize()
     }
     
@@ -209,8 +263,16 @@ actual class AiSettingsStorage {
         private const val KEY_BASE_URL = "ai_base_url"
         private const val KEY_TEMPERATURE = "ai_temperature"
         private const val KEY_MAX_TOKENS = "ai_max_tokens"
+        private const val KEY_LANGUAGE = "ai_language"
+        private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
         
-        // Keychain key для API ключа
+        // Keychain keys для API ключей
         private const val KEYCHAIN_KEY_API_KEY = "com.family.tree.ai_api_key"
+        private const val KEYCHAIN_KEY_GOOGLE_API_KEY = "com.family.tree.ai_google_api_key"
+        
+        // Новые Keychain keys для отдельных ключей групп провайдеров
+        private const val KEYCHAIN_KEY_OPENAI_API_KEY = "com.family.tree.ai_openai_api_key"
+        private const val KEYCHAIN_KEY_ANTHROPIC_API_KEY = "com.family.tree.ai_anthropic_api_key"
+        private const val KEYCHAIN_KEY_GOOGLE_AI_API_KEY = "com.family.tree.ai_google_ai_api_key"
     }
 }

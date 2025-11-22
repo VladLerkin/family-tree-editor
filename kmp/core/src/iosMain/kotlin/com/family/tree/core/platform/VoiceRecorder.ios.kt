@@ -29,6 +29,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     }
     
     actual fun startRecording(
+        format: AudioFormat,
         onResult: (ByteArray) -> Unit,
         onError: (String) -> Unit
     ) {

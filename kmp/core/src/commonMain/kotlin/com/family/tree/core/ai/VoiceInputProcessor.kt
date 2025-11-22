@@ -52,7 +52,16 @@ class VoiceInputProcessor(
         
         println("[DEBUG_LOG] VoiceInputProcessor: Starting voice input")
         
+        // Используем M4A/AAC формат для всех провайдеров, так как:
+        // - OpenAI Whisper API поддерживает M4A/AAC
+        // - Google Speech-to-Text API также поддерживает M4A/AAC/MP3
+        // - FLAC кодек недоступен на многих Android устройствах (особенно Xiaomi/Redmi)
+        val audioFormat = com.family.tree.core.platform.AudioFormat.M4A
+        
+        println("[DEBUG_LOG] VoiceInputProcessor: Using audio format $audioFormat (universal format for all providers)")
+        
         voiceRecorder.startRecording(
+            format = audioFormat,
             onResult = { audioData ->
                 println("[DEBUG_LOG] VoiceInputProcessor: Received audio data: ${audioData.size} bytes")
                 
@@ -64,12 +73,16 @@ class VoiceInputProcessor(
                         println("[DEBUG_LOG] VoiceInputProcessor: Loaded AI config - provider=${aiConfig.getProvider()}, model=${aiConfig.model}, apiKey=${if (aiConfig.apiKey.isBlank()) "empty" else "present"}")
                         
                         // Создаем клиенты с актуальной конфигурацией
-                        val aiClient = AiClientFactory.createClient(aiConfig)
+                        val transcriptionClient = TranscriptionClientFactory.createClient(aiConfig)
                         val aiTextImporter = AiTextImporter(aiConfig)
                         
-                        // Шаг 1: Транскрибировать аудио через Whisper
-                        println("[DEBUG_LOG] VoiceInputProcessor: Transcribing audio through Whisper API")
-                        val transcribedText = aiClient.transcribeAudio(audioData, aiConfig)
+                        // Шаг 1: Транскрибировать аудио через выбранный провайдер (Whisper или Google Speech)
+                        val providerName = when (aiConfig.getTranscriptionProvider()) {
+                            TranscriptionProvider.OPENAI_WHISPER -> "OpenAI Whisper"
+                            TranscriptionProvider.GOOGLE_SPEECH -> "Google Speech-to-Text"
+                        }
+                        println("[DEBUG_LOG] VoiceInputProcessor: Transcribing audio through $providerName")
+                        val transcribedText = transcriptionClient.transcribeAudio(audioData, aiConfig)
                         println("[DEBUG_LOG] VoiceInputProcessor: Transcribed text: $transcribedText")
                         onRecognized?.invoke(transcribedText)
                         

@@ -11,6 +11,16 @@ import android.provider.Settings
 import java.io.File
 import java.io.IOException
 
+/**
+ * Параметры формата записи для MediaRecorder
+ */
+private data class RecordingFormat(
+    val fileExtension: String,
+    val outputFormat: Int,
+    val audioEncoder: Int,
+    val description: String
+)
+
 actual class VoiceRecorder actual constructor(context: Any?) {
     
     private val androidContext: Context? = context as? Context
@@ -25,6 +35,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     }
     
     actual fun startRecording(
+        format: AudioFormat,
         onResult: (ByteArray) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -54,8 +65,42 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         recording = true
         
         try {
+            // Выбираем формат записи в зависимости от провайдера транскрипции
+            val recordingFormat = when (format) {
+                AudioFormat.M4A -> {
+                    // M4A/AAC формат - оптимален для OpenAI Whisper API
+                    RecordingFormat(
+                        fileExtension = ".m4a",
+                        outputFormat = MediaRecorder.OutputFormat.MPEG_4,
+                        audioEncoder = MediaRecorder.AudioEncoder.AAC,
+                        description = "AAC/M4A format, 16kHz, 64kbps"
+                    )
+                }
+                AudioFormat.FLAC -> {
+                    // FLAC формат - оптимален для Google Speech-to-Text API
+                    // Требует Android API 26+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        RecordingFormat(
+                            fileExtension = ".flac",
+                            outputFormat = MediaRecorder.OutputFormat.OGG,  // OGG container для FLAC
+                            audioEncoder = 17,  // MediaRecorder.AudioEncoder.FLAC (константа недоступна на старых API)
+                            description = "FLAC format, 16kHz"
+                        )
+                    } else {
+                        // Fallback на M4A для старых Android
+                        println("[DEBUG_LOG] VoiceRecorder: FLAC not supported on API ${Build.VERSION.SDK_INT}, using M4A fallback")
+                        RecordingFormat(
+                            fileExtension = ".m4a",
+                            outputFormat = MediaRecorder.OutputFormat.MPEG_4,
+                            audioEncoder = MediaRecorder.AudioEncoder.AAC,
+                            description = "AAC/M4A format (FLAC fallback), 16kHz, 64kbps"
+                        )
+                    }
+                }
+            }
+            
             // Создаем временный файл для записи
-            audioFile = File.createTempFile("voice_", ".m4a", androidContext.cacheDir)
+            audioFile = File.createTempFile("voice_", recordingFormat.fileExtension, androidContext.cacheDir)
             println("[DEBUG_LOG] VoiceRecorder: Created temp file: ${audioFile?.absolutePath}")
             
             // Создаем MediaRecorder
@@ -68,15 +113,20 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             
             mediaRecorder?.apply {
                 setAudioSource(MediaRecorder.AudioSource.MIC)
-                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-                setAudioSamplingRate(16000)
-                setAudioEncodingBitRate(64000)
+                setOutputFormat(recordingFormat.outputFormat)
+                setAudioEncoder(recordingFormat.audioEncoder)
+                setAudioSamplingRate(16000)  // 16kHz sample rate (optimal for speech)
+                
+                // Bitrate только для AAC (FLAC использует lossless сжатие)
+                if (format == AudioFormat.M4A) {
+                    setAudioEncodingBitRate(64000)  // 64 kbps (good quality for speech)
+                }
+                
                 setOutputFile(audioFile?.absolutePath)
                 
                 prepare()
                 start()
-                println("[DEBUG_LOG] VoiceRecorder: Recording started")
+                println("[DEBUG_LOG] VoiceRecorder: Recording started (${recordingFormat.description})")
             }
             
         } catch (e: IOException) {

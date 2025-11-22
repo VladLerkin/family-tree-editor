@@ -74,15 +74,28 @@ fun AiConfigDialog(
     onDismiss: () -> Unit,
     onConfirm: (AiConfig) -> Unit
 ) {
-    var selectedPresetIndex by remember { mutableStateOf(0) }
+    val presets = AiPresets.getAllPresets()
+    
+    // Находим индекс preset'а, который соответствует initialConfig.model
+    val initialPresetIndex = presets.indexOfFirst { (_, preset) -> 
+        preset.model == initialConfig.model && preset.provider == initialConfig.provider
+    }.let { if (it >= 0) it else 0 }
+    
+    var selectedPresetIndex by remember { mutableStateOf(initialPresetIndex) }
     var provider by remember { mutableStateOf(initialConfig.provider) }
-    var apiKey by remember { mutableStateOf(initialConfig.apiKey) }
+    var apiKey by remember { mutableStateOf(initialConfig.apiKey) }  // Deprecated, для обратной совместимости
     var model by remember { mutableStateOf(initialConfig.model) }
     var baseUrl by remember { mutableStateOf(initialConfig.baseUrl) }
     var temperature by remember { mutableStateOf(initialConfig.temperature.toString()) }
     var maxTokens by remember { mutableStateOf(initialConfig.maxTokens.toString()) }
+    var language by remember { mutableStateOf(initialConfig.language) }
+    var transcriptionProvider by remember { mutableStateOf(initialConfig.transcriptionProvider) }
+    var googleApiKey by remember { mutableStateOf(initialConfig.googleApiKey) }  // Deprecated
     
-    val presets = AiPresets.getAllPresets()
+    // Новые отдельные API ключи для каждой группы провайдеров
+    var openaiApiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
+    var anthropicApiKey by remember { mutableStateOf(initialConfig.anthropicApiKey) }
+    var googleAiApiKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -146,50 +159,104 @@ fun AiConfigDialog(
                 
                 Divider(modifier = Modifier.padding(vertical = 16.dp))
                 
-                // API Key - блокировка копирования, только вставка
+                // API Keys для групп провайдеров - блокировка копирования, только вставка
                 val clipboardManager = LocalClipboardManager.current
-                DisableSelection {
-                    OutlinedTextField(
-                        value = apiKey,
-                        onValueChange = { apiKey = it },
-                        label = { Text("API Key") },
-                        placeholder = { 
-                            Text(
-                                when (provider) {
-                                    "OPENAI" -> "sk-..."
-                                    "ANTHROPIC" -> "sk-ant-..."
-                                    "OLLAMA" -> "Не требуется для локальных моделей"
-                                    else -> "Опционально"
-                                }
-                            )
-                        },
-                        visualTransformation = ApiKeyVisualTransformation(),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp)
-                            .onPreviewKeyEvent { keyEvent ->
-                                // Блокируем копирование (Cmd+C на macOS, Ctrl+C на Windows/Linux)
-                                if (keyEvent.type == KeyEventType.KeyDown) {
-                                    val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                 keyEvent.key == Key.C
-                                    if (isCopy) {
-                                        return@onPreviewKeyEvent true // Блокируем событие
-                                    }
-                                    
-                                    // Разрешаем вставку (Cmd+V / Ctrl+V)
-                                    val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                  keyEvent.key == Key.V
-                                    if (isPaste) {
-                                        clipboardManager.getText()?.text?.let { pastedText ->
-                                            apiKey = pastedText
+                
+                // Отображаем поле API ключа в зависимости от выбранного провайдера
+                when (provider) {
+                    "OPENAI" -> {
+                        DisableSelection {
+                            OutlinedTextField(
+                                value = openaiApiKey,
+                                onValueChange = { openaiApiKey = it },
+                                label = { Text("OpenAI API Key") },
+                                placeholder = { Text("sk-...") },
+                                supportingText = { Text("API ключ для OpenAI (GPT модели). Получите его в OpenAI Dashboard.") },
+                                visualTransformation = ApiKeyVisualTransformation(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
+                                            if (isCopy) return@onPreviewKeyEvent true
+                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
+                                            if (isPaste) {
+                                                clipboardManager.getText()?.text?.let { openaiApiKey = it }
+                                                return@onPreviewKeyEvent true
+                                            }
                                         }
-                                        return@onPreviewKeyEvent true
-                                    }
-                                }
-                                false
-                            },
-                        singleLine = true
-                    )
+                                        false
+                                    },
+                                singleLine = true
+                            )
+                        }
+                    }
+                    "ANTHROPIC" -> {
+                        DisableSelection {
+                            OutlinedTextField(
+                                value = anthropicApiKey,
+                                onValueChange = { anthropicApiKey = it },
+                                label = { Text("Anthropic API Key") },
+                                placeholder = { Text("sk-ant-...") },
+                                supportingText = { Text("API ключ для Anthropic (Claude модели). Получите его в Anthropic Console.") },
+                                visualTransformation = ApiKeyVisualTransformation(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
+                                            if (isCopy) return@onPreviewKeyEvent true
+                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
+                                            if (isPaste) {
+                                                clipboardManager.getText()?.text?.let { anthropicApiKey = it }
+                                                return@onPreviewKeyEvent true
+                                            }
+                                        }
+                                        false
+                                    },
+                                singleLine = true
+                            )
+                        }
+                    }
+                    "GOOGLE" -> {
+                        DisableSelection {
+                            OutlinedTextField(
+                                value = googleAiApiKey,
+                                onValueChange = { googleAiApiKey = it },
+                                label = { Text("Google AI API Key") },
+                                placeholder = { Text("AIza...") },
+                                supportingText = { Text("API ключ для Google AI (Gemini модели и Speech-to-Text). Получите его в Google AI Studio.") },
+                                visualTransformation = ApiKeyVisualTransformation(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
+                                            if (isCopy) return@onPreviewKeyEvent true
+                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
+                                            if (isPaste) {
+                                                clipboardManager.getText()?.text?.let { googleAiApiKey = it }
+                                                return@onPreviewKeyEvent true
+                                            }
+                                        }
+                                        false
+                                    },
+                                singleLine = true
+                            )
+                        }
+                    }
+                    "OLLAMA", "CUSTOM" -> {
+                        // Для Ollama и Custom не требуется API ключ или используется baseUrl
+                        Text(
+                            text = "API ключ не требуется для локальных моделей",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
                 }
                 
                 // Custom URL (for Ollama and Custom)
@@ -224,6 +291,133 @@ fun AiConfigDialog(
                         .padding(bottom = 12.dp),
                     singleLine = true
                 )
+                
+                // Language for voice transcription
+                OutlinedTextField(
+                    value = language,
+                    onValueChange = { language = it },
+                    label = { Text("Язык транскрипции (ISO-639-1)") },
+                    placeholder = { Text("ka, ru, en и т.д.") },
+                    supportingText = { Text("Код языка для транскрипции (например, 'ka' для грузинского, 'ru' для русского). Оставьте пустым для автоопределения.") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
+                
+                // Transcription provider selection
+                Text(
+                    text = "Провайдер распознавания речи:",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                )
+                
+                Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = transcriptionProvider == "OPENAI_WHISPER",
+                            onClick = { transcriptionProvider = "OPENAI_WHISPER" }
+                        )
+                        Text(
+                            text = "OpenAI Whisper",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = transcriptionProvider == "GOOGLE_SPEECH",
+                            onClick = { transcriptionProvider = "GOOGLE_SPEECH" }
+                        )
+                        Text(
+                            text = "Google Speech-to-Text (лучше для грузинского)",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                }
+                
+                // OpenAI API Key (shown only when OpenAI Whisper is selected)
+                if (transcriptionProvider == "OPENAI_WHISPER") {
+                    DisableSelection {
+                        OutlinedTextField(
+                            value = openaiApiKey,
+                            onValueChange = { openaiApiKey = it },
+                            label = { Text("OpenAI API Key (Whisper)") },
+                            placeholder = { Text("sk-...") },
+                            supportingText = { Text("API ключ для OpenAI Whisper транскрипции. Используется тот же ключ, что и для GPT моделей.") },
+                            visualTransformation = ApiKeyVisualTransformation(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                     keyEvent.key == Key.C
+                                        if (isCopy) {
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        
+                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                      keyEvent.key == Key.V
+                                        if (isPaste) {
+                                            clipboardManager.getText()?.text?.let { pastedText ->
+                                                openaiApiKey = pastedText
+                                            }
+                                            return@onPreviewKeyEvent true
+                                        }
+                                    }
+                                    false
+                                },
+                            singleLine = true
+                        )
+                    }
+                }
+                
+                // Google AI API Key (shown only when Google Speech is selected)
+                if (transcriptionProvider == "GOOGLE_SPEECH") {
+                    DisableSelection {
+                        OutlinedTextField(
+                            value = googleAiApiKey,
+                            onValueChange = { googleAiApiKey = it },
+                            label = { Text("Google AI API Key (Speech-to-Text)") },
+                            placeholder = { Text("AIza...") },
+                            supportingText = { Text("API ключ для Google Speech-to-Text. Используется тот же ключ, что и для Gemini моделей.") },
+                            visualTransformation = ApiKeyVisualTransformation(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                     keyEvent.key == Key.C
+                                        if (isCopy) {
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        
+                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                      keyEvent.key == Key.V
+                                        if (isPaste) {
+                                            clipboardManager.getText()?.text?.let { pastedText ->
+                                                googleAiApiKey = pastedText
+                                            }
+                                            return@onPreviewKeyEvent true
+                                        }
+                                    }
+                                    false
+                                },
+                            singleLine = true
+                        )
+                    }
+                }
                 
                 // Advanced settings
                 Text(
@@ -276,11 +470,19 @@ fun AiConfigDialog(
                         onClick = {
                             val config = AiConfig(
                                 provider = provider,
-                                apiKey = apiKey,
+                                apiKey = apiKey,  // Deprecated, но оставляем для обратной совместимости
                                 model = model,
                                 baseUrl = baseUrl,
                                 temperature = temperature.toDoubleOrNull() ?: 0.7,
-                                maxTokens = maxTokens.toIntOrNull() ?: 4000
+                                maxTokens = maxTokens.toIntOrNull() ?: 4000,
+                                language = language,
+                                transcriptionProvider = transcriptionProvider,
+                                googleApiKey = googleApiKey,  // Deprecated
+                                
+                                // Новые поля для отдельных ключей групп провайдеров
+                                openaiApiKey = openaiApiKey,
+                                anthropicApiKey = anthropicApiKey,
+                                googleAiApiKey = googleAiApiKey
                             )
                             onConfirm(config)
                         }

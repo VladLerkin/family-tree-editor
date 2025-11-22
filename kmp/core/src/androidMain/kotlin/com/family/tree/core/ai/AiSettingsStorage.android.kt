@@ -38,6 +38,14 @@ actual class AiSettingsStorage {
             putString(KEY_BASE_URL, config.baseUrl)
             putFloat(KEY_TEMPERATURE, config.temperature.toFloat())
             putInt(KEY_MAX_TOKENS, config.maxTokens)
+            putString(KEY_LANGUAGE, config.language)
+            putString(KEY_TRANSCRIPTION_PROVIDER, config.transcriptionProvider)
+            putString(KEY_GOOGLE_API_KEY, config.googleApiKey)  // Deprecated, но сохраняем для обратной совместимости
+            
+            // Новые поля для отдельных ключей групп провайдеров
+            putString(KEY_OPENAI_API_KEY, config.openaiApiKey)
+            putString(KEY_ANTHROPIC_API_KEY, config.anthropicApiKey)
+            putString(KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
             apply()
         }
     }
@@ -49,7 +57,15 @@ actual class AiSettingsStorage {
             model = prefs.getString(KEY_MODEL, AiPresets.OPENAI_GPT4O_MINI.model) ?: AiPresets.OPENAI_GPT4O_MINI.model,
             baseUrl = prefs.getString(KEY_BASE_URL, "") ?: "",
             temperature = prefs.getFloat(KEY_TEMPERATURE, 0.7f).toDouble(),
-            maxTokens = prefs.getInt(KEY_MAX_TOKENS, 4000)
+            maxTokens = prefs.getInt(KEY_MAX_TOKENS, 4000),
+            language = prefs.getString(KEY_LANGUAGE, "") ?: "",
+            transcriptionProvider = prefs.getString(KEY_TRANSCRIPTION_PROVIDER, "OPENAI_WHISPER") ?: "OPENAI_WHISPER",
+            googleApiKey = prefs.getString(KEY_GOOGLE_API_KEY, "") ?: "",
+            
+            // Новые поля для отдельных ключей групп провайдеров
+            openaiApiKey = prefs.getString(KEY_OPENAI_API_KEY, "") ?: "",
+            anthropicApiKey = prefs.getString(KEY_ANTHROPIC_API_KEY, "") ?: "",
+            googleAiApiKey = prefs.getString(KEY_GOOGLE_AI_API_KEY, "") ?: ""
         )
     }
     
@@ -61,6 +77,14 @@ actual class AiSettingsStorage {
             remove(KEY_BASE_URL)
             remove(KEY_TEMPERATURE)
             remove(KEY_MAX_TOKENS)
+            remove(KEY_LANGUAGE)
+            remove(KEY_TRANSCRIPTION_PROVIDER)
+            remove(KEY_GOOGLE_API_KEY)
+            
+            // Удаляем новые поля
+            remove(KEY_OPENAI_API_KEY)
+            remove(KEY_ANTHROPIC_API_KEY)
+            remove(KEY_GOOGLE_AI_API_KEY)
             apply()
         }
     }
@@ -73,6 +97,14 @@ actual class AiSettingsStorage {
         private const val KEY_BASE_URL = "ai_base_url"
         private const val KEY_TEMPERATURE = "ai_temperature"
         private const val KEY_MAX_TOKENS = "ai_max_tokens"
+        private const val KEY_LANGUAGE = "ai_language"
+        private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
+        private const val KEY_GOOGLE_API_KEY = "ai_google_api_key"
+        
+        // Новые ключи для отдельных API ключей групп провайдеров
+        private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
+        private const val KEY_ANTHROPIC_API_KEY = "ai_anthropic_api_key"
+        private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
         
         private var appContext: Context? = null
         

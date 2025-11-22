@@ -17,7 +17,8 @@ class AnthropicClient : AiClient {
     }
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
-        if (config.apiKey.isBlank()) {
+        val apiKey = config.getApiKeyForProvider()
+        if (apiKey.isBlank()) {
             throw IllegalArgumentException("Anthropic API key is required")
         }
         
@@ -46,7 +47,7 @@ class AnthropicClient : AiClient {
         try {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
-                header("x-api-key", config.apiKey)
+                header("x-api-key", apiKey)
                 header("anthropic-version", "2023-06-01")
                 setBody(requestBody.toString())
             }

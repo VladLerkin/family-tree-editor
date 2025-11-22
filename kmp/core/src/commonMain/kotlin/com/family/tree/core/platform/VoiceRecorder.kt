@@ -1,6 +1,24 @@
 package com.family.tree.core.platform
 
 /**
+ * Форматы аудио для записи
+ */
+enum class AudioFormat {
+    /**
+     * M4A/AAC формат - оптимален для OpenAI Whisper API
+     * Поддерживается: Android, iOS, Desktop
+     */
+    M4A,
+    
+    /**
+     * FLAC формат - оптимален для Google Speech-to-Text API
+     * Поддерживается: Android, Desktop
+     * На iOS будет использован M4A как fallback
+     */
+    FLAC
+}
+
+/**
  * Платформо-специфичный интерфейс для записи аудио
  */
 expect class VoiceRecorder(context: Any?) {
@@ -11,10 +29,12 @@ expect class VoiceRecorder(context: Any?) {
     
     /**
      * Начать запись аудио
+     * @param format формат записи (M4A или FLAC)
      * @param onResult callback с аудио данными (ByteArray) при успехе
      * @param onError callback с сообщением об ошибке
      */
     fun startRecording(
+        format: AudioFormat = AudioFormat.M4A,
         onResult: (ByteArray) -> Unit,
         onError: (String) -> Unit
     )

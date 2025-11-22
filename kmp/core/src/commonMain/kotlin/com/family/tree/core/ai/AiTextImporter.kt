@@ -116,7 +116,11 @@ Return ONLY the JSON object, no explanations.
      * @return JSON строка с результатами анализа
      */
     private suspend fun callAiApi(prompt: String): String {
-        return aiClient.sendPrompt(prompt, config)
+        println("[DEBUG_LOG] AiTextImporter.callAiApi: Sending prompt to AI (length=${prompt.length})")
+        println("[DEBUG_LOG] AiTextImporter.callAiApi: Prompt preview (first 500 chars): ${prompt.take(500)}")
+        val result = aiClient.sendPrompt(prompt, config)
+        println("[DEBUG_LOG] AiTextImporter.callAiApi: Received response (length=${result.length})")
+        return result
     }
     
     /**

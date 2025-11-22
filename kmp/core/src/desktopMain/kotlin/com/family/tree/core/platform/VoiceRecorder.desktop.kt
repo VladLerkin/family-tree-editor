@@ -28,6 +28,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     }
     
     actual fun startRecording(
+        format: AudioFormat,
         onResult: (ByteArray) -> Unit,
         onError: (String) -> Unit
     ) {
@@ -42,8 +43,8 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         
         try {
             // Настраиваем аудио формат (аналогично Android: 16kHz, mono, 16-bit)
-            val audioFormat = AudioFormat(
-                AudioFormat.Encoding.PCM_SIGNED,
+            val javaxAudioFormat = javax.sound.sampled.AudioFormat(
+                javax.sound.sampled.AudioFormat.Encoding.PCM_SIGNED,
                 16000f,  // Sample rate
                 16,      // Sample size in bits
                 1,       // Channels (mono)
@@ -53,7 +54,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             )
             
             // Получаем линию для записи
-            val dataLineInfo = DataLine.Info(TargetDataLine::class.java, audioFormat)
+            val dataLineInfo = DataLine.Info(TargetDataLine::class.java, javaxAudioFormat)
             
             if (!AudioSystem.isLineSupported(dataLineInfo)) {
                 recording = false
@@ -64,7 +65,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             }
             
             targetDataLine = AudioSystem.getLine(dataLineInfo) as TargetDataLine
-            targetDataLine?.open(audioFormat)
+            targetDataLine?.open(javaxAudioFormat)
             targetDataLine?.start()
             
             audioOutputStream = ByteArrayOutputStream()
@@ -210,8 +211,8 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         val outputStream = ByteArrayOutputStream()
         
         // WAV заголовок
-        val audioFormat = AudioFormat(
-            AudioFormat.Encoding.PCM_SIGNED,
+        val javaxAudioFormat = javax.sound.sampled.AudioFormat(
+            javax.sound.sampled.AudioFormat.Encoding.PCM_SIGNED,
             16000f,  // Sample rate
             16,      // Sample size in bits
             1,       // Channels (mono)
@@ -222,8 +223,8 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         
         val audioInputStream = AudioInputStream(
             pcmData.inputStream(),
-            audioFormat,
-            pcmData.size.toLong() / audioFormat.frameSize
+            javaxAudioFormat,
+            pcmData.size.toLong() / javaxAudioFormat.frameSize
         )
         
         AudioSystem.write(audioInputStream, AudioFileFormat.Type.WAVE, outputStream)

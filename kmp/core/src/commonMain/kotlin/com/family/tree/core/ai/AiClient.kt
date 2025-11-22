@@ -36,6 +36,7 @@ object AiClientFactory {
         return when (provider) {
             AiProvider.OPENAI -> OpenAiClient()
             AiProvider.ANTHROPIC -> AnthropicClient()
+            AiProvider.GOOGLE -> GoogleClient()
             AiProvider.OLLAMA -> OllamaClient()
             AiProvider.CUSTOM -> CustomClient()
         }

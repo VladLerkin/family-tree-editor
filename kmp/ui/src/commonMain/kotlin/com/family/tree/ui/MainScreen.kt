@@ -416,8 +416,8 @@ fun MainScreen() {
                 return@run
             }
             
-            // Start recording
-            println("[DEBUG_LOG] MainScreen.voiceInput: Starting voice input")
+            // Загружаем сохраненные настройки и сразу начинаем запись
+            println("[DEBUG_LOG] MainScreen.voiceInput: Starting voice input with saved settings")
             isVoiceRecording = true
             voiceInputStatus = "Говорите..."
             showVoiceInputDialog = true
