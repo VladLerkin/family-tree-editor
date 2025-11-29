@@ -10,6 +10,7 @@ enum class AiProvider {
     ANTHROPIC,   // Anthropic (Claude)
     GOOGLE,      // Google (Gemini)
     OLLAMA,      // Локальная модель через Ollama
+    YANDEX,      // YandexGPT
     CUSTOM       // Пользовательский endpoint (OpenAI-совместимый API)
 }
 
@@ -18,7 +19,8 @@ enum class AiProvider {
  */
 enum class TranscriptionProvider {
     OPENAI_WHISPER,    // OpenAI Whisper API
-    GOOGLE_SPEECH      // Google Cloud Speech-to-Text
+    GOOGLE_SPEECH,     // Google Cloud Speech-to-Text
+    YANDEX_SPEECHKIT   // Yandex SpeechKit
 }
 
 /**
@@ -41,7 +43,11 @@ data class AiConfig(
     // Отдельные API ключи для каждой группы провайдеров
     val openaiApiKey: String = "",     // API ключ для OpenAI (GPT модели и Whisper)
     val anthropicApiKey: String = "",  // API ключ для Anthropic (Claude модели)
-    val googleAiApiKey: String = ""    // API ключ для Google AI (Gemini модели и Speech-to-Text)
+    val googleAiApiKey: String = "",   // API ключ для Google AI (Gemini модели и Speech-to-Text)
+    val yandexApiKey: String = "",      // API ключ для Yandex Cloud (SpeechKit)
+    
+    // Идентификатор каталога (Folder ID) для Yandex Cloud (опционально, можно не указывать при использовании API ключа сервисного аккаунта)
+    val yandexFolderId: String = "b1guuckqs9tjoc2aiuge"
 ) {
     fun getProvider(): AiProvider = try {
         AiProvider.valueOf(provider)
@@ -64,6 +70,7 @@ data class AiConfig(
             AiProvider.OPENAI -> openaiApiKey.ifBlank { apiKey }
             AiProvider.ANTHROPIC -> anthropicApiKey.ifBlank { apiKey }
             AiProvider.GOOGLE -> googleAiApiKey.ifBlank { googleApiKey.ifBlank { apiKey } }
+            AiProvider.YANDEX -> yandexApiKey.ifBlank { apiKey }
             AiProvider.OLLAMA, AiProvider.CUSTOM -> apiKey  // Для Ollama и Custom используем старое поле
         }
     }
@@ -75,6 +82,7 @@ data class AiConfig(
         return when (getTranscriptionProvider()) {
             TranscriptionProvider.OPENAI_WHISPER -> openaiApiKey.ifBlank { apiKey }
             TranscriptionProvider.GOOGLE_SPEECH -> googleAiApiKey.ifBlank { googleApiKey }
+            TranscriptionProvider.YANDEX_SPEECHKIT -> yandexApiKey.ifBlank { apiKey }
         }
     }
 }
@@ -141,6 +149,20 @@ object AiPresets {
         maxTokens = 4000
     )
     
+    val YANDEX_GPT_4 = AiConfig(
+        provider = "YANDEX",
+        model = "yandexgpt",
+        temperature = 0.6,
+        maxTokens = 4000
+    )
+
+    val YANDEX_GPT_LITE = AiConfig(
+        provider = "YANDEX",
+        model = "yandexgpt-lite",
+        temperature = 0.6,
+        maxTokens = 4000
+    )
+    
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (рекомендуется)" to OPENAI_GPT4O_MINI,
         "OpenAI GPT-4o" to OPENAI_GPT4O,
@@ -148,6 +170,8 @@ object AiPresets {
         "Claude 3.5 Haiku" to ANTHROPIC_CLAUDE_HAIKU,
         "Google Gemini 2.0 Flash" to GOOGLE_GEMINI_2_0_FLASH,
         "Google Gemini 1.5 Pro" to GOOGLE_GEMINI_1_5_PRO,
+        "YandexGPT 4" to YANDEX_GPT_4,
+        "YandexGPT Lite" to YANDEX_GPT_LITE,
         "Ollama Llama 3.2" to OLLAMA_LLAMA3,
         "Ollama Mistral" to OLLAMA_MISTRAL
     )

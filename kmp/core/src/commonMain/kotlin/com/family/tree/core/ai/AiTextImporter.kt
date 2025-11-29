@@ -283,12 +283,22 @@ Return ONLY the JSON object, no explanations.
         val familyGroups = mutableListOf<FamilyGroup>()
         val processedSpouses = mutableSetOf<Pair<Int, Int>>()
         
+        // Filter valid relationships where all required fields are present and indices are within bounds
+        val validRelationships = relationships.filter { rel ->
+            rel.personIndex != null && rel.relatedPersonIndex != null && rel.relationType != null &&
+            rel.personIndex >= 0 && rel.personIndex < personCount &&
+            rel.relatedPersonIndex >= 0 && rel.relatedPersonIndex < personCount
+        }
+        
         // Находим пары супругов
-        val spouseRelations = relationships.filter { it.relationType == "SPOUSE" }
+        val spouseRelations = validRelationships.filter { it.relationType == "SPOUSE" }
         
         for (spouseRel in spouseRelations) {
-            val pair1 = Pair(spouseRel.personIndex, spouseRel.relatedPersonIndex)
-            val pair2 = Pair(spouseRel.relatedPersonIndex, spouseRel.personIndex)
+            val p1 = spouseRel.personIndex!!
+            val p2 = spouseRel.relatedPersonIndex!!
+            
+            val pair1 = Pair(p1, p2)
+            val pair2 = Pair(p2, p1)
             
             if (pair1 in processedSpouses || pair2 in processedSpouses) {
                 continue
@@ -299,32 +309,35 @@ Return ONLY the JSON object, no explanations.
             
             // Находим детей этой пары
             val children = findChildrenOfCouple(
-                spouseRel.personIndex,
-                spouseRel.relatedPersonIndex,
-                relationships
+                p1,
+                p2,
+                validRelationships
             )
             
             familyGroups.add(
                 FamilyGroup(
-                    spouse1 = spouseRel.personIndex,
-                    spouse2 = spouseRel.relatedPersonIndex,
+                    spouse1 = p1,
+                    spouse2 = p2,
                     children = children
                 )
             )
         }
         
         // Обрабатываем родитель-ребёнок отношения без явных супругов
-        val parentChildRelations = relationships.filter { 
+        val parentChildRelations = validRelationships.filter { 
             it.relationType == "PARENT" || it.relationType == "CHILD" 
         }
         
         val childrenWithParents = mutableMapOf<Int, MutableSet<Int>>()
         
         for (rel in parentChildRelations) {
+            val pIdx = rel.personIndex!!
+            val rpIdx = rel.relatedPersonIndex!!
+            
             val (parentIdx, childIdx) = if (rel.relationType == "PARENT") {
-                rel.personIndex to rel.relatedPersonIndex
+                pIdx to rpIdx
             } else {
-                rel.relatedPersonIndex to rel.personIndex
+                rpIdx to pIdx
             }
             
             childrenWithParents.getOrPut(childIdx) { mutableSetOf() }.add(parentIdx)
@@ -374,7 +387,7 @@ Return ONLY the JSON object, no explanations.
                 (it.relationType == "PARENT" && it.personIndex == parent1) ||
                 (it.relationType == "CHILD" && it.relatedPersonIndex == parent1)
             }
-            .map { 
+            .mapNotNull { 
                 if (it.relationType == "PARENT") it.relatedPersonIndex else it.personIndex 
             }
             .toSet()
@@ -384,7 +397,7 @@ Return ONLY the JSON object, no explanations.
                 (it.relationType == "PARENT" && it.personIndex == parent2) ||
                 (it.relationType == "CHILD" && it.relatedPersonIndex == parent2)
             }
-            .map { 
+            .mapNotNull { 
                 if (it.relationType == "PARENT") it.relatedPersonIndex else it.personIndex 
             }
             .toSet()

@@ -15,7 +15,13 @@ enum class AudioFormat {
      * Поддерживается: Android, Desktop
      * На iOS будет использован M4A как fallback
      */
-    FLAC
+    FLAC,
+    
+    /**
+     * WAV (LPCM) format - required for Yandex SpeechKit
+     * Supported: Android (via AudioRecord), iOS (default), Desktop
+     */
+    WAV
 }
 
 /**

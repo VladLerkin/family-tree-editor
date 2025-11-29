@@ -25,6 +25,7 @@ object TranscriptionClientFactory {
         return when (config.getTranscriptionProvider()) {
             TranscriptionProvider.OPENAI_WHISPER -> OpenAiWhisperClient()
             TranscriptionProvider.GOOGLE_SPEECH -> GoogleSpeechClient()
+            TranscriptionProvider.YANDEX_SPEECHKIT -> YandexSpeechClient()
         }
     }
 }

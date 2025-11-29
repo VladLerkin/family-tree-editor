@@ -57,6 +57,17 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_GOOGLE_AI_API_KEY, encryptedGoogleAiKey)
         
+        // Шифруем Yandex API ключ перед сохранением
+        val encryptedYandexKey = if (config.yandexApiKey.isNotBlank()) {
+            encryptApiKey(config.yandexApiKey)
+        } else {
+            ""
+        }
+        prefs.put(KEY_YANDEX_API_KEY, encryptedYandexKey)
+        
+        // Сохраняем Yandex Folder ID (не требует шифрования, это не секрет)
+        prefs.put(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
+        
         prefs.flush()
     }
     
@@ -120,6 +131,18 @@ actual class AiSettingsStorage {
             ""
         }
         
+        // Расшифровываем Yandex API ключ при загрузке
+        val encryptedYandexKey = prefs.get(KEY_YANDEX_API_KEY, "")
+        val decryptedYandexKey = if (encryptedYandexKey.isNotBlank()) {
+            try {
+                decryptApiKey(encryptedYandexKey)
+            } catch (e: Exception) {
+                encryptedYandexKey
+            }
+        } else {
+            ""
+        }
+        
         return AiConfig(
             provider = prefs.get(KEY_PROVIDER, AiPresets.OPENAI_GPT4O_MINI.provider),
             apiKey = decryptedKey,
@@ -134,7 +157,10 @@ actual class AiSettingsStorage {
             // Новые поля для отдельных ключей групп провайдеров
             openaiApiKey = decryptedOpenAiKey,
             anthropicApiKey = decryptedAnthropicKey,
-            googleAiApiKey = decryptedGoogleAiKey
+            googleAiApiKey = decryptedGoogleAiKey,
+            yandexApiKey = decryptedYandexKey,
+            // Если folderId не сохранен, используем дефолтное значение
+            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" }
         )
     }
     
@@ -153,6 +179,8 @@ actual class AiSettingsStorage {
         prefs.remove(KEY_OPENAI_API_KEY)
         prefs.remove(KEY_ANTHROPIC_API_KEY)
         prefs.remove(KEY_GOOGLE_AI_API_KEY)
+        prefs.remove(KEY_YANDEX_API_KEY)
+        prefs.remove(KEY_YANDEX_FOLDER_ID)
         
         prefs.flush()
     }
@@ -212,6 +240,8 @@ actual class AiSettingsStorage {
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
         private const val KEY_ANTHROPIC_API_KEY = "ai_anthropic_api_key"
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
+        private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
+        private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         
         private const val ALGORITHM = "AES"
         private const val SALT = "FamilyTreeApp-AI-Key-Salt-v1"

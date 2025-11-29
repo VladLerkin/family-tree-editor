@@ -10,6 +10,13 @@ import android.os.Build
 import android.provider.Settings
 import java.io.File
 import java.io.IOException
+import java.io.FileOutputStream
+import java.io.FileInputStream
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import android.media.AudioRecord
+import android.media.AudioFormat as AndroidAudioFormat
 
 /**
  * Параметры формата записи для MediaRecorder
@@ -29,6 +36,14 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     private var audioFile: File? = null
     private var resultCallback: ((ByteArray) -> Unit)? = null
     private var errorCallback: ((String) -> Unit)? = null
+    
+    // WAV recording state
+    private var audioRecord: AudioRecord? = null
+    private var recordingThread: Thread? = null
+    private var isRecordingWav = false
+    private val SAMPLE_RATE = 16000
+    private val CHANNEL_CONFIG = AndroidAudioFormat.CHANNEL_IN_MONO
+    private val AUDIO_FORMAT = AndroidAudioFormat.ENCODING_PCM_16BIT
     
     actual fun isAvailable(): Boolean {
         return androidContext != null
@@ -65,6 +80,12 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         recording = true
         
         try {
+            // Handle WAV format separately using AudioRecord
+            if (format == AudioFormat.WAV) {
+                startWavRecording()
+                return
+            }
+
             // Выбираем формат записи в зависимости от провайдера транскрипции
             val recordingFormat = when (format) {
                 AudioFormat.M4A -> {
@@ -96,6 +117,9 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                             description = "AAC/M4A format (FLAC fallback), 16kHz, 64kbps"
                         )
                     }
+                }
+                AudioFormat.WAV -> {
+                    throw IllegalStateException("WAV format should be handled separately")
                 }
             }
             
@@ -152,6 +176,11 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             return
         }
         
+        if (isRecordingWav) {
+            stopWavRecording()
+            return
+        }
+        
         try {
             println("[DEBUG_LOG] VoiceRecorder: Stopping recording")
             mediaRecorder?.stop()
@@ -186,6 +215,25 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     actual fun cancelRecording() {
         if (!recording) {
             println("[DEBUG_LOG] VoiceRecorder: Not recording, ignoring cancel")
+            return
+        }
+        
+        if (isRecordingWav) {
+            isRecordingWav = false
+            try {
+                audioRecord?.stop()
+                audioRecord?.release()
+                recordingThread?.join()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            audioRecord = null
+            recordingThread = null
+            recording = false
+            audioFile?.delete()
+            audioFile = null
+            resultCallback = null
+            errorCallback = null
             return
         }
         
@@ -256,6 +304,134 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             println("[DEBUG_LOG] VoiceRecorder: Opening app settings")
         } catch (e: Exception) {
             println("[DEBUG_LOG] VoiceRecorder: Failed to open app settings: ${e.message}")
+            e.printStackTrace()
+        }
+    }
+    private fun startWavRecording() {
+        try {
+            val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+            if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+                throw Exception("AudioRecord minBufferSize error")
+            }
+            
+            audioFile = File.createTempFile("voice_", ".wav", androidContext?.cacheDir)
+            println("[DEBUG_LOG] VoiceRecorder: Created temp WAV file: ${audioFile?.absolutePath}")
+            
+            if (androidContext?.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                throw Exception("Permission denied")
+            }
+            
+            audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, minBufferSize * 2)
+            
+            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                 throw Exception("AudioRecord not initialized")
+            }
+            
+            audioRecord?.startRecording()
+            isRecordingWav = true
+            
+            recordingThread = Thread {
+                writeWavDataToFile(minBufferSize)
+            }
+            recordingThread?.start()
+            println("[DEBUG_LOG] VoiceRecorder: WAV recording started")
+            
+        } catch (e: Exception) {
+            recording = false
+            isRecordingWav = false
+            val errorMsg = "Ошибка запуска WAV записи: ${e.message}"
+            println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
+            e.printStackTrace()
+            errorCallback?.invoke(errorMsg)
+            cleanup()
+        }
+    }
+    
+    private fun writeWavDataToFile(bufferSize: Int) {
+        val data = ByteArray(bufferSize)
+        val file = audioFile ?: return
+        
+        try {
+            val os = FileOutputStream(file)
+            // Write placeholder header
+            os.write(ByteArray(44))
+            
+            while (isRecordingWav) {
+                val read = audioRecord?.read(data, 0, bufferSize) ?: 0
+                if (read > 0) {
+                    os.write(data, 0, read)
+                }
+            }
+            os.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    
+    private fun stopWavRecording() {
+        try {
+            isRecordingWav = false
+            audioRecord?.stop()
+            audioRecord?.release()
+            audioRecord = null
+            
+            recordingThread?.join()
+            recordingThread = null
+            recording = false
+            
+            val file = audioFile
+            if (file != null && file.exists()) {
+                updateWavHeader(file)
+                
+                val audioData = file.readBytes()
+                println("[DEBUG_LOG] VoiceRecorder: Read ${audioData.size} bytes from WAV file")
+                resultCallback?.invoke(audioData)
+                
+                file.delete()
+                audioFile = null
+            } else {
+                errorCallback?.invoke("Аудио файл не найден")
+            }
+        } catch (e: Exception) {
+            val errorMsg = "Ошибка остановки WAV записи: ${e.message}"
+            println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
+            e.printStackTrace()
+            errorCallback?.invoke(errorMsg)
+            cleanup()
+        }
+    }
+    
+    private fun updateWavHeader(file: File) {
+        try {
+            val fileSize = file.length()
+            val totalDataLen = fileSize - 8
+            val totalAudioLen = fileSize - 44
+            val byteRate = SAMPLE_RATE * 16 * 1 / 8
+            
+            val randomAccessFile = RandomAccessFile(file, "rw")
+            randomAccessFile.seek(0)
+            
+            val header = ByteBuffer.allocate(44)
+            header.order(ByteOrder.LITTLE_ENDIAN)
+            
+            header.put("RIFF".toByteArray())
+            header.putInt(totalDataLen.toInt())
+            header.put("WAVE".toByteArray())
+            header.put("fmt ".toByteArray())
+            header.putInt(16) // Subchunk1Size
+            header.putShort(1) // AudioFormat (PCM)
+            header.putShort(1) // NumChannels (Mono)
+            header.putInt(SAMPLE_RATE)
+            header.putInt(byteRate)
+            header.putShort(2) // BlockAlign
+            header.putShort(16) // BitsPerSample
+            header.put("data".toByteArray())
+            header.putInt(totalAudioLen.toInt())
+            
+            randomAccessFile.write(header.array())
+            randomAccessFile.close()
+        } catch (e: Exception) {
+            println("[DEBUG_LOG] VoiceRecorder: Error updating WAV header: ${e.message}")
             e.printStackTrace()
         }
     }

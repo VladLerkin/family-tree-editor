@@ -52,13 +52,17 @@ class VoiceInputProcessor(
         
         println("[DEBUG_LOG] VoiceInputProcessor: Starting voice input")
         
-        // Используем M4A/AAC формат для всех провайдеров, так как:
-        // - OpenAI Whisper API поддерживает M4A/AAC
-        // - Google Speech-to-Text API также поддерживает M4A/AAC/MP3
-        // - FLAC кодек недоступен на многих Android устройствах (особенно Xiaomi/Redmi)
-        val audioFormat = com.family.tree.core.platform.AudioFormat.M4A
+        // Load config to determine provider
+        val aiConfig = settingsStorage.loadConfig()
+        val provider = aiConfig.getTranscriptionProvider()
         
-        println("[DEBUG_LOG] VoiceInputProcessor: Using audio format $audioFormat (universal format for all providers)")
+        // Select format based on provider
+        val audioFormat = when (provider) {
+            TranscriptionProvider.YANDEX_SPEECHKIT -> com.family.tree.core.platform.AudioFormat.WAV
+            else -> com.family.tree.core.platform.AudioFormat.M4A
+        }
+        
+        println("[DEBUG_LOG] VoiceInputProcessor: Using audio format $audioFormat for provider $provider")
         
         voiceRecorder.startRecording(
             format = audioFormat,
@@ -76,10 +80,11 @@ class VoiceInputProcessor(
                         val transcriptionClient = TranscriptionClientFactory.createClient(aiConfig)
                         val aiTextImporter = AiTextImporter(aiConfig)
                         
-                        // Шаг 1: Транскрибировать аудио через выбранный провайдер (Whisper или Google Speech)
+                        // Шаг 1: Транскрибировать аудио через выбранный провайдер (Whisper, Google Speech или Yandex SpeechKit)
                         val providerName = when (aiConfig.getTranscriptionProvider()) {
                             TranscriptionProvider.OPENAI_WHISPER -> "OpenAI Whisper"
                             TranscriptionProvider.GOOGLE_SPEECH -> "Google Speech-to-Text"
+                            TranscriptionProvider.YANDEX_SPEECHKIT -> "Yandex SpeechKit"
                         }
                         println("[DEBUG_LOG] VoiceInputProcessor: Transcribing audio through $providerName")
                         val transcribedText = transcriptionClient.transcribeAudio(audioData, aiConfig)

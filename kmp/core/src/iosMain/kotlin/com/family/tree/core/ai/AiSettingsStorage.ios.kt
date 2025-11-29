@@ -60,6 +60,16 @@ actual class AiSettingsStorage {
             deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
         }
         
+        // Сохраняем Yandex API ключ в Keychain
+        if (config.yandexApiKey.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_YANDEX_API_KEY, config.yandexApiKey)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
+        }
+        
+        // Сохраняем Yandex Folder ID в NSUserDefaults (не требует шифрования)
+        defaults.setObject(config.yandexFolderId, KEY_YANDEX_FOLDER_ID)
+        
         defaults.synchronize()
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig completed")
@@ -75,6 +85,7 @@ actual class AiSettingsStorage {
         val openaiApiKey = loadFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY) ?: ""
         val anthropicApiKey = loadFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY) ?: ""
         val googleAiApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY) ?: ""
+        val yandexApiKey = loadFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY) ?: ""
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): loadConfig called")
         println("[DEBUG_LOG] AiSettingsStorage (iOS): apiKey from Keychain = ${if (apiKey.isBlank()) "empty" else "present (${apiKey.length} chars)"}")
@@ -86,6 +97,7 @@ actual class AiSettingsStorage {
         val maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
         val language = defaults.stringForKey(KEY_LANGUAGE) ?: ""
         val transcriptionProvider = defaults.stringForKey(KEY_TRANSCRIPTION_PROVIDER) ?: "OPENAI_WHISPER"
+        val yandexFolderId = defaults.stringForKey(KEY_YANDEX_FOLDER_ID) ?: ""
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=$provider, model=$model")
         
@@ -103,7 +115,9 @@ actual class AiSettingsStorage {
             // Новые поля для отдельных ключей групп провайдеров
             openaiApiKey = openaiApiKey,
             anthropicApiKey = anthropicApiKey,
-            googleAiApiKey = googleAiApiKey
+            googleAiApiKey = googleAiApiKey,
+            yandexApiKey = yandexApiKey,
+            yandexFolderId = yandexFolderId
         )
     }
     
@@ -122,6 +136,8 @@ actual class AiSettingsStorage {
         deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
         deleteFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY)
         deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
+        deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
+        defaults.removeObjectForKey(KEY_YANDEX_FOLDER_ID)
         
         defaults.synchronize()
     }
@@ -265,6 +281,7 @@ actual class AiSettingsStorage {
         private const val KEY_MAX_TOKENS = "ai_max_tokens"
         private const val KEY_LANGUAGE = "ai_language"
         private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
+        private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         
         // Keychain keys для API ключей
         private const val KEYCHAIN_KEY_API_KEY = "com.family.tree.ai_api_key"
@@ -274,5 +291,6 @@ actual class AiSettingsStorage {
         private const val KEYCHAIN_KEY_OPENAI_API_KEY = "com.family.tree.ai_openai_api_key"
         private const val KEYCHAIN_KEY_ANTHROPIC_API_KEY = "com.family.tree.ai_anthropic_api_key"
         private const val KEYCHAIN_KEY_GOOGLE_AI_API_KEY = "com.family.tree.ai_google_ai_api_key"
+        private const val KEYCHAIN_KEY_YANDEX_API_KEY = "com.family.tree.ai_yandex_api_key"
     }
 }

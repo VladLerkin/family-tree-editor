@@ -21,9 +21,9 @@ data class AiPersonData(
  */
 @Serializable
 data class AiRelationship(
-    val personIndex: Int,  // Индекс персоны в списке persons
-    val relatedPersonIndex: Int,  // Индекс связанной персоны
-    val relationType: String  // "PARENT", "CHILD", "SPOUSE"
+    val personIndex: Int? = null,  // Индекс персоны в списке persons
+    val relatedPersonIndex: Int? = null,  // Индекс связанной персоны
+    val relationType: String? = null  // "PARENT", "CHILD", "SPOUSE"
 )
 
 /**

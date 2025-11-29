@@ -96,6 +96,8 @@ fun AiConfigDialog(
     var openaiApiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
     var anthropicApiKey by remember { mutableStateOf(initialConfig.anthropicApiKey) }
     var googleAiApiKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
+    var yandexApiKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
+    var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -248,6 +250,46 @@ fun AiConfigDialog(
                             )
                         }
                     }
+                    "YANDEX" -> {
+                        DisableSelection {
+                            OutlinedTextField(
+                                value = yandexApiKey,
+                                onValueChange = { yandexApiKey = it },
+                                label = { Text("Yandex Cloud API Key") },
+                                placeholder = { Text("AQVN...") },
+                                supportingText = { Text("API ключ для Yandex Cloud. Получите его в консоли Yandex Cloud.") },
+                                visualTransformation = ApiKeyVisualTransformation(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp)
+                                    .onPreviewKeyEvent { keyEvent ->
+                                        if (keyEvent.type == KeyEventType.KeyDown) {
+                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
+                                            if (isCopy) return@onPreviewKeyEvent true
+                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
+                                            if (isPaste) {
+                                                clipboardManager.getText()?.text?.let { yandexApiKey = it }
+                                                return@onPreviewKeyEvent true
+                                            }
+                                        }
+                                        false
+                                    },
+                                singleLine = true
+                            )
+                        }
+                        
+                        OutlinedTextField(
+                            value = yandexFolderId,
+                            onValueChange = { yandexFolderId = it },
+                            label = { Text("Folder ID (опционально)") },
+                            placeholder = { Text("default или b1g...") },
+                            supportingText = { Text("Идентификатор каталога Yandex Cloud. Оставьте 'default' для автоматического определения при использовании API ключа сервисного аккаунта.") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            singleLine = true
+                        )
+                    }
                     "OLLAMA", "CUSTOM" -> {
                         // Для Ollama и Custom не требуется API ключ или используется baseUrl
                         Text(
@@ -343,6 +385,21 @@ fun AiConfigDialog(
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = transcriptionProvider == "YANDEX_SPEECHKIT",
+                            onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
+                        )
+                        Text(
+                            text = "Yandex SpeechKit (лучше для русского и языков СНГ)",
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                 }
                 
                 // OpenAI API Key (shown only when OpenAI Whisper is selected)
@@ -419,6 +476,43 @@ fun AiConfigDialog(
                     }
                 }
                 
+                // Yandex API Key (shown only when Yandex SpeechKit is selected)
+                if (transcriptionProvider == "YANDEX_SPEECHKIT") {
+                    DisableSelection {
+                        OutlinedTextField(
+                            value = yandexApiKey,
+                            onValueChange = { yandexApiKey = it },
+                            label = { Text("Yandex Cloud API Key (SpeechKit)") },
+                            placeholder = { Text("AQVN...") },
+                            supportingText = { Text("API ключ для Yandex SpeechKit. Получите его в консоли Yandex Cloud.") },
+                            visualTransformation = ApiKeyVisualTransformation(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
+                                .onPreviewKeyEvent { keyEvent ->
+                                    if (keyEvent.type == KeyEventType.KeyDown) {
+                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                     keyEvent.key == Key.C
+                                        if (isCopy) {
+                                            return@onPreviewKeyEvent true
+                                        }
+                                        
+                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
+                                                      keyEvent.key == Key.V
+                                        if (isPaste) {
+                                            clipboardManager.getText()?.text?.let { pastedText ->
+                                                yandexApiKey = pastedText
+                                            }
+                                            return@onPreviewKeyEvent true
+                                        }
+                                    }
+                                    false
+                                },
+                            singleLine = true
+                        )
+                    }
+                }
+                
                 // Advanced settings
                 Text(
                     text = "Расширенные настройки:",
@@ -482,7 +576,9 @@ fun AiConfigDialog(
                                 // Новые поля для отдельных ключей групп провайдеров
                                 openaiApiKey = openaiApiKey,
                                 anthropicApiKey = anthropicApiKey,
-                                googleAiApiKey = googleAiApiKey
+                                googleAiApiKey = googleAiApiKey,
+                                yandexApiKey = yandexApiKey,
+                                yandexFolderId = yandexFolderId
                             )
                             onConfirm(config)
                         }

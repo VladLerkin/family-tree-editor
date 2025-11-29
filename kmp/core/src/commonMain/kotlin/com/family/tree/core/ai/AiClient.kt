@@ -37,6 +37,7 @@ object AiClientFactory {
             AiProvider.OPENAI -> OpenAiClient()
             AiProvider.ANTHROPIC -> AnthropicClient()
             AiProvider.GOOGLE -> GoogleClient()
+            AiProvider.YANDEX -> YandexClient()
             AiProvider.OLLAMA -> OllamaClient()
             AiProvider.CUSTOM -> CustomClient()
         }
