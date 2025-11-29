@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
  */
 enum class AiProvider {
     OPENAI,      // OpenAI (GPT-4, GPT-3.5)
-    ANTHROPIC,   // Anthropic (Claude)
     GOOGLE,      // Google (Gemini)
     OLLAMA,      // Локальная модель через Ollama
     YANDEX,      // YandexGPT
@@ -42,7 +41,6 @@ data class AiConfig(
     
     // Отдельные API ключи для каждой группы провайдеров
     val openaiApiKey: String = "",     // API ключ для OpenAI (GPT модели и Whisper)
-    val anthropicApiKey: String = "",  // API ключ для Anthropic (Claude модели)
     val googleAiApiKey: String = "",   // API ключ для Google AI (Gemini модели и Speech-to-Text)
     val yandexApiKey: String = "",      // API ключ для Yandex Cloud (SpeechKit)
     
@@ -68,7 +66,6 @@ data class AiConfig(
     fun getApiKeyForProvider(): String {
         return when (getProvider()) {
             AiProvider.OPENAI -> openaiApiKey.ifBlank { apiKey }
-            AiProvider.ANTHROPIC -> anthropicApiKey.ifBlank { apiKey }
             AiProvider.GOOGLE -> googleAiApiKey.ifBlank { googleApiKey.ifBlank { apiKey } }
             AiProvider.YANDEX -> yandexApiKey.ifBlank { apiKey }
             AiProvider.OLLAMA, AiProvider.CUSTOM -> apiKey  // Для Ollama и Custom используем старое поле
@@ -98,37 +95,11 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val OPENAI_GPT4O = AiConfig(
-        provider = "OPENAI",
-        model = "gpt-4o",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
-    val ANTHROPIC_CLAUDE_SONNET = AiConfig(
-        provider = "ANTHROPIC",
-        model = "claude-3-5-sonnet-20241022",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
-    val ANTHROPIC_CLAUDE_HAIKU = AiConfig(
-        provider = "ANTHROPIC",
-        model = "claude-3-5-haiku-20241022",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
+
     
     val GOOGLE_GEMINI_2_0_FLASH = AiConfig(
         provider = "GOOGLE",
-        model = "gemini-2.0-flash-exp",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
-    val GOOGLE_GEMINI_1_5_PRO = AiConfig(
-        provider = "GOOGLE",
-        model = "gemini-1.5-pro",
+        model = "gemini-2.0-flash",
         temperature = 0.7,
         maxTokens = 4000
     )
@@ -156,22 +127,14 @@ object AiPresets {
         maxTokens = 4000
     )
 
-    val YANDEX_GPT_LITE = AiConfig(
-        provider = "YANDEX",
-        model = "yandexgpt-lite",
-        temperature = 0.6,
-        maxTokens = 4000
-    )
+
     
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (рекомендуется)" to OPENAI_GPT4O_MINI,
-        "OpenAI GPT-4o" to OPENAI_GPT4O,
-        "Claude 3.5 Sonnet" to ANTHROPIC_CLAUDE_SONNET,
-        "Claude 3.5 Haiku" to ANTHROPIC_CLAUDE_HAIKU,
+
         "Google Gemini 2.0 Flash" to GOOGLE_GEMINI_2_0_FLASH,
-        "Google Gemini 1.5 Pro" to GOOGLE_GEMINI_1_5_PRO,
         "YandexGPT 4" to YANDEX_GPT_4,
-        "YandexGPT Lite" to YANDEX_GPT_LITE,
+
         "Ollama Llama 3.2" to OLLAMA_LLAMA3,
         "Ollama Mistral" to OLLAMA_MISTRAL
     )

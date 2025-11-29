@@ -44,7 +44,7 @@ actual class AiSettingsStorage {
             
             // Новые поля для отдельных ключей групп провайдеров
             putString(KEY_OPENAI_API_KEY, config.openaiApiKey)
-            putString(KEY_ANTHROPIC_API_KEY, config.anthropicApiKey)
+
             putString(KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
             putString(KEY_YANDEX_API_KEY, config.yandexApiKey)
             putString(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
@@ -66,7 +66,7 @@ actual class AiSettingsStorage {
             
             // Новые поля для отдельных ключей групп провайдеров
             openaiApiKey = prefs.getString(KEY_OPENAI_API_KEY, "") ?: "",
-            anthropicApiKey = prefs.getString(KEY_ANTHROPIC_API_KEY, "") ?: "",
+
             googleAiApiKey = prefs.getString(KEY_GOOGLE_AI_API_KEY, "") ?: "",
             yandexApiKey = prefs.getString(KEY_YANDEX_API_KEY, "") ?: "",
             yandexFolderId = prefs.getString(KEY_YANDEX_FOLDER_ID, "") ?: ""
@@ -87,7 +87,7 @@ actual class AiSettingsStorage {
             
             // Удаляем новые поля
             remove(KEY_OPENAI_API_KEY)
-            remove(KEY_ANTHROPIC_API_KEY)
+
             remove(KEY_GOOGLE_AI_API_KEY)
             remove(KEY_YANDEX_API_KEY)
             remove(KEY_YANDEX_FOLDER_ID)
@@ -109,7 +109,7 @@ actual class AiSettingsStorage {
         
         // Новые ключи для отдельных API ключей групп провайдеров
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
-        private const val KEY_ANTHROPIC_API_KEY = "ai_anthropic_api_key"
+
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
         private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
         private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"

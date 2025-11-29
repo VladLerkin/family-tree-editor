@@ -22,7 +22,7 @@ class GoogleClient : AiClient {
             throw IllegalArgumentException("Google API key is required")
         }
         
-        val baseUrl = config.baseUrl.ifBlank { "https://generativelanguage.googleapis.com/v1beta" }
+        val baseUrl = config.baseUrl.ifBlank { "https://generativelanguage.googleapis.com/v1" }
         val url = "$baseUrl/models/${config.model}:generateContent?key=$apiKey"
         
         val requestBody = buildJsonObject {

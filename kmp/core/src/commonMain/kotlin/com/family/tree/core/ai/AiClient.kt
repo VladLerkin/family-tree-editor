@@ -35,7 +35,6 @@ object AiClientFactory {
     fun createClient(provider: AiProvider): AiClient {
         return when (provider) {
             AiProvider.OPENAI -> OpenAiClient()
-            AiProvider.ANTHROPIC -> AnthropicClient()
             AiProvider.GOOGLE -> GoogleClient()
             AiProvider.YANDEX -> YandexClient()
             AiProvider.OLLAMA -> OllamaClient()

@@ -94,7 +94,7 @@ fun AiConfigDialog(
     
     // Новые отдельные API ключи для каждой группы провайдеров
     var openaiApiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
-    var anthropicApiKey by remember { mutableStateOf(initialConfig.anthropicApiKey) }
+
     var googleAiApiKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
     var yandexApiKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
     var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
@@ -194,34 +194,7 @@ fun AiConfigDialog(
                             )
                         }
                     }
-                    "ANTHROPIC" -> {
-                        DisableSelection {
-                            OutlinedTextField(
-                                value = anthropicApiKey,
-                                onValueChange = { anthropicApiKey = it },
-                                label = { Text("Anthropic API Key") },
-                                placeholder = { Text("sk-ant-...") },
-                                supportingText = { Text("API ключ для Anthropic (Claude модели). Получите его в Anthropic Console.") },
-                                visualTransformation = ApiKeyVisualTransformation(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .onPreviewKeyEvent { keyEvent ->
-                                        if (keyEvent.type == KeyEventType.KeyDown) {
-                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
-                                            if (isCopy) return@onPreviewKeyEvent true
-                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
-                                            if (isPaste) {
-                                                clipboardManager.getText()?.text?.let { anthropicApiKey = it }
-                                                return@onPreviewKeyEvent true
-                                            }
-                                        }
-                                        false
-                                    },
-                                singleLine = true
-                            )
-                        }
-                    }
+
                     "GOOGLE" -> {
                         DisableSelection {
                             OutlinedTextField(
@@ -545,7 +518,7 @@ fun AiConfigDialog(
                 
                 // Help text
                 Text(
-                    text = "Для OpenAI и Anthropic требуется API ключ. Для Ollama убедитесь, что сервер запущен (ollama serve).",
+                    text = "Для OpenAI требуется API ключ. Для Ollama убедитесь, что сервер запущен (ollama serve).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
@@ -575,7 +548,7 @@ fun AiConfigDialog(
                                 
                                 // Новые поля для отдельных ключей групп провайдеров
                                 openaiApiKey = openaiApiKey,
-                                anthropicApiKey = anthropicApiKey,
+
                                 googleAiApiKey = googleAiApiKey,
                                 yandexApiKey = yandexApiKey,
                                 yandexFolderId = yandexFolderId

@@ -48,11 +48,7 @@ actual class AiSettingsStorage {
             deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
         }
         
-        if (config.anthropicApiKey.isNotBlank()) {
-            saveToKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY, config.anthropicApiKey)
-        } else {
-            deleteFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY)
-        }
+
         
         if (config.googleAiApiKey.isNotBlank()) {
             saveToKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
@@ -83,7 +79,7 @@ actual class AiSettingsStorage {
         
         // Загружаем новые API ключи для групп провайдеров из Keychain
         val openaiApiKey = loadFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY) ?: ""
-        val anthropicApiKey = loadFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY) ?: ""
+
         val googleAiApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY) ?: ""
         val yandexApiKey = loadFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY) ?: ""
         
@@ -114,7 +110,7 @@ actual class AiSettingsStorage {
             
             // Новые поля для отдельных ключей групп провайдеров
             openaiApiKey = openaiApiKey,
-            anthropicApiKey = anthropicApiKey,
+
             googleAiApiKey = googleAiApiKey,
             yandexApiKey = yandexApiKey,
             yandexFolderId = yandexFolderId
@@ -134,7 +130,7 @@ actual class AiSettingsStorage {
         
         // Удаляем новые ключи из Keychain
         deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
-        deleteFromKeychain(KEYCHAIN_KEY_ANTHROPIC_API_KEY)
+
         deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
         deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
         defaults.removeObjectForKey(KEY_YANDEX_FOLDER_ID)
@@ -289,7 +285,7 @@ actual class AiSettingsStorage {
         
         // Новые Keychain keys для отдельных ключей групп провайдеров
         private const val KEYCHAIN_KEY_OPENAI_API_KEY = "com.family.tree.ai_openai_api_key"
-        private const val KEYCHAIN_KEY_ANTHROPIC_API_KEY = "com.family.tree.ai_anthropic_api_key"
+
         private const val KEYCHAIN_KEY_GOOGLE_AI_API_KEY = "com.family.tree.ai_google_ai_api_key"
         private const val KEYCHAIN_KEY_YANDEX_API_KEY = "com.family.tree.ai_yandex_api_key"
     }
