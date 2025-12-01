@@ -116,14 +116,16 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
       
       - name: Build iOS App for Simulator
-        working-directory: iosApp
-        run: |
-          xcodebuild -project iosApp.xcodeproj \
-            -scheme iosApp \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -derivedDataPath build \
-            build
+  working-directory: iosApp
+  env:
+    JAVA_HOME: $(/usr/libexec/java_home -v 21)
+  run: |
+    xcodebuild -project iosApp.xcodeproj \
+      -scheme iosApp \
+      -sdk iphonesimulator \
+      -configuration Debug \
+      -derivedDataPath build \
+      build
       
       - name: Upload iOS App Build
         uses: actions/upload-artifact@v4
