@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
- 		shellScript = "cd \"$SRCROOT/..\"\n./gradlew :app-ios:embedAndSignAppleFrameworkForXcode\n";
+ 		shellScript = "# Framework is built separately in CI/CD\\n# Only build if framework doesn't exist (for local development)\\nif [ ! -d \\\"$SRCROOT/../app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework\\\" ]; then\\n  cd \\\"$SRCROOT/..\\\"\\n  ./gradlew :app-ios:embedAndSignAppleFrameworkForXcode\\nfi\\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
