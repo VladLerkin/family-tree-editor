@@ -14,6 +14,7 @@ plugins {
     id("org.jetbrains.compose") version "1.9.3" apply false
     id("com.android.application") version "8.12.0" apply false
     id("com.android.library") version "8.12.0" apply false
+    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
 
 rootProject.name = "family-tree-kmp"
