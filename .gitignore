@@ -1,38 +1,47 @@
-# OS-specific
-.DS_Store
-Thumbs.db
-Desktop.ini
+# Kotlin Multiplatform + Android (kmp/) .gitignore
 
-# Maven build output
-target/
-pom.xml.versionsBackup
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
+# Gradle
+.gradle/
+**/.gradle/
+**/build/
 
-# IntelliJ IDEA (JetBrains)
-# If you want to share project settings, remove ".idea/" below and ignore only workspace-level files.
+# Gradle local configuration
+local.properties
+
+# IntelliJ IDEA / Android Studio
 .idea/
 *.iml
 *.ipr
 *.iws
-out/
 
+# Kotlin/Compose/Codegen
+.kotlinc/
+.ksp/
+**/.kotlin/
+**/.kotlin_metadata/
 
-# VS Code (if present locally)
-.vscode/
+# Android NDK/External Builds
+.cxx/
+.externalNativeBuild/
 
-# Logs and crash dumps
-*.log
+# Android artifacts/outputs
+**/outputs/
+# APKs / App Bundles (just in case someone builds into project dir)
+*.apk
+*.aab
+
+# Profiling / memory dumps
 *.hprof
-hs_err_pid*
-replay_pid*
 
-# Environment files (keep example templates tracked)
-.env
-.env.*
-!.env.example
+# Screenshots / recordings made by Studio
+captures/
 
-# Local distribution directory (if used outside target)
-dist/
-/kmp/.gradle/
+# Keystores and signing (never commit secrets)
+*.keystore
+*.jks
+*.keystore.properties
+*.signing.properties
+
+# OS-specific
+.DS_Store
+Thumbs.db
