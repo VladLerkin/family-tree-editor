@@ -3,18 +3,18 @@ package com.family.tree.core.ai
 import kotlinx.serialization.Serializable
 
 /**
- * Типы поддерживаемых AI провайдеров.
+ * Types of supported AI providers.
  */
 enum class AiProvider {
     OPENAI,      // OpenAI (GPT-4, GPT-3.5)
     GOOGLE,      // Google (Gemini)
-    OLLAMA,      // Локальная модель через Ollama
+    OLLAMA,      // Local model via Ollama
     YANDEX,      // YandexGPT
-    CUSTOM       // Пользовательский endpoint (OpenAI-совместимый API)
+    CUSTOM       // Custom endpoint (OpenAI-compatible API)
 }
 
 /**
- * Типы поддерживаемых провайдеров транскрипции аудио.
+ * Types of supported audio transcription providers.
  */
 enum class TranscriptionProvider {
     OPENAI_WHISPER,    // OpenAI Whisper API
@@ -23,28 +23,28 @@ enum class TranscriptionProvider {
 }
 
 /**
- * Конфигурация для подключения к AI сервису.
+ * Configuration for connecting to an AI service.
  */
 @Serializable
 data class AiConfig(
-    val provider: String = "OPENAI",  // String для совместимости с kotlinx.serialization
+    val provider: String = "OPENAI",  // String for kotlinx.serialization compatibility
     @Deprecated("Use openaiApiKey, anthropicApiKey, or googleApiKey instead")
-    val apiKey: String = "",  // Оставлено для обратной совместимости
+    val apiKey: String = "",  // Kept for backward compatibility
     val model: String = "gpt-4o-mini",
-    val baseUrl: String = "",  // Для CUSTOM и OLLAMA
+    val baseUrl: String = "",  // For CUSTOM and OLLAMA
     val temperature: Double = 0.7,
     val maxTokens: Int = 4000,
-    val language: String = "",  // Язык для транскрипции аудио (ISO-639-1 код, например "ka" для грузинского)
-    val transcriptionProvider: String = "OPENAI_WHISPER",  // Провайдер транскрипции: OPENAI_WHISPER или GOOGLE_SPEECH
+    val language: String = "",  // Language for audio transcription (ISO-639-1 code, e.g. "ka" for Georgian)
+    val transcriptionProvider: String = "OPENAI_WHISPER",  // Transcription provider: OPENAI_WHISPER or GOOGLE_SPEECH
     @Deprecated("Use googleApiKey instead")
-    val googleApiKey: String = "",  // Оставлено для обратной совместимости (транскрипция)
+    val googleApiKey: String = "",  // Kept for backward compatibility (transcription)
     
-    // Отдельные API ключи для каждой группы провайдеров
-    val openaiApiKey: String = "",     // API ключ для OpenAI (GPT модели и Whisper)
-    val googleAiApiKey: String = "",   // API ключ для Google AI (Gemini модели и Speech-to-Text)
-    val yandexApiKey: String = "",      // API ключ для Yandex Cloud (SpeechKit)
+    // Separate API keys for each provider group
+    val openaiApiKey: String = "",     // API key for OpenAI (GPT models and Whisper)
+    val googleAiApiKey: String = "",   // API key for Google AI (Gemini models and Speech-to-Text)
+    val yandexApiKey: String = "",      // API key for Yandex Cloud (SpeechKit)
     
-    // Идентификатор каталога (Folder ID) для Yandex Cloud (опционально, можно не указывать при использовании API ключа сервисного аккаунта)
+    // Folder ID for Yandex Cloud (optional, can be omitted when using service account API key)
     val yandexFolderId: String = "b1guuckqs9tjoc2aiuge"
 ) {
     fun getProvider(): AiProvider = try {
@@ -60,20 +60,20 @@ data class AiConfig(
     }
     
     /**
-     * Получает актуальный API ключ для текущего провайдера.
-     * Сначала проверяет специфичные ключи группы, затем fallback на старые поля.
+     * Gets the actual API key for the current provider.
+     * First checks provider-specific keys, then falls back to old fields.
      */
     fun getApiKeyForProvider(): String {
         return when (getProvider()) {
             AiProvider.OPENAI -> openaiApiKey.ifBlank { apiKey }
             AiProvider.GOOGLE -> googleAiApiKey.ifBlank { googleApiKey.ifBlank { apiKey } }
             AiProvider.YANDEX -> yandexApiKey.ifBlank { apiKey }
-            AiProvider.OLLAMA, AiProvider.CUSTOM -> apiKey  // Для Ollama и Custom используем старое поле
+            AiProvider.OLLAMA, AiProvider.CUSTOM -> apiKey  // For Ollama and Custom use old field
         }
     }
     
     /**
-     * Получает актуальный API ключ для провайдера транскрипции.
+     * Gets the actual API key for the transcription provider.
      */
     fun getApiKeyForTranscription(): String {
         return when (getTranscriptionProvider()) {
@@ -85,7 +85,7 @@ data class AiConfig(
 }
 
 /**
- * Предустановленные конфигурации для популярных моделей.
+ * Preset configurations for popular models.
  */
 object AiPresets {
     val OPENAI_GPT4O_MINI = AiConfig(
@@ -130,7 +130,7 @@ object AiPresets {
 
     
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
-        "OpenAI GPT-4o-mini (рекомендуется)" to OPENAI_GPT4O_MINI,
+        "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
         "Google Gemini 2.0 Flash" to GOOGLE_GEMINI_2_0_FLASH,
         "YandexGPT 4" to YANDEX_GPT_4,

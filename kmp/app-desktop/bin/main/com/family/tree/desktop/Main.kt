@@ -7,7 +7,7 @@ import com.family.tree.ui.App
 import com.family.tree.ui.AppActions
 
 fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "Family Tree") {
+    Window(onCloseRequest = ::exitApplication, title = "Family Tree Editor") {
         MenuBar {
             Menu("File") {
                 Item("Open") { AppActions.openPed() }

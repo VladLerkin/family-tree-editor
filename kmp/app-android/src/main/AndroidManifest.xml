@@ -13,7 +13,7 @@
     </queries>
 
     <application
-        android:label="Family Tree"
+        android:label="Family Tree Editor"
         android:allowBackup="true"
         android:supportsRtl="true"
         android:largeHeap="true"

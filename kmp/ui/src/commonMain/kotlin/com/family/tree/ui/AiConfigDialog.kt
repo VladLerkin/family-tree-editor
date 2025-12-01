@@ -23,19 +23,19 @@ import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 
 /**
- * Визуальная трансформация для маскирования API ключа.
- * Показывает первые 4 символа, затем звездочки, затем последние 4 символа.
+ * Visual transformation for masking the API key.
+ * Shows the first 4 characters, then asterisks, then the last 4 characters.
  */
 class ApiKeyVisualTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val original = text.text
         
-        // Если ключ короткий или пустой, показываем как есть
+        // If the key is short or empty, show it as is
         if (original.length <= 12) {
             return TransformedText(text, OffsetMapping.Identity)
         }
         
-        // Показываем первые 4 символа, 6 звездочек, последние 4 символа
+        // Show the first 4 characters, 6 asterisks, the last 4 characters
         val masked = buildString {
             append(original.take(4))
             append("******")
@@ -49,7 +49,7 @@ class ApiKeyVisualTransformation : VisualTransformation {
                     return when {
                         offset <= 4 -> offset
                         offset >= original.length - 4 -> offset - original.length + masked.length
-                        else -> 4 + 3 // середина звездочек
+                        else -> 4 + 3 // middle of asterisks
                     }
                 }
                 
@@ -57,7 +57,7 @@ class ApiKeyVisualTransformation : VisualTransformation {
                     return when {
                         offset <= 4 -> offset
                         offset >= masked.length - 4 -> offset - masked.length + original.length
-                        else -> 4 + (original.length - 8) / 2 // середина оригинального текста
+                        else -> 4 + (original.length - 8) / 2 // middle of original text
                     }
                 }
             }
@@ -66,7 +66,7 @@ class ApiKeyVisualTransformation : VisualTransformation {
 }
 
 /**
- * Диалог для настройки параметров AI перед импортом текста.
+ * Dialog for configuring AI settings before text import.
  */
 @Composable
 fun AiConfigDialog(
@@ -76,14 +76,14 @@ fun AiConfigDialog(
 ) {
     val presets = AiPresets.getAllPresets()
     
-    // Находим индекс preset'а, который соответствует initialConfig.model
+    // Find the preset index that matches initialConfig.model
     val initialPresetIndex = presets.indexOfFirst { (_, preset) -> 
         preset.model == initialConfig.model && preset.provider == initialConfig.provider
     }.let { if (it >= 0) it else 0 }
     
     var selectedPresetIndex by remember { mutableStateOf(initialPresetIndex) }
     var provider by remember { mutableStateOf(initialConfig.provider) }
-    var apiKey by remember { mutableStateOf(initialConfig.apiKey) }  // Deprecated, для обратной совместимости
+    var apiKey by remember { mutableStateOf(initialConfig.apiKey) }  // Deprecated, for backward compatibility
     var model by remember { mutableStateOf(initialConfig.model) }
     var baseUrl by remember { mutableStateOf(initialConfig.baseUrl) }
     var temperature by remember { mutableStateOf(initialConfig.temperature.toString()) }
@@ -92,7 +92,7 @@ fun AiConfigDialog(
     var transcriptionProvider by remember { mutableStateOf(initialConfig.transcriptionProvider) }
     var googleApiKey by remember { mutableStateOf(initialConfig.googleApiKey) }  // Deprecated
     
-    // Новые отдельные API ключи для каждой группы провайдеров
+    // New separate API keys for each provider group
     var openaiApiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
 
     var googleAiApiKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
@@ -113,13 +113,13 @@ fun AiConfigDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Настройка AI для импорта текста",
+                    text = "AI Settings for Text Import",
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
                 Text(
-                    text = "Выберите AI модель для анализа текста и извлечения информации о персонах и родственных связях.",
+                    text = "Select an AI model to analyze text and extract information about people and relationships.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 16.dp)
@@ -127,7 +127,7 @@ fun AiConfigDialog(
                 
                 // Preset selector
                 Text(
-                    text = "Предустановки:",
+                    text = "Presets:",
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -161,10 +161,10 @@ fun AiConfigDialog(
                 
                 Divider(modifier = Modifier.padding(vertical = 16.dp))
                 
-                // API Keys для групп провайдеров - блокировка копирования, только вставка
+                // API Keys for provider groups - copy blocked, paste only
                 val clipboardManager = LocalClipboardManager.current
                 
-                // Отображаем поле API ключа в зависимости от выбранного провайдера
+                // Show API key field depending on the selected provider
                 when (provider) {
                     "OPENAI" -> {
                         DisableSelection {
@@ -173,7 +173,7 @@ fun AiConfigDialog(
                                 onValueChange = { openaiApiKey = it },
                                 label = { Text("OpenAI API Key") },
                                 placeholder = { Text("sk-...") },
-                                supportingText = { Text("API ключ для OpenAI (GPT модели). Получите его в OpenAI Dashboard.") },
+                                supportingText = { Text("API key for OpenAI (GPT models). Get it from the OpenAI Dashboard.") },
                                 visualTransformation = ApiKeyVisualTransformation(),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -202,7 +202,7 @@ fun AiConfigDialog(
                                 onValueChange = { googleAiApiKey = it },
                                 label = { Text("Google AI API Key") },
                                 placeholder = { Text("AIza...") },
-                                supportingText = { Text("API ключ для Google AI (Gemini модели и Speech-to-Text). Получите его в Google AI Studio.") },
+                                supportingText = { Text("API key for Google AI (Gemini models and Speech-to-Text). Get it from Google AI Studio.") },
                                 visualTransformation = ApiKeyVisualTransformation(),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -230,7 +230,7 @@ fun AiConfigDialog(
                                 onValueChange = { yandexApiKey = it },
                                 label = { Text("Yandex Cloud API Key") },
                                 placeholder = { Text("AQVN...") },
-                                supportingText = { Text("API ключ для Yandex Cloud. Получите его в консоли Yandex Cloud.") },
+                                supportingText = { Text("API key for Yandex Cloud. Get it from the Yandex Cloud Console.") },
                                 visualTransformation = ApiKeyVisualTransformation(),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -254,9 +254,9 @@ fun AiConfigDialog(
                         OutlinedTextField(
                             value = yandexFolderId,
                             onValueChange = { yandexFolderId = it },
-                            label = { Text("Folder ID (опционально)") },
-                            placeholder = { Text("default или b1g...") },
-                            supportingText = { Text("Идентификатор каталога Yandex Cloud. Оставьте 'default' для автоматического определения при использовании API ключа сервисного аккаунта.") },
+                            label = { Text("Folder ID (optional)") },
+                            placeholder = { Text("default or b1g...") },
+                            supportingText = { Text("Yandex Cloud Folder ID. Leave as 'default' for automatic detection when using a service account API key.") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),
@@ -264,9 +264,9 @@ fun AiConfigDialog(
                         )
                     }
                     "OLLAMA", "CUSTOM" -> {
-                        // Для Ollama и Custom не требуется API ключ или используется baseUrl
+                        // For Ollama and Custom, no API key is required or baseUrl is used
                         Text(
-                            text = "API ключ не требуется для локальных моделей",
+                            text = "API key is not required for local models",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(bottom = 12.dp)
@@ -299,7 +299,7 @@ fun AiConfigDialog(
                 OutlinedTextField(
                     value = model,
                     onValueChange = { model = it },
-                    label = { Text("Модель") },
+                    label = { Text("Model") },
                     placeholder = { Text("gpt-4o-mini") },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -311,9 +311,9 @@ fun AiConfigDialog(
                 OutlinedTextField(
                     value = language,
                     onValueChange = { language = it },
-                    label = { Text("Язык транскрипции (ISO-639-1)") },
-                    placeholder = { Text("ka, ru, en и т.д.") },
-                    supportingText = { Text("Код языка для транскрипции (например, 'ka' для грузинского, 'ru' для русского). Оставьте пустым для автоопределения.") },
+                    label = { Text("Transcription Language (ISO-639-1)") },
+                    placeholder = { Text("ka, ru, en, etc.") },
+                    supportingText = { Text("Language code for transcription (e.g., 'ka' for Georgian, 'ru' for Russian). Leave empty for auto-detection.") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp),
@@ -322,7 +322,7 @@ fun AiConfigDialog(
                 
                 // Transcription provider selection
                 Text(
-                    text = "Провайдер распознавания речи:",
+                    text = "Speech Recognition Provider:",
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                 )
@@ -354,7 +354,7 @@ fun AiConfigDialog(
                             onClick = { transcriptionProvider = "GOOGLE_SPEECH" }
                         )
                         Text(
-                            text = "Google Speech-to-Text (лучше для грузинского)",
+                            text = "Google Speech-to-Text (best for Georgian)",
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -369,7 +369,7 @@ fun AiConfigDialog(
                             onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
                         )
                         Text(
-                            text = "Yandex SpeechKit (лучше для русского и языков СНГ)",
+                            text = "Yandex SpeechKit (best for Russian and CIS languages)",
                             modifier = Modifier.padding(start = 8.dp)
                         )
                     }
@@ -383,7 +383,7 @@ fun AiConfigDialog(
                             onValueChange = { openaiApiKey = it },
                             label = { Text("OpenAI API Key (Whisper)") },
                             placeholder = { Text("sk-...") },
-                            supportingText = { Text("API ключ для OpenAI Whisper транскрипции. Используется тот же ключ, что и для GPT моделей.") },
+                            supportingText = { Text("API key for OpenAI Whisper transcription. Uses the same key as for GPT models.") },
                             visualTransformation = ApiKeyVisualTransformation(),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -420,7 +420,7 @@ fun AiConfigDialog(
                             onValueChange = { googleAiApiKey = it },
                             label = { Text("Google AI API Key (Speech-to-Text)") },
                             placeholder = { Text("AIza...") },
-                            supportingText = { Text("API ключ для Google Speech-to-Text. Используется тот же ключ, что и для Gemini моделей.") },
+                            supportingText = { Text("API key for Google Speech-to-Text. Uses the same key as for Gemini models.") },
                             visualTransformation = ApiKeyVisualTransformation(),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -457,7 +457,7 @@ fun AiConfigDialog(
                             onValueChange = { yandexApiKey = it },
                             label = { Text("Yandex Cloud API Key (SpeechKit)") },
                             placeholder = { Text("AQVN...") },
-                            supportingText = { Text("API ключ для Yandex SpeechKit. Получите его в консоли Yandex Cloud.") },
+                            supportingText = { Text("API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.") },
                             visualTransformation = ApiKeyVisualTransformation(),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -488,7 +488,7 @@ fun AiConfigDialog(
                 
                 // Advanced settings
                 Text(
-                    text = "Расширенные настройки:",
+                    text = "Advanced Settings:",
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                 )
@@ -518,7 +518,7 @@ fun AiConfigDialog(
                 
                 // Help text
                 Text(
-                    text = "Для OpenAI требуется API ключ. Для Ollama убедитесь, что сервер запущен (ollama serve).",
+                    text = "OpenAI requires an API key. For Ollama, ensure the server is running (ollama serve).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
@@ -530,14 +530,14 @@ fun AiConfigDialog(
                     horizontalArrangement = Arrangement.End
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Отмена")
+                        Text("Cancel")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
                             val config = AiConfig(
                                 provider = provider,
-                                apiKey = apiKey,  // Deprecated, но оставляем для обратной совместимости
+                                apiKey = apiKey,  // Deprecated, but kept for backward compatibility
                                 model = model,
                                 baseUrl = baseUrl,
                                 temperature = temperature.toDoubleOrNull() ?: 0.7,
@@ -546,7 +546,7 @@ fun AiConfigDialog(
                                 transcriptionProvider = transcriptionProvider,
                                 googleApiKey = googleApiKey,  // Deprecated
                                 
-                                // Новые поля для отдельных ключей групп провайдеров
+                                // New fields for separate provider group keys
                                 openaiApiKey = openaiApiKey,
 
                                 googleAiApiKey = googleAiApiKey,
@@ -556,7 +556,7 @@ fun AiConfigDialog(
                             onConfirm(config)
                         }
                     ) {
-                        Text("Продолжить")
+                        Text("Continue")
                     }
                 }
             }

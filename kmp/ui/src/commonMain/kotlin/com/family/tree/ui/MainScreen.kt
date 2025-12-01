@@ -445,12 +445,12 @@ fun MainScreen() {
                     isPermissionError = errorMessage.contains("разрешений") || errorMessage.contains("RECORD_AUDIO")
                     
                     // Show error dialog
-                    aiImportInfoMessage = "Ошибка голосового ввода:\n$errorMessage"
+                    aiImportInfoMessage = "Voice input error:\n$errorMessage"
                     showAiImportInfoDialog = true
                 },
                 onRecognized = { recognizedText ->
                     println("[DEBUG_LOG] MainScreen.voiceInput: Recognized - $recognizedText")
-                    voiceInputStatus = "Распознано: \"$recognizedText\"\nОбработка через AI..."
+                    voiceInputStatus = "Recognized: \"$recognizedText\"\nProcessing via AI..."
                 }
             )
         }
@@ -555,7 +555,7 @@ fun MainScreen() {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Compose Multiplatform — Family Tree", style = MaterialTheme.typography.titleMedium)
+                    Text("Family Tree Editor", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
                     Text("${(scale * 100).toInt()}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
                     
@@ -662,7 +662,7 @@ fun MainScreen() {
                                     value = individualsSearchQuery,
                                     onValueChange = { individualsSearchQuery = it },
                                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    placeholder = { Text("Filter by tag...") },
+                                    placeholder = { Text("Filter by name or tag...") },
                                     singleLine = true
                                 )
                                 
@@ -729,7 +729,7 @@ fun MainScreen() {
                                     value = familiesSearchQuery,
                                     onValueChange = { familiesSearchQuery = it },
                                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    placeholder = { Text("Filter by tag...") },
+                                    placeholder = { Text("Filter by name or tag...") },
                                     singleLine = true
                                 )
                                 
@@ -1030,7 +1030,7 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
                     Text(
-                        text = "AI импорт",
+                        text = "AI Import",
                         style = MaterialTheme.typography.headlineSmall
                     )
                     
@@ -1074,7 +1074,7 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "Информация",
+                        text = "Information",
                         style = MaterialTheme.typography.headlineSmall
                     )
                     
@@ -1102,7 +1102,7 @@ fun MainScreen() {
                                     isPermissionError = false
                                 }
                             ) {
-                                Text("Открыть настройки")
+                                Text("Open Settings")
                             }
                         }
                         
@@ -1133,7 +1133,7 @@ fun MainScreen() {
                 voiceInputStatus = ""
             },
             modifier = Modifier.widthIn(min = 400.dp),
-            title = { Text("Голосовой ввод") },
+            title = { Text("Voice Input") },
             text = {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -1154,14 +1154,14 @@ fun MainScreen() {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Кнопка "Остановить запись" (показывается только во время записи)
-                    if (isVoiceRecording && voiceInputStatus == "Говорите...") {
+                    // Stop Recording button (shown only during recording)
+                    if (isVoiceRecording && voiceInputStatus == "Speak...") {
                         Button(
                             onClick = {
                                 println("[DEBUG_LOG] MainScreen: User clicked 'Stop Recording' button")
                                 voiceInputProcessor.stopRecording()
                                 isVoiceRecording = false
-                                voiceInputStatus = "Обработка записи..."
+                                voiceInputStatus = "Processing recording..."
                             }
                         ) {
                             Text("Stop Recording")
@@ -1352,7 +1352,7 @@ fun MainScreen() {
                     
                     // Show progress dialog
                     showAiImportProgress = true
-                    aiImportProgressMessage = "Извлечение текста из PDF..."
+                    aiImportProgressMessage = "Extracting text from PDF..."
                     
                     // Extract text from PDF in background
                     scope.launch {
@@ -1366,44 +1366,44 @@ fun MainScreen() {
                                 // Show error dialog
                                 showAiImportProgress = false
                                 aiImportInfoMessage = """
-                                    Не удалось извлечь текст из PDF файла.
+                                    Failed to extract text from PDF file.
                                     
-                                    Возможные причины:
-                                    - PDF содержит только изображения (отсканированный документ)
-                                    - PDF защищён от копирования
-                                    - PDF повреждён или имеет неподдерживаемый формат
+                                    Possible reasons:
+                                    - PDF contains only images (scanned document)
+                                    - PDF is copy-protected
+                                    - PDF is corrupted or has an unsupported format
                                     
-                                    Пожалуйста, попробуйте:
-                                    1. Откройте docs.google.com в браузере
-                                    2. Файл → Скачать → Обычный текст (.txt)
-                                    3. Импортируйте полученный .txt файл
+                                    Please try:
+                                    1. Open docs.google.com in your browser
+                                    2. File → Download → Plain Text (.txt)
+                                    3. Import the downloaded .txt file
                                 """.trimIndent()
                                 showAiImportInfoDialog = true
                             } else {
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Successfully extracted ${extractedText.length} chars from PDF")
                                 
                                 // Process extracted text
-                                aiImportProgressMessage = "Обработка текста..."
+                                aiImportProgressMessage = "Processing text..."
                                 
-                                // Загружаем сохранённые настройки AI
+                                // Load saved AI settings
                                 val storage = com.family.tree.core.ai.AiSettingsStorage()
                                 val config = storage.loadConfig()
                                 
-                                // Определяем тип файла и обрабатываем
+                                // Determine file type and process
                                 val importer = com.family.tree.core.ai.AiTextImporter(config)
                                 val imported = if (extractedText.trimStart().startsWith("{") || extractedText.trimStart().startsWith("[")) {
                                     // JSON format - parse directly
                                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format in PDF")
-                                    aiImportProgressMessage = "Обработка JSON..."
+                                    aiImportProgressMessage = "Processing JSON..."
                                     importer.importFromAiResult(extractedText)
                                 } else {
                                     // Plain text - call AI
                                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text in PDF, calling AI...")
-                                    aiImportProgressMessage = "Отправка запроса к AI (${config.model})..."
+                                    aiImportProgressMessage = "Sending request to AI (${config.model})..."
                                     importer.importFromText(extractedText)
                                 }
                                 
-                                aiImportProgressMessage = "Создание генеалогического древа..."
+                                aiImportProgressMessage = "Creating family tree..."
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
                                 
                                 // Hide progress dialog
@@ -1436,7 +1436,7 @@ fun MainScreen() {
                 } else {
                     // Show progress dialog
                     showAiImportProgress = true
-                    aiImportProgressMessage = "Чтение файла..."
+                    aiImportProgressMessage = "Reading file..."
                     
                     // Process in background
                     scope.launch {
@@ -1444,25 +1444,25 @@ fun MainScreen() {
                             val content = bytes.decodeToString()
                             println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Read ${content.length} chars")
                             
-                            // Загружаем сохранённые настройки AI
+                            // Load saved AI settings
                             val storage = com.family.tree.core.ai.AiSettingsStorage()
                             val config = storage.loadConfig()
                             
-                            // Определяем тип файла и обрабатываем
+                            // Determine file type and process
                             val importer = com.family.tree.core.ai.AiTextImporter(config)
                             val imported = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
                                 // JSON format - parse directly
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format")
-                                aiImportProgressMessage = "Обработка JSON..."
+                                aiImportProgressMessage = "Processing JSON..."
                                 importer.importFromAiResult(content)
                             } else {
                                 // Plain text - call AI
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text, calling AI...")
-                                aiImportProgressMessage = "Отправка запроса к AI (${config.model})..."
+                                aiImportProgressMessage = "Sending request to AI (${config.model})..."
                                 importer.importFromText(content)
                             }
                             
-                            aiImportProgressMessage = "Создание генеалогического древа..."
+                            aiImportProgressMessage = "Creating family tree..."
                             println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
                             
                             // Hide progress dialog
