@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
       - '.github/workflows/desktop-build.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
   workflow_dispatch:
 
 jobs:
@@ -43,17 +43,14 @@ jobs:
       
       - name: Grant execute permission for gradlew (Unix)
         if: runner.os != 'Windows'
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build Desktop Application
-        working-directory: kmp
         run: |
           ./gradlew :app-desktop:build --stacktrace
         shell: bash
       
       - name: Create distribution package
-        working-directory: kmp
         run: |
           ./gradlew :app-desktop:${{ matrix.task }} --stacktrace
         continue-on-error: true
@@ -64,6 +61,6 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: |
-            kmp/app-desktop/build/compose/binaries/main/**
-            kmp/app-desktop/build/libs/**
+            app-desktop/build/compose/binaries/main/**
+            app-desktop/build/libs/**
           retention-days: 7

@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
       - '.github/workflows/ios-build.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
   workflow_dispatch:
 
 jobs:
@@ -28,11 +28,9 @@ jobs:
           cache: 'gradle'
       
       - name: Grant execute permission for gradlew
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build iOS Framework (All Targets)
-        working-directory: kmp
         run: |
           ./gradlew :app-ios:linkDebugFrameworkIosArm64 --stacktrace
           ./gradlew :app-ios:linkDebugFrameworkIosX64 --stacktrace
@@ -43,9 +41,9 @@ jobs:
         with:
           name: ios-frameworks
           path: |
-            kmp/app-ios/build/bin/iosArm64/debugFramework/**
-            kmp/app-ios/build/bin/iosX64/debugFramework/**
-            kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/**
+            app-ios/build/bin/iosArm64/debugFramework/**
+            app-ios/build/bin/iosX64/debugFramework/**
+            app-ios/build/bin/iosSimulatorArm64/debugFramework/**
           retention-days: 7
   
   build-ios-app:
@@ -64,11 +62,9 @@ jobs:
           cache: 'gradle'
       
       - name: Grant execute permission for gradlew
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build iOS Framework for Simulator
-        working-directory: kmp
         run: |
           ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64 --stacktrace
       
@@ -76,7 +72,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
       
       - name: Build iOS App for Simulator
-        working-directory: kmp/iosApp
+        working-directory: iosApp
         run: |
           xcodebuild -project iosApp.xcodeproj \
             -scheme iosApp \
@@ -89,11 +85,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-simulator
-          path: kmp/iosApp/build/Build/Products/Debug-iphonesimulator/*.app
+          path: iosApp/build/Build/Products/Debug-iphonesimulator/*.app
           retention-days: 7
       
       - name: Build iOS App for Device (Archive)
-        working-directory: kmp/iosApp
+        working-directory: iosApp
         run: |
           xcodebuild -project iosApp.xcodeproj \
             -scheme iosApp \
@@ -112,5 +108,5 @@ jobs:
         if: success()
         with:
           name: ios-app-archive
-          path: kmp/iosApp/build/iosApp.xcarchive/**
+          path: iosApp/build/iosApp.xcarchive/**
           retention-days: 30

@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
       - '.github/workflows/**'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'kmp/**'
+      - '**'
   workflow_dispatch:
 
 jobs:
@@ -45,11 +45,9 @@ jobs:
       
       - name: Grant execute permission for gradlew (Unix)
         if: runner.os != 'Windows'
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build Desktop Application
-        working-directory: kmp
         run: ./gradlew :app-desktop:build --stacktrace
         shell: bash
       
@@ -57,7 +55,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact-name }}
-          path: kmp/app-desktop/build/libs/**
+          path: app-desktop/build/libs/**
           retention-days: 7
   
   # Android build
@@ -80,18 +78,16 @@ jobs:
         uses: android-actions/setup-android@v3
       
       - name: Grant execute permission for gradlew
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build Android Debug APK
-        working-directory: kmp
         run: ./gradlew :app-android:assembleDebug --stacktrace
       
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: android-debug-apk
-          path: kmp/app-android/build/outputs/apk/debug/*.apk
+          path: app-android/build/outputs/apk/debug/*.apk
           retention-days: 7
   
   # iOS build
@@ -111,18 +107,16 @@ jobs:
           cache: 'gradle'
       
       - name: Grant execute permission for gradlew
-        working-directory: kmp
         run: chmod +x gradlew
       
       - name: Build iOS Framework (Simulator)
-        working-directory: kmp
         run: ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64 --stacktrace
       
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
       
       - name: Build iOS App for Simulator
-        working-directory: kmp/iosApp
+        working-directory: iosApp
         run: |
           xcodebuild -project iosApp.xcodeproj \
             -scheme iosApp \
@@ -135,7 +129,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-app-simulator
-          path: kmp/iosApp/build/Build/Products/Debug-iphonesimulator/*.app
+          path: iosApp/build/Build/Products/Debug-iphonesimulator/*.app
           retention-days: 7
   
   # Summary job to check all builds
