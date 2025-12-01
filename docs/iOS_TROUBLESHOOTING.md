@@ -120,8 +120,8 @@ For a guaranteed working iOS setup, reference the official JetBrains template:
 git clone https://github.com/JetBrains/compose-multiplatform-template.git
 
 # Compare build configurations
-diff compose-multiplatform-template/build.gradle.kts kmp/build.gradle.kts
-diff compose-multiplatform-template/settings.gradle.kts kmp/settings.gradle.kts
+diff compose-multiplatform-template/build.gradle.kts build.gradle.kts
+diff compose-multiplatform-template/settings.gradle.kts settings.gradle.kts
 ```
 
 Key differences to look for:

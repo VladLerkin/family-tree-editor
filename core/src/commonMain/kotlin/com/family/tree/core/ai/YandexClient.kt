@@ -8,9 +8,9 @@ import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
- * Клиент для работы с YandexGPT API (генерация текста).
+ * Client for YandexGPT API (text generation).
  * 
- * Документация: https://yandex.cloud/ru/docs/foundation-models/concepts/yandexgpt
+ * Documentation: https://yandex.cloud/en/docs/foundation-models/concepts/yandexgpt
  */
 class YandexClient : AiClient {
     private val json = Json {
@@ -26,15 +26,15 @@ class YandexClient : AiClient {
             throw IllegalArgumentException("Yandex Cloud API key is required. Get it from Yandex Cloud Console.")
         }
 
-        // Определяем модель (yandexgpt или yandexgpt-lite)
-        // Примечание: 'yandexgpt' указывает на актуальную версию (сейчас это GPT-4)
+        // Determine model (yandexgpt or yandexgpt-lite)
+        // Note: 'yandexgpt' points to the current version (currently GPT-4 equivalent)
         val modelName = when {
             config.model.contains("lite", ignoreCase = true) -> "yandexgpt-lite"
             else -> "yandexgpt"
         }
         
-        // modelUri формат: gpt://<folder_id>/<model_name>/latest
-        // API YandexGPT требует обязательного указания folder_id в URI
+        // modelUri format: gpt://<folder_id>/<model_name>/latest
+        // YandexGPT API requires folder_id in URI
         val modelUri = "gpt://$folderId/$modelName/latest"
         
         println("[DEBUG_LOG] YandexClient: Sending request to YandexGPT")
@@ -73,8 +73,8 @@ class YandexClient : AiClient {
 
             val response = client.post(url) {
                 header("Authorization", "Api-Key $apiKey")
-                // Добавляем x-folder-id только если он указан и не равен "default"
-                // При использовании API ключа сервисного аккаунта folder ID определяется автоматически
+                // Add x-folder-id only if specified and not "default"
+                // When using service account API key, folder ID is determined automatically
                 if (folderId.isNotBlank()) {
                     header("x-folder-id", folderId)
                 }
@@ -90,7 +90,7 @@ class YandexClient : AiClient {
 
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
-            // Извлекаем результат из ответа
+            // Extract result from response
             val result = responseJson["result"]?.jsonObject
             val alternatives = result?.get("alternatives")?.jsonArray
             val firstAlt = alternatives?.firstOrNull()?.jsonObject

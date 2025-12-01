@@ -20,7 +20,7 @@ actual class AiSettingsStorage {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=${config.provider}, apiKey=${if (config.apiKey.isBlank()) "empty" else "present (${config.apiKey.length} chars)"}")
         
         defaults.setObject(config.provider, KEY_PROVIDER)
-        // Сохраняем API ключ в Keychain для безопасности (deprecated, для обратной совместимости)
+        // Save API key to Keychain for security (deprecated, for backward compatibility)
         if (config.apiKey.isNotBlank()) {
             println("[DEBUG_LOG] AiSettingsStorage (iOS): Saving API key to Keychain")
             saveToKeychain(KEYCHAIN_KEY_API_KEY, config.apiKey)
@@ -34,14 +34,14 @@ actual class AiSettingsStorage {
         defaults.setInteger(config.maxTokens.toLong(), KEY_MAX_TOKENS)
         defaults.setObject(config.language, KEY_LANGUAGE)
         defaults.setObject(config.transcriptionProvider, KEY_TRANSCRIPTION_PROVIDER)
-        // Сохраняем Google API ключ в Keychain для безопасности (deprecated)
+        // Save Google API key to Keychain for security (deprecated)
         if (config.googleApiKey.isNotBlank()) {
             saveToKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY, config.googleApiKey)
         } else {
             deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY)
         }
         
-        // Сохраняем новые API ключи для групп провайдеров в Keychain
+        // Save new API keys for provider groups to Keychain
         if (config.openaiApiKey.isNotBlank()) {
             saveToKeychain(KEYCHAIN_KEY_OPENAI_API_KEY, config.openaiApiKey)
         } else {
@@ -56,14 +56,14 @@ actual class AiSettingsStorage {
             deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
         }
         
-        // Сохраняем Yandex API ключ в Keychain
+        // Save Yandex API key to Keychain
         if (config.yandexApiKey.isNotBlank()) {
             saveToKeychain(KEYCHAIN_KEY_YANDEX_API_KEY, config.yandexApiKey)
         } else {
             deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
         }
         
-        // Сохраняем Yandex Folder ID в NSUserDefaults (не требует шифрования)
+        // Save Yandex Folder ID to NSUserDefaults (no encryption needed)
         defaults.setObject(config.yandexFolderId, KEY_YANDEX_FOLDER_ID)
         
         defaults.synchronize()
@@ -72,12 +72,12 @@ actual class AiSettingsStorage {
     }
     
     actual fun loadConfig(): AiConfig {
-        // Загружаем API ключ из Keychain (deprecated)
+        // Load API key from Keychain (deprecated)
         val apiKey = loadFromKeychain(KEYCHAIN_KEY_API_KEY) ?: ""
-        // Загружаем Google API ключ из Keychain (deprecated)
+        // Load Google API key from Keychain (deprecated)
         val googleApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY) ?: ""
         
-        // Загружаем новые API ключи для групп провайдеров из Keychain
+        // Load new API keys for provider groups from Keychain
         val openaiApiKey = loadFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY) ?: ""
 
         val googleAiApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY) ?: ""
@@ -108,7 +108,7 @@ actual class AiSettingsStorage {
             transcriptionProvider = transcriptionProvider,
             googleApiKey = googleApiKey,
             
-            // Новые поля для отдельных ключей групп провайдеров
+            // New fields for separate provider group keys
             openaiApiKey = openaiApiKey,
 
             googleAiApiKey = googleAiApiKey,
@@ -128,7 +128,7 @@ actual class AiSettingsStorage {
         defaults.removeObjectForKey(KEY_TRANSCRIPTION_PROVIDER)
         deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_API_KEY)
         
-        // Удаляем новые ключи из Keychain
+        // Remove new keys from Keychain
         deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
 
         deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
@@ -139,27 +139,27 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Сохраняет значение в iOS Keychain.
+     * Saves value to iOS Keychain.
      */
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     private fun saveToKeychain(key: String, value: String) {
-        // Сначала удаляем существующий элемент, если есть
+        // First delete existing item if present
         deleteFromKeychain(key)
         
-        // Подготавливаем данные для сохранения
+        // Prepare data for saving
         val valueData = value.encodeToByteArray()
         val nsData = valueData.usePinned { pinned ->
             NSData.create(bytes = pinned.addressOf(0), length = valueData.size.toULong())
         }
         
         memScoped {
-            // Создаём CFString из Kotlin String
+            // Create CFString from Kotlin String
             val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
             
-            // Преобразуем NSData в CFTypeRef через reinterpret
+            // Convert NSData to CFTypeRef via reinterpret
             val cfData: CFTypeRef? = interpretCPointer(nsData.objcPtr())
             
-            // Создаём массивы ключей и значений для CFDictionary
+            // Create arrays of keys and values for CFDictionary
             val keys = allocArrayOf(kSecClass, kSecAttrAccount, kSecValueData, kSecAttrAccessible)
             val values = allocArrayOf(kSecClassGenericPassword, cfKey, cfData, kSecAttrAccessibleWhenUnlocked)
             
@@ -172,7 +172,7 @@ actual class AiSettingsStorage {
                 null
             )
             
-            // Сохраняем в Keychain
+            // Save to Keychain
             val addStatus = SecItemAdd(query, null)
             println("[DEBUG_LOG] AiSettingsStorage (iOS): saveToKeychain status=$addStatus for key=$key (errSecSuccess=0, errSecDuplicateItem=-25299)")
             CFRelease(query)
@@ -181,17 +181,17 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Загружает значение из iOS Keychain.
+     * Loads value from iOS Keychain.
      */
     @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
     private fun loadFromKeychain(key: String): String? {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): loadFromKeychain called for key=$key")
         
         memScoped {
-            // Создаём CFString из Kotlin String
+            // Create CFString from Kotlin String
             val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
             
-            // Создаём массивы ключей и значений для CFDictionary
+            // Create arrays of keys and values for CFDictionary
             val keys = allocArrayOf(kSecClass, kSecAttrAccount, kSecReturnData, kSecMatchLimit)
             val values = allocArrayOf(kSecClassGenericPassword, cfKey, kCFBooleanTrue, kSecMatchLimitOne)
             
@@ -212,8 +212,8 @@ actual class AiSettingsStorage {
             var resultString: String? = null
             
             if (status == errSecSuccess && result.value != null) {
-                // Правильное преобразование CFTypeRef в NSData
-                // CFTypeRef это указатель на ObjC объект, извлекаем rawValue и преобразуем
+                // Correct conversion of CFTypeRef to NSData
+                // CFTypeRef is a pointer to ObjC object, extract rawValue and cast
                 val cfDataPtr = result.value
                 val nsData: NSData? = interpretObjCPointer(cfDataPtr.rawValue)
                 
@@ -233,7 +233,7 @@ actual class AiSettingsStorage {
                 println("[DEBUG_LOG] AiSettingsStorage (iOS): SecItemCopyMatching failed with status=$status")
             }
             
-            // Освобождаем ресурсы после извлечения данных
+            // Release resources after data extraction
             CFRelease(query)
             if (cfKey != null) CFRelease(cfKey)
             
@@ -242,15 +242,15 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Удаляет значение из iOS Keychain.
+     * Deletes value from iOS Keychain.
      */
     @OptIn(ExperimentalForeignApi::class)
     private fun deleteFromKeychain(key: String) {
         memScoped {
-            // Создаём CFString из Kotlin String
+            // Create CFString from Kotlin String
             val cfKey = CFStringCreateWithCString(null, key, kCFStringEncodingUTF8)
             
-            // Создаём массивы ключей и значений для CFDictionary
+            // Create arrays of keys and values for CFDictionary
             val keys = allocArrayOf(kSecClass, kSecAttrAccount)
             val values = allocArrayOf(kSecClassGenericPassword, cfKey)
             
@@ -279,11 +279,11 @@ actual class AiSettingsStorage {
         private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
         private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         
-        // Keychain keys для API ключей
+        // Keychain keys for API keys
         private const val KEYCHAIN_KEY_API_KEY = "com.family.tree.ai_api_key"
         private const val KEYCHAIN_KEY_GOOGLE_API_KEY = "com.family.tree.ai_google_api_key"
         
-        // Новые Keychain keys для отдельных ключей групп провайдеров
+        // New Keychain keys for separate provider group keys
         private const val KEYCHAIN_KEY_OPENAI_API_KEY = "com.family.tree.ai_openai_api_key"
 
         private const val KEYCHAIN_KEY_GOOGLE_AI_API_KEY = "com.family.tree.ai_google_ai_api_key"

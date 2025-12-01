@@ -14,7 +14,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     private var errorCallback: ((String) -> Unit)? = null
     
     actual fun isAvailable(): Boolean {
-        // Проверяем доступность микрофона на Desktop платформе
+        // Check microphone availability on Desktop platform
         return try {
             val mixerInfos = AudioSystem.getMixerInfo()
             mixerInfos.any { info ->
@@ -33,7 +33,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         onError: (String) -> Unit
     ) {
         if (recording) {
-            onError("Запись уже идет")
+            onError("Recording is already in progress")
             return
         }
         
@@ -42,7 +42,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         recording = true
         
         try {
-            // Настраиваем аудио формат (аналогично Android: 16kHz, mono, 16-bit)
+            // Configure audio format (similar to Android: 16kHz, mono, 16-bit)
             val javaxAudioFormat = javax.sound.sampled.AudioFormat(
                 javax.sound.sampled.AudioFormat.Encoding.PCM_SIGNED,
                 16000f,  // Sample rate
@@ -53,12 +53,12 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                 false    // Little endian
             )
             
-            // Получаем линию для записи
+            // Get line for recording
             val dataLineInfo = DataLine.Info(TargetDataLine::class.java, javaxAudioFormat)
             
             if (!AudioSystem.isLineSupported(dataLineInfo)) {
                 recording = false
-                val errorMsg = "Микрофон не поддерживается на этой системе"
+                val errorMsg = "Microphone is not supported on this system"
                 println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
                 errorCallback?.invoke(errorMsg)
                 return
@@ -72,7 +72,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             
             println("[DEBUG_LOG] VoiceRecorder (Desktop): Recording started")
             
-            // Запускаем запись в отдельном потоке
+            // Start recording in a separate thread
             recordingThread = Thread {
                 try {
                     val buffer = ByteArray(4096)
@@ -95,14 +95,14 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             
         } catch (e: LineUnavailableException) {
             recording = false
-            val errorMsg = "Микрофон недоступен: ${e.message}"
+            val errorMsg = "Microphone is not available: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
             e.printStackTrace()
             errorCallback?.invoke(errorMsg)
             cleanup()
         } catch (e: Exception) {
             recording = false
-            val errorMsg = "Ошибка запуска записи: ${e.message}"
+            val errorMsg = "Error starting recording: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
             e.printStackTrace()
             errorCallback?.invoke(errorMsg)
@@ -120,31 +120,31 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             println("[DEBUG_LOG] VoiceRecorder (Desktop): Stopping recording")
             recording = false
             
-            // Останавливаем поток записи
+            // Stop recording thread
             recordingThread?.interrupt()
             recordingThread?.join(1000)
             
-            // Останавливаем линию
+            // Stop line
             targetDataLine?.stop()
             targetDataLine?.close()
             
-            // Получаем записанные данные
+            // Get recorded data
             val audioData = audioOutputStream?.toByteArray()
             if (audioData != null && audioData.isNotEmpty()) {
                 println("[DEBUG_LOG] VoiceRecorder (Desktop): Read ${audioData.size} bytes from audio recording")
                 
-                // Конвертируем PCM в WAV формат для совместимости
+                // Convert PCM to WAV format for compatibility
                 val wavData = convertPcmToWav(audioData)
                 resultCallback?.invoke(wavData)
             } else {
                 println("[DEBUG_LOG] VoiceRecorder (Desktop): No audio data recorded")
-                errorCallback?.invoke("Аудио данные не записаны")
+                errorCallback?.invoke("Audio data was not recorded")
             }
             
             cleanup()
         } catch (e: Exception) {
             recording = false
-            val errorMsg = "Ошибка остановки записи: ${e.message}"
+            val errorMsg = "Error stopping recording: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
             e.printStackTrace()
             errorCallback?.invoke(errorMsg)
@@ -162,15 +162,15 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             println("[DEBUG_LOG] VoiceRecorder (Desktop): Cancelling recording (no callback)")
             recording = false
             
-            // Останавливаем поток записи
+            // Stop recording thread
             recordingThread?.interrupt()
             recordingThread?.join(1000)
             
-            // Останавливаем линию
+            // Stop line
             targetDataLine?.stop()
             targetDataLine?.close()
             
-            // Очищаем колбэки, чтобы они не вызывались
+            // Clear callbacks to avoid invocation
             resultCallback = null
             errorCallback = null
             
@@ -188,7 +188,7 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     }
     
     actual fun openAppSettings() {
-        // No-op на Desktop платформе
+        // No-op on Desktop platform
         println("[DEBUG_LOG] VoiceRecorder (Desktop): openAppSettings called, but not supported on Desktop")
     }
     
@@ -205,12 +205,12 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     }
     
     /**
-     * Конвертирует сырые PCM данные в WAV формат с заголовком
+     * Converts raw PCM data to WAV format with header
      */
     private fun convertPcmToWav(pcmData: ByteArray): ByteArray {
         val outputStream = ByteArrayOutputStream()
         
-        // WAV заголовок
+        // WAV header
         val javaxAudioFormat = javax.sound.sampled.AudioFormat(
             javax.sound.sampled.AudioFormat.Encoding.PCM_SIGNED,
             16000f,  // Sample rate

@@ -8,7 +8,7 @@ import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
- * Клиент для работы с Google Gemini API.
+ * Client for Google Gemini API.
  */
 class GoogleClient : AiClient {
     private val json = Json {
@@ -39,8 +39,8 @@ class GoogleClient : AiClient {
                 put("temperature", config.temperature)
                 put("maxOutputTokens", config.maxTokens)
             }
-            // Добавляем настройки безопасности, чтобы избежать ложных блокировок
-            // для генеалогического контента (имена, даты, семейные отношения)
+            // Add safety settings to avoid false blocks
+            // for genealogical content (names, dates, family relationships)
             putJsonArray("safetySettings") {
                 addJsonObject {
                     put("category", "HARM_CATEGORY_HARASSMENT")
@@ -69,7 +69,7 @@ class GoogleClient : AiClient {
             }
         }
         try {
-            // Логируем отправляемый запрос для отладки
+            // Log request for debugging
             val requestBodyString = requestBody.toString()
             println("[DEBUG_LOG] GoogleClient: Sending request to Gemini API")
             println("[DEBUG_LOG] GoogleClient: Request body length: ${requestBodyString.length}")
@@ -83,13 +83,13 @@ class GoogleClient : AiClient {
             val responseText = response.bodyAsText()
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
-            // Логируем полный ответ для отладки
+            // Log full response for debugging
             println("[DEBUG_LOG] GoogleClient: Full Gemini API response: $responseText")
             
-            // Извлекаем текст ответа из структуры Gemini API
+            // Extract response text from Gemini API structure
             val candidates = responseJson["candidates"]?.jsonArray
             if (candidates == null || candidates.isEmpty()) {
-                // Проверяем наличие информации о блокировке
+                // Check for block information
                 val promptFeedback = responseJson["promptFeedback"]?.jsonObject
                 if (promptFeedback != null) {
                     println("[DEBUG_LOG] GoogleClient: promptFeedback found: $promptFeedback")

@@ -7,10 +7,10 @@ import com.family.tree.core.model.*
 import kotlinx.serialization.json.Json
 
 /**
- * Импортер для создания генеалогического древа из текста, обработанного AI.
+ * Importer for creating a family tree from AI-processed text.
  * 
- * AI анализирует текстовое описание, извлекает информацию о персонах и их родственных связях,
- * и возвращает JSON с результатами. Этот класс преобразует результаты в ProjectData.
+ * AI analyzes the text description, extracts information about people and their relationships,
+ * and returns JSON with the results. This class converts the results into ProjectData.
  */
 class AiTextImporter(
     private val config: AiConfig = AiPresets.OPENAI_GPT4O_MINI
@@ -25,43 +25,43 @@ class AiTextImporter(
     private val aiClient: AiClient = AiClientFactory.createClient(config)
     
     /**
-     * Импортирует проект из произвольного текстового описания родословной.
-     * Отправляет текст на AI для анализа и создания структурированных данных.
+     * Imports a project from an arbitrary text description of genealogy.
+     * Sends the text to AI for analysis and creation of structured data.
      * 
-     * @param textDescription Произвольное текстовое описание родословной
-     * @return LoadedProject с созданными персонами и семьями
+     * @param textDescription Arbitrary text description of genealogy
+     * @return LoadedProject with created persons and families
      */
     suspend fun importFromText(textDescription: String): LoadedProject {
         println("[DEBUG_LOG] AiTextImporter.importFromText: Starting AI import with ${textDescription.length} chars")
         println("[DEBUG_LOG] AiTextImporter.importFromText: First 200 chars: ${textDescription.take(200)}")
         
-        // Отправляем текст на AI для анализа
+        // Send text to AI for analysis
         val aiResultJson = analyzeTextWithAi(textDescription)
         println("[DEBUG_LOG] AiTextImporter.importFromText: Received AI response with ${aiResultJson.length} chars")
         println("[DEBUG_LOG] AiTextImporter.importFromText: AI response preview: ${aiResultJson.take(500)}")
         
-        // Парсим результат AI
+        // Parse AI result
         val result = importFromAiResult(aiResultJson)
         println("[DEBUG_LOG] AiTextImporter.importFromText: Parsed result - ${result.data.individuals.size} individuals, ${result.data.families.size} families")
         return result
     }
     
     /**
-     * Анализирует текст с помощью AI и возвращает JSON с результатами.
+     * Analyzes text using AI and returns JSON with results.
      * 
-     * @param textDescription Текстовое описание родословной
-     * @return JSON строка с результатами AI-анализа в формате AiAnalysisResult
+     * @param textDescription Text description of genealogy
+     * @return JSON string with AI analysis results in AiAnalysisResult format
      */
     private suspend fun analyzeTextWithAi(textDescription: String): String {
-        // Формируем промпт для AI
+        // Build prompt for AI
         val prompt = buildAiPrompt(textDescription)
         
-        // Вызываем AI API
+        // Call AI API
         return callAiApi(prompt)
     }
     
     /**
-     * Строит промпт для AI с инструкциями по анализу текста.
+     * Builds a prompt for AI with instructions for text analysis.
      */
     private fun buildAiPrompt(textDescription: String): String {
         return """
@@ -110,10 +110,10 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Вызывает AI API для анализа текста.
+     * Calls AI API for text analysis.
      * 
-     * @param prompt Промпт для AI
-     * @return JSON строка с результатами анализа
+     * @param prompt Prompt for AI
+     * @return JSON string with analysis results
      */
     private suspend fun callAiApi(prompt: String): String {
         println("[DEBUG_LOG] AiTextImporter.callAiApi: Sending prompt to AI (length=${prompt.length})")
@@ -124,10 +124,10 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Импортирует проект из JSON-результата AI-анализа.
+     * Imports a project from AI analysis JSON result.
      * 
-     * @param aiResultJson JSON строка с результатами AI-анализа в формате AiAnalysisResult
-     * @return LoadedProject с созданными персонами и семьями
+     * @param aiResultJson JSON string with AI analysis results in AiAnalysisResult format
+     * @return LoadedProject with created persons and families
      */
     fun importFromAiResult(aiResultJson: String): LoadedProject {
         println("[DEBUG_LOG] AiTextImporter.importFromAiResult: Input JSON length=${aiResultJson.length}")
@@ -166,20 +166,20 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Извлекает год из строки даты.
-     * Поддерживает форматы: "YYYY", "DD.MM.YYYY", "DD/MM/YYYY"
+     * Extracts year from date string.
+     * Supports formats: "YYYY", "DD.MM.YYYY", "DD/MM/YYYY"
      */
     private fun extractYear(dateString: String?): Int? {
         if (dateString.isNullOrBlank()) return null
         
-        // Попытка извлечь 4-значный год из строки
+        // Attempt to extract 4-digit year from string
         val yearRegex = Regex("""\b(\d{4})\b""")
         val match = yearRegex.find(dateString)
         return match?.groupValues?.get(1)?.toIntOrNull()
     }
     
     /**
-     * Создает событие GEDCOM из даты.
+     * Creates a GEDCOM event from date.
      */
     private fun createEvent(type: String, date: String?, index: Int): GedcomEvent? {
         if (date.isNullOrBlank()) return null
@@ -192,7 +192,7 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Преобразует результаты AI-анализа в ProjectData.
+     * Converts AI analysis results to ProjectData.
      */
     private fun convertToProject(aiResult: AiAnalysisResult): LoadedProject {
         println("[DEBUG_LOG] AiTextImporter.convertToProject: Starting conversion - persons=${aiResult.persons.size}, relationships=${aiResult.relationships.size}")
@@ -200,9 +200,9 @@ Return ONLY the JSON object, no explanations.
         val individuals = mutableListOf<Individual>()
         val families = mutableListOf<Family>()
         
-        // Создаём персон
+        // Create persons
         aiResult.persons.forEachIndexed { index, aiPerson ->
-            // Объединяем firstName и middleName в одно поле firstName
+            // Combine firstName and middleName into single firstName field
             val fullFirstName = if (aiPerson.middleName.isNotBlank()) {
                 "${aiPerson.firstName} ${aiPerson.middleName}"
             } else {
@@ -210,11 +210,11 @@ Return ONLY the JSON object, no explanations.
             }
             println("[DEBUG_LOG] AiTextImporter.convertToProject: Creating person $index: $fullFirstName ${aiPerson.lastName}")
             
-            // Извлекаем годы из дат
+            // Extract years from dates
             val birthYear = extractYear(aiPerson.birthDate)
             val deathYear = extractYear(aiPerson.deathDate)
             
-            // Создаём события для дат рождения и смерти
+            // Create events for birth and death dates
             val events = mutableListOf<GedcomEvent>()
             createEvent("BIRT", aiPerson.birthDate, index)?.let { events.add(it) }
             createEvent("DEAT", aiPerson.deathDate, index)?.let { events.add(it) }
@@ -237,11 +237,11 @@ Return ONLY the JSON object, no explanations.
         }
         println("[DEBUG_LOG] AiTextImporter.convertToProject: Created ${individuals.size} individuals")
         
-        // Группируем отношения для создания семей
+        // Group relationships to create families
         val familyGroups = groupRelationshipsIntoFamilies(aiResult.relationships, individuals.size)
         println("[DEBUG_LOG] AiTextImporter.convertToProject: Grouped into ${familyGroups.size} family groups")
         
-        // Создаём семьи
+        // Create families
         familyGroups.forEachIndexed { index, familyGroup ->
             val family = createFamily(index, familyGroup, individuals)
             if (family != null) {
@@ -273,8 +273,8 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Группирует отношения в семьи.
-     * Семья = супруги + их общие дети.
+     * Groups relationships into families.
+     * Family = spouses + their common children.
      */
     private fun groupRelationshipsIntoFamilies(
         relationships: List<AiRelationship>,
@@ -290,7 +290,7 @@ Return ONLY the JSON object, no explanations.
             rel.relatedPersonIndex >= 0 && rel.relatedPersonIndex < personCount
         }
         
-        // Находим пары супругов
+        // Find spouse pairs
         val spouseRelations = validRelationships.filter { it.relationType == "SPOUSE" }
         
         for (spouseRel in spouseRelations) {
@@ -307,7 +307,7 @@ Return ONLY the JSON object, no explanations.
             processedSpouses.add(pair1)
             processedSpouses.add(pair2)
             
-            // Находим детей этой пары
+            // Find children of this couple
             val children = findChildrenOfCouple(
                 p1,
                 p2,
@@ -323,7 +323,7 @@ Return ONLY the JSON object, no explanations.
             )
         }
         
-        // Обрабатываем родитель-ребёнок отношения без явных супругов
+        // Process parent-child relationships without explicit spouses
         val parentChildRelations = validRelationships.filter { 
             it.relationType == "PARENT" || it.relationType == "CHILD" 
         }
@@ -343,18 +343,18 @@ Return ONLY the JSON object, no explanations.
             childrenWithParents.getOrPut(childIdx) { mutableSetOf() }.add(parentIdx)
         }
         
-        // Группируем детей по комбинации родителей
+        // Group children by parent combination
         val parentCombinations = mutableMapOf<Set<Int>, MutableList<Int>>()
         
         for ((child, parents) in childrenWithParents) {
             parentCombinations.getOrPut(parents) { mutableListOf() }.add(child)
         }
         
-        // Создаём семьи для каждой уникальной комбинации родителей
+        // Create families for each unique parent combination
         for ((parents, children) in parentCombinations) {
             val parentsList = parents.toList()
             
-            // Проверяем, не создали ли мы уже семью для этих супругов
+            // Check if we already created a family for these spouses
             val alreadyProcessed = familyGroups.any { family ->
                 val familySpouses = setOfNotNull(family.spouse1, family.spouse2)
                 familySpouses == parents
@@ -375,7 +375,7 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Находит детей пары родителей.
+     * Finds children of a parent couple.
      */
     private fun findChildrenOfCouple(
         parent1: Int,
@@ -402,12 +402,12 @@ Return ONLY the JSON object, no explanations.
             }
             .toSet()
         
-        // Общие дети обоих родителей
+        // Common children of both parents
         return (childrenOfParent1 intersect childrenOfParent2).toList()
     }
     
     /**
-     * Создаёт объект Family из FamilyGroup.
+     * Creates a Family object from FamilyGroup.
      */
     private fun createFamily(
         index: Int,
@@ -418,18 +418,18 @@ Return ONLY the JSON object, no explanations.
         val spouse2Id = familyGroup.spouse2?.let { individuals.getOrNull(it)?.id }
         val childrenIds = familyGroup.children.mapNotNull { individuals.getOrNull(it)?.id }
         
-        // Семья должна иметь хотя бы одного члена
+        // Family must have at least one member
         if (spouse1Id == null && spouse2Id == null && childrenIds.isEmpty()) {
             return null
         }
         
-        // Определяем пол супругов для правильного назначения husband/wife
+        // Determine gender of spouses for correct husband/wife assignment
         val husband = if (spouse1Id != null && individuals.getOrNull(familyGroup.spouse1!!)?.gender == Gender.MALE) {
             spouse1Id
         } else if (spouse2Id != null && individuals.getOrNull(familyGroup.spouse2!!)?.gender == Gender.MALE) {
             spouse2Id
         } else {
-            spouse1Id  // По умолчанию первый супруг
+            spouse1Id  // Default to first spouse
         }
         
         val wife = if (spouse1Id != null && spouse1Id != husband) {
@@ -449,7 +449,7 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Парсит строку пола в enum Gender.
+     * Parses gender string to Gender enum.
      */
     private fun parseGender(genderString: String?): Gender? {
         return when (genderString?.uppercase()) {
@@ -461,7 +461,7 @@ Return ONLY the JSON object, no explanations.
     }
     
     /**
-     * Вспомогательный класс для группировки членов семьи.
+     * Helper class for grouping family members.
      */
     private data class FamilyGroup(
         val spouse1: Int?,

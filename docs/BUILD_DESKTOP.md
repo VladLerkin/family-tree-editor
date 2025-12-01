@@ -43,7 +43,7 @@ set JAVA_HOME=C:\Path\To\jdk-21
 
 ### macOS / Linux
 
-From the `kmp` directory:
+From the project root:
 ```bash
 # Navigate to project root (already there)
 ./gradlew :app-desktop:run
@@ -51,7 +51,7 @@ From the `kmp` directory:
 
 ### Windows
 
-From the `kmp` directory:
+From the project root:
 
 **PowerShell:**
 ```powershell
@@ -88,7 +88,7 @@ To compile the Desktop application without launching it:
 
 ## Run from IntelliJ IDEA
 
-1. Open the `kmp` directory as a project (IntelliJ will detect Gradle)
+1. Open the project directory (IntelliJ will detect Gradle)
 2. Sync Gradle dependencies (IntelliJ usually prompts automatically)
 3. Navigate to `app-desktop/src/jvmMain/kotlin/com/family/tree/desktop/Main.kt`
 4. Click the green ▶️ icon next to `fun main()` or use Run → Run 'Main'

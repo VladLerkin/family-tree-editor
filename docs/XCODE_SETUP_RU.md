@@ -15,7 +15,7 @@ Xcode выдает ошибку: **"No such module 'FamilyTreeApp'"**
 
 ### Шаг 1: Соберите фреймворк
 ```bash
-cd /Users/yav/IdeaProjects/rel/kmp
+cd /Users/yav/IdeaProjects/rel
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
 ```
 
@@ -33,7 +33,7 @@ app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
    - Product Name: `FamilyTreeWrapper` (или любое другое имя)
    - Interface: **SwiftUI**
    - Language: **Swift**
-   - Сохраните вне папки `kmp` (например, в `ios-wrapper`)
+   - Сохраните вне папки проекта (например, в `ios-wrapper`)
 
 ### Шаг 3: Добавьте фреймворк в Xcode проект
 
@@ -100,7 +100,7 @@ ls -la /Users/yav/IdeaProjects/rel/app-ios/build/bin/iosSimulatorArm64/debugFram
 
 Если нет - пересоберите:
 ```bash
-cd /Users/yav/IdeaProjects/rel/kmp
+cd /Users/yav/IdeaProjects/rel
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
 ```
 
@@ -153,7 +153,7 @@ import FamilyTree   // ❌ Неправильно
    - Найдите "Kotlin Multiplatform Mobile"
    - Установите и перезапустите IDE
 
-2. Откройте проект `kmp` в IntelliJ IDEA
+2. Откройте проект в IntelliJ IDEA
 
 3. **Run → Edit Configurations...**
 

@@ -10,7 +10,7 @@ import io.ktor.utils.io.core.*
 import kotlinx.serialization.json.*
 
 /**
- * Клиент для работы с OpenAI API.
+ * Client for OpenAI API.
  */
 class OpenAiClient : AiClient {
     private val json = Json {
@@ -56,7 +56,7 @@ class OpenAiClient : AiClient {
             val responseText = response.bodyAsText()
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
-            // Извлекаем текст ответа из структуры OpenAI
+            // Extract response text from OpenAI structure
             val choices = responseJson["choices"]?.jsonArray
             if (choices == null || choices.isEmpty()) {
                 throw Exception("No choices in OpenAI response")

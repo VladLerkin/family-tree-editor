@@ -15,12 +15,12 @@ actual class AiSettingsStorage {
             "Context must be set via AiSettingsStorage.setContext() before use" 
         }
         
-        // Создаём MasterKey для шифрования
+        // Create MasterKey for encryption
         val masterKey = MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
         
-        // Создаём EncryptedSharedPreferences с автоматическим шифрованием
+        // Create EncryptedSharedPreferences with automatic encryption
         EncryptedSharedPreferences.create(
             context,
             PREFS_NAME,
@@ -40,9 +40,9 @@ actual class AiSettingsStorage {
             putInt(KEY_MAX_TOKENS, config.maxTokens)
             putString(KEY_LANGUAGE, config.language)
             putString(KEY_TRANSCRIPTION_PROVIDER, config.transcriptionProvider)
-            putString(KEY_GOOGLE_API_KEY, config.googleApiKey)  // Deprecated, но сохраняем для обратной совместимости
+            putString(KEY_GOOGLE_API_KEY, config.googleApiKey)  // Deprecated, but kept for backward compatibility
             
-            // Новые поля для отдельных ключей групп провайдеров
+            // New fields for separate provider group keys
             putString(KEY_OPENAI_API_KEY, config.openaiApiKey)
 
             putString(KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
@@ -64,7 +64,7 @@ actual class AiSettingsStorage {
             transcriptionProvider = prefs.getString(KEY_TRANSCRIPTION_PROVIDER, "OPENAI_WHISPER") ?: "OPENAI_WHISPER",
             googleApiKey = prefs.getString(KEY_GOOGLE_API_KEY, "") ?: "",
             
-            // Новые поля для отдельных ключей групп провайдеров
+            // New fields for separate provider group keys
             openaiApiKey = prefs.getString(KEY_OPENAI_API_KEY, "") ?: "",
 
             googleAiApiKey = prefs.getString(KEY_GOOGLE_AI_API_KEY, "") ?: "",
@@ -85,7 +85,7 @@ actual class AiSettingsStorage {
             remove(KEY_TRANSCRIPTION_PROVIDER)
             remove(KEY_GOOGLE_API_KEY)
             
-            // Удаляем новые поля
+            // Remove new fields
             remove(KEY_OPENAI_API_KEY)
 
             remove(KEY_GOOGLE_AI_API_KEY)
@@ -107,7 +107,7 @@ actual class AiSettingsStorage {
         private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
         private const val KEY_GOOGLE_API_KEY = "ai_google_api_key"
         
-        // Новые ключи для отдельных API ключей групп провайдеров
+        // New keys for separate provider group API keys
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
 
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"

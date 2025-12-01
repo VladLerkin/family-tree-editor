@@ -14,7 +14,7 @@ actual class AiSettingsStorage {
     
     actual fun saveConfig(config: AiConfig) {
         prefs.put(KEY_PROVIDER, config.provider)
-        // Шифруем API ключ перед сохранением (deprecated, для обратной совместимости)
+        // Encrypt API key before saving (deprecated, for backward compatibility)
         val encryptedKey = if (config.apiKey.isNotBlank()) {
             encryptApiKey(config.apiKey)
         } else {
@@ -27,7 +27,7 @@ actual class AiSettingsStorage {
         prefs.putInt(KEY_MAX_TOKENS, config.maxTokens)
         prefs.put(KEY_LANGUAGE, config.language)
         prefs.put(KEY_TRANSCRIPTION_PROVIDER, config.transcriptionProvider)
-        // Шифруем Google API ключ перед сохранением (deprecated)
+        // Encrypt Google API key before saving (deprecated)
         val encryptedGoogleKey = if (config.googleApiKey.isNotBlank()) {
             encryptApiKey(config.googleApiKey)
         } else {
@@ -35,7 +35,7 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_GOOGLE_API_KEY, encryptedGoogleKey)
         
-        // Шифруем новые API ключи для каждой группы провайдеров
+        // Encrypt new API keys for each provider group
         val encryptedOpenAiKey = if (config.openaiApiKey.isNotBlank()) {
             encryptApiKey(config.openaiApiKey)
         } else {
@@ -52,7 +52,7 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_GOOGLE_AI_API_KEY, encryptedGoogleAiKey)
         
-        // Шифруем Yandex API ключ перед сохранением
+        // Encrypt Yandex API key before saving
         val encryptedYandexKey = if (config.yandexApiKey.isNotBlank()) {
             encryptApiKey(config.yandexApiKey)
         } else {
@@ -60,7 +60,7 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_YANDEX_API_KEY, encryptedYandexKey)
         
-        // Сохраняем Yandex Folder ID (не требует шифрования, это не секрет)
+        // Save Yandex Folder ID (no encryption needed, not a secret)
         prefs.put(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
         
         prefs.flush()
@@ -68,12 +68,12 @@ actual class AiSettingsStorage {
     
     actual fun loadConfig(): AiConfig {
         val encryptedKey = prefs.get(KEY_API_KEY, "")
-        // Расшифровываем API ключ при загрузке
+        // Decrypt API key on load
         val decryptedKey = if (encryptedKey.isNotBlank()) {
             try {
                 decryptApiKey(encryptedKey)
             } catch (e: Exception) {
-                // Если не удалось расшифровать (старый формат или ошибка), возвращаем как есть
+                // If decryption failed (old format or error), return as is
                 encryptedKey
             }
         } else {
@@ -81,7 +81,7 @@ actual class AiSettingsStorage {
         }
         
         val encryptedGoogleKey = prefs.get(KEY_GOOGLE_API_KEY, "")
-        // Расшифровываем Google API ключ при загрузке
+        // Decrypt Google API key on load
         val decryptedGoogleKey = if (encryptedGoogleKey.isNotBlank()) {
             try {
                 decryptApiKey(encryptedGoogleKey)
@@ -92,7 +92,7 @@ actual class AiSettingsStorage {
             ""
         }
         
-        // Расшифровываем новые API ключи для групп провайдеров
+        // Decrypt new API keys for provider groups
         val encryptedOpenAiKey = prefs.get(KEY_OPENAI_API_KEY, "")
         val decryptedOpenAiKey = if (encryptedOpenAiKey.isNotBlank()) {
             try {
@@ -117,7 +117,7 @@ actual class AiSettingsStorage {
             ""
         }
         
-        // Расшифровываем Yandex API ключ при загрузке
+        // Decrypt Yandex API key on load
         val encryptedYandexKey = prefs.get(KEY_YANDEX_API_KEY, "")
         val decryptedYandexKey = if (encryptedYandexKey.isNotBlank()) {
             try {
@@ -140,12 +140,12 @@ actual class AiSettingsStorage {
             transcriptionProvider = prefs.get(KEY_TRANSCRIPTION_PROVIDER, "OPENAI_WHISPER"),
             googleApiKey = decryptedGoogleKey,
             
-            // Новые поля для отдельных ключей групп провайдеров
+            // New fields for separate provider group keys
             openaiApiKey = decryptedOpenAiKey,
 
             googleAiApiKey = decryptedGoogleAiKey,
             yandexApiKey = decryptedYandexKey,
-            // Если folderId не сохранен, используем дефолтное значение
+            // If folderId is not saved, use default value
             yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" }
         )
     }
@@ -161,7 +161,7 @@ actual class AiSettingsStorage {
         prefs.remove(KEY_TRANSCRIPTION_PROVIDER)
         prefs.remove(KEY_GOOGLE_API_KEY)
         
-        // Удаляем новые поля
+        // Remove new fields
         prefs.remove(KEY_OPENAI_API_KEY)
 
         prefs.remove(KEY_GOOGLE_AI_API_KEY)
@@ -172,7 +172,7 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Шифрует API ключ с использованием AES.
+     * Encrypts API key using AES.
      */
     private fun encryptApiKey(plainText: String): String {
         val cipher = Cipher.getInstance(ALGORITHM)
@@ -182,7 +182,7 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Расшифровывает API ключ.
+     * Decrypts API key.
      */
     private fun decryptApiKey(encryptedText: String): String {
         val cipher = Cipher.getInstance(ALGORITHM)
@@ -193,18 +193,18 @@ actual class AiSettingsStorage {
     }
     
     /**
-     * Генерирует секретный ключ на основе уникальных параметров системы.
-     * Использует комбинацию username, home directory и константы для создания стабильного ключа.
+     * Generates a secret key based on unique system parameters.
+     * Uses a combination of username, home directory, and a constant to create a stable key.
      */
     private fun getSecretKey(): SecretKeySpec {
-        // Создаём ключ на основе системных параметров (стабильный для данной системы)
+        // Create key based on system parameters (stable for this system)
         val keySource = buildString {
             append(System.getProperty("user.name") ?: "default")
             append(System.getProperty("user.home") ?: "default")
-            append(SALT) // Дополнительная соль для безопасности
+            append(SALT) // Additional salt for security
         }
         
-        // Хэшируем в SHA-256 для получения 256-битного ключа
+        // Hash with SHA-256 to get a 256-bit key
         val digest = MessageDigest.getInstance("SHA-256")
         val keyBytes = digest.digest(keySource.toByteArray(Charsets.UTF_8))
         
@@ -222,7 +222,7 @@ actual class AiSettingsStorage {
         private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
         private const val KEY_GOOGLE_API_KEY = "ai_google_api_key"
         
-        // Новые ключи для отдельных API ключей групп провайдеров
+        // New keys for separate provider group API keys
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
 
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"

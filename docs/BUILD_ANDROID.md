@@ -102,7 +102,7 @@ adb shell monkey -p com.family.tree.android -c android.intent.category.LAUNCHER 
 - Find "Family Tree" app icon on your device/emulator and tap it
 
 **Or using Android Studio:**
-- Open the `kmp` project in Android Studio
+- Open the project in Android Studio
 - Select `app-android` run configuration
 - Click the green ▶️ Run button
 
@@ -140,7 +140,7 @@ adb uninstall com.family.tree.android
 
 ## Run from Android Studio
 
-1. Open the `kmp` directory as a project in Android Studio
+1. Open the project directory in Android Studio
 2. Sync Gradle dependencies (Android Studio usually prompts automatically)
 3. Select **app-android** from the run configuration dropdown (top toolbar)
 4. Ensure a device/emulator is connected/running

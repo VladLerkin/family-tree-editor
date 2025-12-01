@@ -1,24 +1,24 @@
 package com.family.tree.core.ai
 
 /**
- * Интерфейс для взаимодействия с AI API.
+ * Interface for interacting with AI API.
  */
 interface AiClient {
     /**
-     * Отправляет промпт AI и возвращает ответ.
+     * Sends a prompt to AI and returns the response.
      * 
-     * @param prompt Промпт для AI
-     * @param config Конфигурация AI
-     * @return Ответ от AI
+     * @param prompt Prompt for AI
+     * @param config AI configuration
+     * @return Response from AI
      */
     suspend fun sendPrompt(prompt: String, config: AiConfig): String
     
     /**
-     * Транскрибирует аудио в текст (поддерживается только OpenAI).
+     * Transcribes audio to text (currently supported only by OpenAI).
      * 
-     * @param audioData Аудио данные (поддерживаемые форматы: m4a, mp3, wav, webm)
-     * @param config Конфигурация AI
-     * @return Транскрибированный текст
+     * @param audioData Audio data (supported formats: m4a, mp3, wav, webm)
+     * @param config AI configuration
+     * @return Transcribed text
      */
     suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         throw UnsupportedOperationException("Audio transcription is not supported by this AI provider")
@@ -26,11 +26,11 @@ interface AiClient {
 }
 
 /**
- * Фабрика для создания клиентов AI в зависимости от провайдера.
+ * Factory for creating AI clients based on provider.
  */
 object AiClientFactory {
     /**
-     * Создаёт клиент для указанного провайдера.
+     * Creates a client for the specified provider.
      */
     fun createClient(provider: AiProvider): AiClient {
         return when (provider) {
@@ -43,7 +43,7 @@ object AiClientFactory {
     }
     
     /**
-     * Создаёт клиент на основе конфигурации.
+     * Creates a client based on configuration.
      */
     fun createClient(config: AiConfig): AiClient {
         return createClient(config.getProvider())
@@ -51,7 +51,7 @@ object AiClientFactory {
 }
 
 /**
- * Результат выполнения AI запроса.
+ * Result of AI request execution.
  */
 sealed class AiResult {
     data class Success(val text: String) : AiResult()
@@ -59,7 +59,7 @@ sealed class AiResult {
 }
 
 /**
- * Обёртка для безопасного выполнения AI запросов с обработкой ошибок.
+ * Wrapper for safe execution of AI requests with error handling.
  */
 suspend fun AiClient.sendPromptSafe(prompt: String, config: AiConfig): AiResult {
     return try {

@@ -8,11 +8,11 @@ import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
- * Клиент для работы с Yandex SpeechKit API (транскрипция аудио).
+ * Client for Yandex SpeechKit API (audio transcription).
  * 
- * Документация: https://cloud.yandex.ru/docs/speechkit/stt/api/streaming-api
- * Поддерживаемые форматы: LPCM, OggOpus
- * Поддерживаемые языки: ru-RU, en-US, tr-TR и другие
+ * Documentation: https://cloud.yandex.ru/docs/speechkit/stt/api/streaming-api
+ * Supported formats: LPCM, OggOpus
+ * Supported languages: ru-RU, en-US, tr-TR and others
  */
 class YandexSpeechClient : TranscriptionClient {
     private val json = Json {
@@ -21,44 +21,44 @@ class YandexSpeechClient : TranscriptionClient {
     }
     
     /**
-     * Преобразует ISO-639-1 код языка в формат Yandex SpeechKit.
+     * Converts ISO-639-1 language code to Yandex SpeechKit format.
      * 
-     * Поддерживаемые языки:
+     * Supported languages:
      * https://cloud.yandex.ru/docs/speechkit/stt/models
      */
     private fun convertToYandexLanguageCode(isoCode: String): String {
         if (isoCode.isBlank()) {
-            return "ru-RU"  // По умолчанию русский
+            return "ru-RU"  // Russian by default
         }
         
         return when (isoCode.lowercase()) {
-            "ru" -> "ru-RU"  // Русский
-            "en" -> "en-US"  // Английский
-            "tr" -> "tr-TR"  // Турецкий
-            "uz" -> "uz-UZ"  // Узбекский
-            "kk" -> "kk-KZ"  // Казахский
-            "de" -> "de-DE"  // Немецкий
-            "fr" -> "fr-FR"  // Французский
-            "es" -> "es-ES"  // Испанский
-            "it" -> "it-IT"  // Итальянский
-            "pl" -> "pl-PL"  // Польский
-            "nl" -> "nl-NL"  // Нидерландский
-            "he" -> "he-IL"  // Иврит
-            "sv" -> "sv-SE"  // Шведский
-            "fi" -> "fi-FI"  // Финский
-            "pt" -> "pt-PT"  // Португальский
-            "hy" -> "hy-AM"  // Армянский
-            "ka" -> "ka-GE"  // Грузинский
-            "ar" -> "ar-AE"  // Арабский
-            "fa" -> "fa-IR"  // Персидский
-            "uk" -> "uk-UA"  // Украинский
-            "be" -> "be-BY"  // Белорусский
+            "ru" -> "ru-RU"  // Russian
+            "en" -> "en-US"  // English
+            "tr" -> "tr-TR"  // Turkish
+            "uz" -> "uz-UZ"  // Uzbek
+            "kk" -> "kk-KZ"  // Kazakh
+            "de" -> "de-DE"  // German
+            "fr" -> "fr-FR"  // French
+            "es" -> "es-ES"  // Spanish
+            "it" -> "it-IT"  // Italian
+            "pl" -> "pl-PL"  // Polish
+            "nl" -> "nl-NL"  // Dutch
+            "he" -> "he-IL"  // Hebrew
+            "sv" -> "sv-SE"  // Swedish
+            "fi" -> "fi-FI"  // Finnish
+            "pt" -> "pt-PT"  // Portuguese
+            "hy" -> "hy-AM"  // Armenian
+            "ka" -> "ka-GE"  // Georgian
+            "ar" -> "ar-AE"  // Arabic
+            "fa" -> "fa-IR"  // Persian
+            "uk" -> "uk-UA"  // Ukrainian
+            "be" -> "be-BY"  // Belarusian
             
-            // Если формат уже содержит дефис, возвращаем как есть
+            // If format already contains hyphen, return as is
             else -> if (isoCode.contains("-")) {
                 isoCode
             } else {
-                // Для неизвестных языков пытаемся построить код
+                // For unknown languages try to construct code
                 "${isoCode.lowercase()}-${isoCode.uppercase()}"
             }
         }
@@ -73,12 +73,12 @@ class YandexSpeechClient : TranscriptionClient {
         // Yandex SpeechKit REST API v3 endpoint
         val url = "https://stt.api.cloud.yandex.net/speech/v1/stt:recognize"
         
-        // Преобразуем ISO-639-1 код в формат Yandex
+        // Convert ISO-639-1 code to Yandex format
         val languageCode = convertToYandexLanguageCode(config.language)
         
         println("[DEBUG_LOG] YandexSpeechClient: Converting '${config.language}' -> '$languageCode'")
         
-        // Определяем формат аудио
+        // Determine audio format
         val isOgg = audioData.size >= 4 && 
                     audioData[0] == 0x4F.toByte() &&  // 'O'
                     audioData[1] == 0x67.toByte() &&  // 'g'
@@ -97,13 +97,13 @@ class YandexSpeechClient : TranscriptionClient {
                     audioData[2] == 'F'.code.toByte() && 
                     audioData[3] == 'F'.code.toByte()
         
-        // Yandex SpeechKit поддерживает: LPCM, OggOpus
-        // Для M4A/AAC конвертируем в OggOpus или используем как есть (но это не сработает для v1)
-        // Для WAV удаляем заголовок, так как Yandex требует raw LPCM
+        // Yandex SpeechKit supports: LPCM, OggOpus
+        // For M4A/AAC convert to OggOpus or use as is (but this won't work for v1)
+        // For WAV remove header, as Yandex requires raw LPCM
         val (finalAudioData, audioFormat) = when {
             isOgg -> audioData to "oggopus"
             isWav -> {
-                // Удаляем WAV заголовок (обычно 44 байта)
+                // Remove WAV header (usually 44 bytes)
                 println("[DEBUG_LOG] YandexSpeechClient: Detected WAV header, stripping it for LPCM")
                 audioData.copyOfRange(44, audioData.size) to "lpcm"
             }
@@ -111,7 +111,7 @@ class YandexSpeechClient : TranscriptionClient {
                 println("[DEBUG_LOG] YandexSpeechClient: Warning: M4A format detected but Yandex requires LPCM/OggOpus. Sending as is (might fail).")
                 audioData to "lpcm"
             }
-            else -> audioData to "lpcm"   // По умолчанию LPCM
+            else -> audioData to "lpcm"   // LPCM by default
         }
         
         println("[DEBUG_LOG] YandexSpeechClient: Detected audio format: $audioFormat (isOgg=$isOgg, isM4A=$isM4A)")
@@ -130,12 +130,12 @@ class YandexSpeechClient : TranscriptionClient {
                 
                 contentType(ContentType.Application.OctetStream)
                 
-                // Параметры распознавания в query string
+                // Recognition parameters in query string
                 parameter("lang", languageCode)
                 parameter("format", audioFormat)
                 parameter("sampleRateHertz", "16000")
                 parameter("profanityFilter", "false")
-                parameter("model", "general")  // Общая модель
+                parameter("model", "general")  // General model
                 
                 setBody(finalAudioData)
             }
@@ -145,7 +145,7 @@ class YandexSpeechClient : TranscriptionClient {
             val responseText = response.bodyAsText()
             println("[DEBUG_LOG] YandexSpeechClient: Full response body: $responseText")
             
-            // Проверяем на ошибки
+            // Check for errors
             if (!response.status.isSuccess()) {
                 println("[DEBUG_LOG] YandexSpeechClient: HTTP error ${response.status}")
                 throw Exception("Yandex SpeechKit API error: ${response.status} - $responseText")
@@ -153,7 +153,7 @@ class YandexSpeechClient : TranscriptionClient {
             
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
-            // Проверяем наличие ошибки в JSON
+            // Check for error in JSON
             val error = responseJson["error_code"]?.jsonPrimitive?.content
             if (error != null) {
                 val errorMessage = responseJson["error_message"]?.jsonPrimitive?.content ?: "Unknown error"
@@ -161,8 +161,8 @@ class YandexSpeechClient : TranscriptionClient {
                 throw Exception("Yandex SpeechKit API error ($error): $errorMessage")
             }
             
-            // Извлекаем транскрибированный текст
-            // Структура ответа: { "result": "транскрибированный текст" }
+            // Extract transcribed text
+            // Response structure: { "result": "transcribed text" }
             val result = responseJson["result"]?.jsonPrimitive?.content
             
             if (result.isNullOrBlank()) {
