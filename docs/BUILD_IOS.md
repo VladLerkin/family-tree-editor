@@ -48,7 +48,7 @@ To enable building for physical iOS devices, you would need to:
 
 The iOS app is organized as follows:
 ```
-kmp/
+Project Root:
 ├── app-ios/              # iOS launcher module
 │   └── src/
 │       └── iosMain/
@@ -157,7 +157,7 @@ In standard templates, **iOS targets and framework configuration are in the same
 
 **This Project (Multi-Module Architecture):**
 ```
-kmp/
+Project Root:
 ├── core/build.gradle.kts      # Declares iosX64(), iosArm64(), iosSimulatorArm64()
 ├── ui/build.gradle.kts        # Declares iosX64(), iosArm64(), iosSimulatorArm64()  
 └── app-ios/build.gradle.kts   # Framework configuration with baseName = "FamilyTreeApp"
@@ -207,13 +207,13 @@ This configures the iOS framework that will be embedded in your Xcode project.
 
 ### Build for Simulator (Apple Silicon)
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
 ```
 
 ### Build for Simulator (Intel Mac)
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-ios:linkDebugFrameworkIosX64
 ```
 
@@ -409,7 +409,7 @@ This method requires creating an Xcode wrapper project to package and run your K
 First, build the iOS framework from your KMP project:
 
 ```bash
-cd kmp
+# Navigate to project root (already there)
 
 # For Apple Silicon Mac (M1/M2/M3) - iOS Simulator
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
@@ -422,9 +422,9 @@ cd kmp
 ```
 
 The framework will be generated at:
-- Simulator (Apple Silicon): `kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework`
-- Simulator (Intel): `kmp/app-ios/build/bin/iosX64/debugFramework/FamilyTreeApp.framework`
-- Device: `kmp/app-ios/build/bin/iosArm64/debugFramework/FamilyTreeApp.framework`
+- Simulator (Apple Silicon): `app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework`
+- Simulator (Intel): `app-ios/build/bin/iosX64/debugFramework/FamilyTreeApp.framework`
+- Device: `app-ios/build/bin/iosArm64/debugFramework/FamilyTreeApp.framework`
 
 #### Step 2: Create a New Xcode Project
 
@@ -442,7 +442,7 @@ The framework will be generated at:
    - **Storage:** Core Data (unchecked), CloudKit (unchecked), Testing (optional)
    - Click **Next**
 4. **Choose location:**
-   - Save it somewhere convenient (e.g., `kmp/ios-wrapper/`)
+   - Save it somewhere convenient (e.g., `ios-wrapper/`)
    - **Do NOT** add to the KMP project git repository (uncheck "Create Git repository")
    - Click **Create**
 
@@ -458,8 +458,8 @@ The framework will be generated at:
    - Click the **+** button
    - Click **Add Other...** → **Add Files...**
    - Navigate to the framework location:
-     - For Apple Silicon Simulator: `kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/`
-     - For Intel Simulator: `kmp/app-ios/build/bin/iosX64/debugFramework/`
+     - For Apple Silicon Simulator: `app-ios/build/bin/iosSimulatorArm64/debugFramework/`
+     - For Intel Simulator: `app-ios/build/bin/iosX64/debugFramework/`
    - Select `FamilyTreeApp.framework`
    - Ensure **Embed & Sign** is selected (or **Embed Without Signing** for simulator)
    - Click **Add**
@@ -563,14 +563,14 @@ This error occurs when Xcode cannot find or import your Kotlin Multiplatform fra
 **Step 1: Verify the Framework Exists**
 ```bash
 # Check if the framework was built successfully
-ls -la kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
+ls -la app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
 # or for Intel Mac:
-ls -la kmp/app-ios/build/bin/iosX64/debugFramework/FamilyTreeApp.framework
+ls -la app-ios/build/bin/iosX64/debugFramework/FamilyTreeApp.framework
 ```
 
 If the framework doesn't exist, rebuild it:
 ```bash
-cd kmp
+# Navigate to project root (already there)
 # For Apple Silicon Mac:
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
 # For Intel Mac:
@@ -596,7 +596,7 @@ cd kmp
    - For Apple Silicon: `$(PROJECT_DIR)/../../app-ios/build/bin/iosSimulatorArm64/debugFramework`
    - For Intel: `$(PROJECT_DIR)/../../app-ios/build/bin/iosX64/debugFramework`
 4. Or use absolute path if relative doesn't work:
-   - `/Users/YOUR_USERNAME/path/to/kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework`
+   - `/Users/YOUR_USERNAME/path/to/app-ios/build/bin/iosSimulatorArm64/debugFramework`
 5. Ensure the path is set to **recursive** (checkbox on the right)
 
 **Step 4: Check Build Phases**
@@ -651,7 +651,7 @@ uname -m
 If the framework exists but still not recognized:
 ```bash
 # Verify the framework has a module map
-ls -la kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework/Modules/module.modulemap
+ls -la app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework/Modules/module.modulemap
 ```
 
 If the file exists, the framework is properly structured.
@@ -697,7 +697,7 @@ You must first complete **Method 2** to create the Xcode wrapper project. This m
 **Step 1: Build the Kotlin Framework**
 
 ```bash
-cd kmp
+# Navigate to project root (already there)
 
 # For Apple Silicon Mac - iOS Simulator
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
@@ -1176,7 +1176,7 @@ sudo xcodebuild -license accept
 ```
 
 ### Framework not found in Xcode
-1. Check that framework was built: `kmp/app-ios/build/bin/`
+1. Check that framework was built: `app-ios/build/bin/`
 2. Verify framework search paths in Xcode build settings
 3. Clean and rebuild: `./gradlew clean :app-ios:linkDebugFrameworkIosSimulatorArm64`
 

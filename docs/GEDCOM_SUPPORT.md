@@ -9,7 +9,7 @@ GEDCOM (GEnealogical Data COMmunication) is a standard format for exchanging gen
 ## Implementation
 
 ### Package Structure
-All GEDCOM functionality is located in `kmp/core/src/commonMain/kotlin/com/family/tree/core/gedcom/`:
+All GEDCOM functionality is located in `core/src/commonMain/kotlin/com/family/tree/core/gedcom/`:
 
 - **GedcomImporter.kt** - Parses GEDCOM text and builds ProjectData
 - **GedcomExporter.kt** - Exports ProjectData to GEDCOM format

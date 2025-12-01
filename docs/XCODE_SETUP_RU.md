@@ -45,7 +45,7 @@ app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
 6. Нажмите **Add Other... → Add Files...**
 7. Перейдите в:
    ```
-   /Users/yav/IdeaProjects/rel/kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/
+   /Users/yav/IdeaProjects/rel/app-ios/build/bin/iosSimulatorArm64/debugFramework/
    ```
 8. Выберите `FamilyTreeApp.framework`
 9. **Важно:** Измените значение справа на **Embed & Sign**
@@ -56,7 +56,7 @@ app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
 2. Найдите **Framework Search Paths**
 3. Добавьте путь:
    ```
-   /Users/yav/IdeaProjects/rel/kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework
+   /Users/yav/IdeaProjects/rel/app-ios/build/bin/iosSimulatorArm64/debugFramework
    ```
 4. Убедитесь, что стоит галочка **recursive** (рекурсивно)
 
@@ -95,7 +95,7 @@ struct ContentView: View {
 
 ### Проверка 1: Фреймворк существует?
 ```bash
-ls -la /Users/yav/IdeaProjects/rel/kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
+ls -la /Users/yav/IdeaProjects/rel/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
 ```
 
 Если нет - пересоберите:
@@ -118,7 +118,7 @@ uname -m
   ```
   И измените путь в Xcode на:
   ```
-  /Users/yav/IdeaProjects/rel/kmp/app-ios/build/bin/iosX64/debugFramework
+  /Users/yav/IdeaProjects/rel/app-ios/build/bin/iosX64/debugFramework
   ```
 
 ### Проверка 3: Очистка Xcode
@@ -176,7 +176,7 @@ IntelliJ IDEA автоматически создаст Xcode проект и з
 ## Структура проекта
 
 ```
-kmp/
+Project Root:
 ├── app-ios/              # iOS модуль
 │   ├── build.gradle.kts  # baseName = "FamilyTreeApp"
 │   └── src/iosMain/kotlin/com/family/tree/ios/main.kt
@@ -223,7 +223,7 @@ kotlin {
 ### Этот проект (мультимодульная архитектура)
 
 ```
-kmp/
+Project Root:
 ├── core/build.gradle.kts      # Объявляет iosX64(), iosArm64(), iosSimulatorArm64()
 ├── ui/build.gradle.kts        # Объявляет iosX64(), iosArm64(), iosSimulatorArm64()
 └── app-ios/build.gradle.kts   # Конфигурация фреймворка: baseName = "FamilyTreeApp"

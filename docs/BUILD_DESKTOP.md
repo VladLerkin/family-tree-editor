@@ -45,7 +45,7 @@ set JAVA_HOME=C:\Path\To\jdk-21
 
 From the `kmp` directory:
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-desktop:run
 ```
 
@@ -55,13 +55,13 @@ From the `kmp` directory:
 
 **PowerShell:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat :app-desktop:run
 ```
 
 **CMD:**
 ```cmd
-cd kmp
+# Navigate to project root (already there)
 gradlew.bat :app-desktop:run
 ```
 
@@ -76,13 +76,13 @@ To compile the Desktop application without launching it:
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-desktop:build
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat :app-desktop:build
 ```
 
@@ -125,13 +125,13 @@ If you encounter build issues or want to ensure a fresh compile:
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew clean :app-desktop:build
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat clean :app-desktop:build
 ```
 

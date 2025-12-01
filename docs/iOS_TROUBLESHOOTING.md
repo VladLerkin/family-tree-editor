@@ -23,7 +23,7 @@ When building the project with iOS targets enabled, Gradle fails during configur
 ```
 FAILURE: Build failed with an exception.
 * Where:
-Build file '/Users/yav/IdeaProjects/rel/kmp/core/build.gradle.kts' line: 12
+Build file '/Users/yav/IdeaProjects/rel/core/build.gradle.kts' line: 12
 * What went wrong:
 org/gradle/api/internal/plugins/DefaultArtifactPublicationSet
 > org.gradle.api.internal.plugins.DefaultArtifactPublicationSet
@@ -50,7 +50,7 @@ The issue is likely caused by one or more of the following:
 
 ### Solution 1: Update to Latest Stable Versions (Recommended)
 
-Update `kmp/settings.gradle.kts` and `kmp/gradle.properties` to use newer, more stable versions:
+Update `settings.gradle.kts` and `gradle.properties` to use newer, more stable versions:
 
 **settings.gradle.kts:**
 ```kotlin
@@ -73,7 +73,7 @@ agp.version=8.7.3
 
 Then clean and rebuild:
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew --stop
 ./gradlew clean
 ./gradlew projects
@@ -84,7 +84,7 @@ cd kmp
 If the issue is due to incomplete Kotlin/Native download:
 
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew --stop
 
 # Trigger Kotlin/Native download
@@ -105,7 +105,7 @@ distributionUrl=https\://services.gradle.org/distributions/gradle-8.10-bin.zip
 
 Then:
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew wrapper --gradle-version=8.10
 ./gradlew --stop
 ./gradlew clean projects
@@ -134,7 +134,7 @@ Key differences to look for:
 
 If you need to continue development on Desktop/Android while investigating iOS:
 
-**Comment out iOS targets in `kmp/core/build.gradle.kts`:**
+**Comment out iOS targets in `core/build.gradle.kts`:**
 ```kotlin
 kotlin {
     androidTarget()
@@ -156,7 +156,7 @@ kotlin {
 }
 ```
 
-Repeat for `kmp/ui/build.gradle.kts` and comment out `:app-ios` in `kmp/settings.gradle.kts`:
+Repeat for `ui/build.gradle.kts` and comment out `:app-ios` in `settings.gradle.kts`:
 ```kotlin
 include(":core")
 include(":ui")
@@ -171,7 +171,7 @@ Once you've applied a solution, verify iOS support works:
 
 ### 1. Check Gradle Configuration
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew projects
 ```
 Should show all 5 modules including `:app-ios`.
@@ -182,7 +182,7 @@ Should show all 5 modules including `:app-ios`.
 ```
 Should complete successfully and create framework at:
 ```
-kmp/app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
+app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
 ```
 
 ### 3. Verify All Targets

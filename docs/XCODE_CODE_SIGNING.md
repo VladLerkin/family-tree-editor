@@ -125,7 +125,7 @@ If you need to run on a real iOS device, you must configure a valid development 
 
 5. **Build the project:**
    ```bash
-   cd kmp
+   # Navigate to project root (already there)
    ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
    ```
 
@@ -160,7 +160,7 @@ After applying any solution, verify the build works:
 ### Test Simulator Build
 
 ```bash
-cd kmp
+# Navigate to project root (already there)
 
 # For Apple Silicon Mac
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64

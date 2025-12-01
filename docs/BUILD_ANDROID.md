@@ -15,7 +15,7 @@ If you have Android Studio installed, the SDK is typically located at:
 - **macOS/Linux:** `~/Library/Android/sdk` or `~/Android/Sdk`
 - **Windows:** `C:\Users\<YourName>\AppData\Local\Android\Sdk`
 
-If Gradle cannot find the SDK automatically, create `kmp/local.properties` with one of the following:
+If Gradle cannot find the SDK automatically, create `local.properties` with one of the following:
 
 **macOS:**
 ```properties
@@ -43,6 +43,7 @@ sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
    ```
    Should show your device with status `device`
 
+
 **Emulator:**
 1. Create an AVD (Android Virtual Device) in Android Studio or via `avdmanager`
 2. Start the emulator:
@@ -57,32 +58,32 @@ sdk.dir=C\:\\Users\\<you>\\AppData\\Local\\Android\\Sdk
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-android:assembleDebug
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat :app-android:assembleDebug
 ```
 
 The APK will be created at:
 ```
-kmp/app-android/build/outputs/apk/debug/app-android-debug.apk
+app-android/build/outputs/apk/debug/app-android-debug.apk
 ```
 
 ### Install on Device/Emulator
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-android:installDebug
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat :app-android:installDebug
 ```
 
@@ -109,14 +110,14 @@ adb shell monkey -p com.family.tree.android -c android.intent.category.LAUNCHER 
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew :app-android:installDebug
 adb shell am start -n com.family.tree.android/.MainActivity
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat :app-android:installDebug
 adb shell am start -n com.family.tree.android/.MainActivity
 ```
@@ -177,13 +178,13 @@ If you encounter build issues:
 
 **macOS/Linux:**
 ```bash
-cd kmp
+# Navigate to project root (already there)
 ./gradlew clean :app-android:assembleDebug
 ```
 
 **Windows:**
 ```powershell
-cd kmp
+# Navigate to project root (already there)
 .\gradlew.bat clean :app-android:assembleDebug
 ```
 
@@ -204,7 +205,7 @@ In Android Studio, use the **Logcat** tab at the bottom.
 ## Troubleshooting
 
 ### "SDK location not found"
-- Create `kmp/local.properties` as shown in Prerequisites
+- Create `local.properties` as shown in Prerequisites
 - Ensure the path points to your actual Android SDK directory
 
 ### "adb: command not found"
@@ -232,7 +233,7 @@ In Android Studio, use the **Logcat** tab at the bottom.
 
 ### Build is very slow
 - Enable Gradle daemon (should be on by default)
-- Add `org.gradle.jvmargs=-Xmx4096m` to `~/.gradle/gradle.properties` (or `kmp/gradle.properties`) to allocate more memory
+- Add `org.gradle.jvmargs=-Xmx4096m` to `~/.gradle/gradle.properties` (or `gradle.properties`) to allocate more memory
 - Use `--parallel` flag: `./gradlew --parallel :app-android:assembleDebug`
 
 ## Packaging for Release (Future)
@@ -244,7 +245,7 @@ To create a signed release APK or AAB (Android App Bundle) for Google Play:
    keytool -genkey -v -keystore release.keystore -alias my_key -keyalg RSA -keysize 2048 -validity 10000
    ```
 
-2. Configure signing in `kmp/app-android/build.gradle.kts` (signingConfigs block)
+2. Configure signing in `app-android/build.gradle.kts` (signingConfigs block)
 
 3. Build release:
    ```bash
