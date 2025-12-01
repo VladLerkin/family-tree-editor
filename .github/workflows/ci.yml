@@ -109,8 +109,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
-      - name: Build iOS Framework (Simulator)
-        run: ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+      - name: Set correct JAVA_HOME for Xcode
+        run: echo "JAVA_HOME=$( /usr/libexec/java_home -v 21 )" >> $GITHUB_ENV
       
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
