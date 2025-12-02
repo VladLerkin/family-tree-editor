@@ -152,7 +152,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
- 		shellScript = "# Framework is built separately in CI/CD\\n# Only build if framework doesn't exist (for local development)\\nif [ ! -d \\\"$SRCROOT/../app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework\\\" ]; then\\n  cd \\\"$SRCROOT/..\\\"\\n  ./gradlew :app-ios:embedAndSignAppleFrameworkForXcode\\nfi\\n";
+ 			shellScript = "cd \"$SRCROOT/..\"\n./gradlew :app-ios:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -180,7 +180,8 @@
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/../app-ios/build/bin/iosSimulatorArm64/debugFramework",
+					"$(PROJECT_DIR)/../app-ios/build/bin/iosArm64/releaseFramework",
+					"$(PROJECT_DIR)/../app-ios/build/bin/iosSimulatorArm64/releaseFramework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
