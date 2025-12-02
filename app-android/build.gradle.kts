@@ -14,7 +14,41 @@ android {
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
         versionCode = 1
         versionName = "0.1"
+        
+        // Support multiple architectures
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        }
     }
+    
+    // Signing configuration
+    signingConfigs {
+        create("release") {
+            // Use project-local keystore for release builds
+            storeFile = file("release.keystore")
+            storePassword = "android123"
+            keyAlias = "release"
+            keyPassword = "android123"
+        }
+    }
+    
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        getByName("debug") {
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+    
     buildFeatures { compose = true }
     composeOptions {
         kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
@@ -26,6 +60,9 @@ android {
     }
 
     packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }

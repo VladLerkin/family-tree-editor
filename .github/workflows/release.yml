@@ -25,8 +25,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
+      - name: Create Release Keystore
+        run: |
+          keytool -genkey -v -keystore app-android/release.keystore \
+            -alias release \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android123 \
+            -keypass android123 \
+            -dname "CN=Family Tree Editor, OU=Development, O=Family Tree, L=Unknown, ST=Unknown, C=US"
+      
       - name: Build Android Release APK
         run: ./gradlew :app-android:assembleRelease
+      
+      - name: Verify APK Signature
+        run: |
+          java -jar $ANDROID_HOME/build-tools/*/lib/apksigner.jar verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4

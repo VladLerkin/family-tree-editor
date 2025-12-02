@@ -37,6 +37,17 @@ jobs:
         run: |
           ./gradlew :app-android:assembleDebug --stacktrace
       
+      - name: Create Release Keystore
+        run: |
+          keytool -genkey -v -keystore app-android/release.keystore \
+            -alias release \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android123 \
+            -keypass android123 \
+            -dname "CN=Family Tree Editor, OU=Development, O=Family Tree, L=Unknown, ST=Unknown, C=US"
+      
       - name: Build Android Release APK
         run: |
           ./gradlew :app-android:assembleRelease --stacktrace
