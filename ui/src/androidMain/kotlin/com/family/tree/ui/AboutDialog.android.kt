@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.5"
+private const val APP_VERSION = "v1.3.6"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 
 /**
