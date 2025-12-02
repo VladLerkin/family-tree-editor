@@ -41,7 +41,9 @@ jobs:
       
       - name: Verify APK Signature
         run: |
-          java -jar $ANDROID_HOME/build-tools/*/lib/apksigner.jar verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner.jar" | sort -r | head -n 1)
+          echo "Using apksigner: $APKSIGNER"
+          java -jar "$APKSIGNER" verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
