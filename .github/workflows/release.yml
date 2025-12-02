@@ -166,14 +166,27 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R artifacts
 
+      - name: Extract Desktop Artifacts
+        run: |
+          mkdir -p release-files
+          # Extract and copy desktop files
+          if [ -d "artifacts/desktop-linux" ]; then
+            find artifacts/desktop-linux -name "*.deb" -exec cp {} release-files/ \;
+          fi
+          if [ -d "artifacts/desktop-mac" ]; then
+            find artifacts/desktop-mac -name "*.dmg" -exec cp {} release-files/ \;
+          fi
+          if [ -d "artifacts/desktop-windows" ]; then
+            find artifacts/desktop-windows -name "*.msi" -exec cp {} release-files/ \;
+          fi
+          # Copy other files
+          cp artifacts/android-release/*.apk release-files/ 2>/dev/null || true
+          cp artifacts/ios-archive/*.zip release-files/ 2>/dev/null || true
+          ls -lh release-files/
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            artifacts/android-release/*.apk
-            artifacts/desktop-linux/*.deb
-            artifacts/desktop-mac/*.dmg
-            artifacts/desktop-windows/*.msi
-            artifacts/ios-archive/*.zip
+          files: release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
