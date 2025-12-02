@@ -14,7 +14,7 @@ import java.awt.Desktop
 import java.net.URI
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.7"
+private const val APP_VERSION = "v1.3.8"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 
 @Composable
