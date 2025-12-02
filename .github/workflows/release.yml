@@ -87,6 +87,7 @@ jobs:
 
       - name: List Desktop Build Output
         run: find app-desktop/build/compose/binaries -maxdepth 4
+        shell: bash
         continue-on-error: true
       
       - name: Upload Artifact
