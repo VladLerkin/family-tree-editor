@@ -14,6 +14,27 @@
 - 🔍 **Inspector Panel** - View and edit individual and family details
 - ⌨️ **Keyboard Shortcuts** - Efficient navigation and editing
 
+## 📦 Download
+
+**Ready-to-use distributions are available for free!**
+
+Get the latest version for your platform:
+
+<div align="center">
+
+### [⬇️ Download from Releases](https://github.com/VladLerkin/family-tree-editor/releases)
+
+</div>
+
+**Available platforms:**
+- 🖥️ **macOS** - Universal binary (Apple Silicon)
+- 🐧 **Linux** - Debian package (.deb) and AppImage
+- 🪟 **Windows** - MSI installer and portable .exe
+- 📱 **Android** - APK for Android 8.0+
+- 🍎 **iOS** - Developer's build
+
+> 💡 No compilation needed! Just download and run for free.
+
 ## 🚀 Quick Start
 
 ### Desktop
