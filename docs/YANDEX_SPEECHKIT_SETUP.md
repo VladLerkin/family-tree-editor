@@ -1,115 +1,115 @@
-# Настройка Yandex SpeechKit для распознавания речи
+# Yandex SpeechKit Setup for Speech Recognition
 
-## Что такое Yandex SpeechKit?
+## What is Yandex SpeechKit?
 
-Yandex SpeechKit — это облачный сервис распознавания и синтеза речи от Яндекса. Он отлично подходит для распознавания русского языка и языков стран СНГ (украинский, казахский, узбекский и др.).
+Yandex SpeechKit is a cloud-based speech recognition and synthesis service from Yandex. It is excellent for recognizing Russian and CIS languages (Ukrainian, Kazakh, Uzbek, etc.).
 
-## Преимущества Yandex SpeechKit
+## Yandex SpeechKit Advantages
 
-- ✅ **Отличная поддержка русского языка** - одна из лучших на рынке
-- ✅ **Поддержка языков СНГ** - украинский, казахский, узбекский, белорусский и др.
-- ✅ **Быстрая обработка** - низкая задержка
-- ✅ **Доступные цены** - первые 15 часов в месяц бесплатно
-- ✅ **Высокая точность** - особенно для русского языка
+- ✅ **Excellent Russian language support** - one of the best on the market
+- ✅ **CIS language support** - Ukrainian, Kazakh, Uzbek, Belarusian, and others
+- ✅ **Fast processing** - low latency
+- ✅ **Affordable pricing** - first 15 hours per month free
+- ✅ **High accuracy** - especially for Russian language
 
-## Как получить API ключ
+## How to Get an API Key
 
-### Шаг 1: Создание аккаунта Yandex Cloud
+### Step 1: Create Yandex Cloud Account
 
-1. Перейдите на [cloud.yandex.ru](https://cloud.yandex.ru)
-2. Нажмите **"Войти в консоль"** или **"Попробовать бесплатно"**
-3. Войдите через Яндекс ID или создайте новый аккаунт
-4. Примите условия использования
+1. Go to [cloud.yandex.ru](https://cloud.yandex.ru)
+2. Click **"Sign in to Console"** or **"Try for Free"**
+3. Sign in with Yandex ID or create a new account
+4. Accept the terms of use
 
-### Шаг 2: Создание платежного аккаунта
+### Step 2: Create Billing Account
 
-1. В консоли Yandex Cloud создайте **платежный аккаунт**
-2. Для физических лиц достаточно указать базовую информацию
-3. **Важно**: Первые 15 часов распознавания речи в месяц **бесплатны**
-4. Привязка карты требуется, но списания не будет в пределах бесплатного лимита
+1. In Yandex Cloud console, create a **billing account**
+2. For individuals, basic information is sufficient
+3. **Important**: First 15 hours of speech recognition per month are **free**
+4. Card binding is required, but there will be no charges within the free tier
 
-### Шаг 3: Создание API ключа
+### Step 3: Create API Key
 
-1. В консоли Yandex Cloud перейдите в раздел **"Сервисные аккаунты"**
-2. Нажмите **"Создать сервисный аккаунт"**
-3. Укажите имя (например, `speechkit-service`)
-4. Добавьте роль **`ai.speechkit-stt.user`** (для распознавания речи)
-5. Нажмите **"Создать"**
+1. In Yandex Cloud console, go to **"Service Accounts"** section
+2. Click **"Create Service Account"**
+3. Enter a name (e.g., `speechkit-service`)
+4. Add role **`ai.speechkit-stt.user`** (for speech recognition)
+5. Click **"Create"**
 
-6. Откройте созданный сервисный аккаунт
-7. Перейдите на вкладку **"API-ключи"**
-8. Нажмите **"Создать API-ключ"**
-9. Скопируйте и сохраните ключ (он показывается только один раз!)
+6. Open the created service account
+7. Go to **"API Keys"** tab
+8. Click **"Create API Key"**
+9. Copy and save the key (it's shown only once!)
 
-**Формат API ключа**: `AQVNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+**API Key Format**: `AQVNxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-### Шаг 4: Настройка в приложении
+### Step 4: Configure in Application
 
-1. Откройте приложение Family Tree
-2. Откройте меню (три точки) → **"AI Settings..."**
-3. В разделе **"Transcription Settings"**:
-   - **Provider**: Выберите **"Yandex SpeechKit"**
-   - **API Key**: Вставьте скопированный API ключ
-   - **Language**: Выберите язык (например, `ru` для русского)
-4. Нажмите **"Save"**
+1. Open Family Tree application
+2. Open menu (three dots) → **"AI Settings..."**
+3. In **"Transcription Settings"** section:
+   - **Provider**: Select **"Yandex SpeechKit"**
+   - **API Key**: Paste the copied API key
+   - **Language**: Select language (e.g., `ru` for Russian)
+4. Click **"Save"**
 
-## Поддерживаемые языки
+## Supported Languages
 
-Yandex SpeechKit поддерживает следующие языки:
+Yandex SpeechKit supports the following languages:
 
-| Язык | Код | Качество |
-|------|-----|----------|
-| Русский | `ru` | ⭐⭐⭐⭐⭐ Отлично |
-| Английский | `en` | ⭐⭐⭐⭐ Хорошо |
-| Турецкий | `tr` | ⭐⭐⭐⭐ Хорошо |
-| Украинский | `uk` | ⭐⭐⭐⭐ Хорошо |
-| Казахский | `kk` | ⭐⭐⭐⭐ Хорошо |
-| Узбекский | `uz` | ⭐⭐⭐⭐ Хорошо |
-| Белорусский | `be` | ⭐⭐⭐ Средне |
-| Армянский | `hy` | ⭐⭐⭐ Средне |
-| Грузинский | `ka` | ⭐⭐⭐ Средне |
-| Немецкий | `de` | ⭐⭐⭐ Средне |
-| Французский | `fr` | ⭐⭐⭐ Средне |
-| Испанский | `es` | ⭐⭐⭐ Средне |
+| Language | Code | Quality |
+|----------|------|---------|
+| Russian | `ru` | ⭐⭐⭐⭐⭐ Excellent |
+| English | `en` | ⭐⭐⭐⭐ Good |
+| Turkish | `tr` | ⭐⭐⭐⭐ Good |
+| Ukrainian | `uk` | ⭐⭐⭐⭐ Good |
+| Kazakh | `kk` | ⭐⭐⭐⭐ Good |
+| Uzbek | `uz` | ⭐⭐⭐⭐ Good |
+| Belarusian | `be` | ⭐⭐⭐ Average |
+| Armenian | `hy` | ⭐⭐⭐ Average |
+| Georgian | `ka` | ⭐⭐⭐ Average |
+| German | `de` | ⭐⭐⭐ Average |
+| French | `fr` | ⭐⭐⭐ Average |
+| Spanish | `es` | ⭐⭐⭐ Average |
 
-## Стоимость
+## Pricing
 
-- **Бесплатно**: Первые 15 часов распознавания в месяц
-- **Платно**: После превышения лимита — ~₽1.20 за минуту
+- **Free**: First 15 hours of recognition per month
+- **Paid**: After exceeding the limit — ~₽1.20 per minute
 
-Для личного использования бесплатного лимита более чем достаточно.
+For personal use, the free tier is more than sufficient.
 
-## Сравнение с другими провайдерами
+## Comparison with Other Providers
 
-| Провайдер | Русский язык | Скорость | Стоимость | Рекомендация |
-|-----------|--------------|----------|-----------|--------------|
-| **Yandex SpeechKit** | ⭐⭐⭐⭐⭐ | Быстро | 15ч бесплатно | ✅ Лучший для русского |
-| **Google Speech** | ⭐⭐⭐⭐ | Быстро | 60мин бесплатно | ✅ Универсальный |
-| **OpenAI Whisper** | ⭐⭐⭐⭐ | Медленно | $0.006/мин | ✅ Много языков |
+| Provider | Russian Language | Speed | Cost | Recommendation |
+|----------|------------------|-------|------|----------------|
+| **Yandex SpeechKit** | ⭐⭐⭐⭐⭐ | Fast | 15h free | ✅ Best for Russian |
+| **Google Speech** | ⭐⭐⭐⭐ | Fast | 60min free | ✅ Universal |
+| **OpenAI Whisper** | ⭐⭐⭐⭐ | Slow | $0.006/min | ✅ Many languages |
 
-## Устранение неполадок
+## Troubleshooting
 
-### Ошибка "API key is required"
-- Проверьте, что вы скопировали API ключ полностью
-- Убедитесь, что в настройках выбран провайдер "Yandex SpeechKit"
+### Error "API key is required"
+- Check that you copied the API key completely
+- Ensure "Yandex SpeechKit" provider is selected in settings
 
-### Ошибка "Invalid API key"
-- Проверьте, что API ключ действителен
-- Убедитесь, что сервисному аккаунту назначена роль `ai.speechkit-stt.user`
+### Error "Invalid API key"
+- Verify that the API key is valid
+- Ensure the service account has the `ai.speechkit-stt.user` role assigned
 
-### Ошибка "Quota exceeded"
-- Вы превысили бесплатный лимит 15 часов в месяц
-- Проверьте использование в консоли Yandex Cloud
-- Подождите до начала следующего месяца или пополните баланс
+### Error "Quota exceeded"
+- You have exceeded the free 15-hour monthly limit
+- Check usage in Yandex Cloud console
+- Wait until the next month or top up your balance
 
-### Плохое качество распознавания
-- Говорите четче и громче
-- Уменьшите фоновый шум
-- Убедитесь, что выбран правильный язык в настройках
+### Poor Recognition Quality
+- Speak more clearly and louder
+- Reduce background noise
+- Ensure the correct language is selected in settings
 
-## Полезные ссылки
+## Useful Links
 
-- [Документация Yandex SpeechKit](https://cloud.yandex.ru/docs/speechkit/)
-- [Консоль Yandex Cloud](https://console.cloud.yandex.ru/)
-- [Цены на SpeechKit](https://cloud.yandex.ru/docs/speechkit/pricing)
-- [Поддерживаемые языки](https://cloud.yandex.ru/docs/speechkit/stt/models)
+- [Yandex SpeechKit Documentation](https://cloud.yandex.ru/docs/speechkit/)
+- [Yandex Cloud Console](https://console.cloud.yandex.ru/)
+- [SpeechKit Pricing](https://cloud.yandex.ru/docs/speechkit/pricing)
+- [Supported Languages](https://cloud.yandex.ru/docs/speechkit/stt/models)

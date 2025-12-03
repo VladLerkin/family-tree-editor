@@ -24,33 +24,33 @@ import androidx.compose.ui.unit.dp
 import com.family.tree.core.ProjectData
 import com.family.tree.core.model.*
 
-// Предопределённые GEDCOM-типы событий для персон
+// Predefined GEDCOM event types for individuals
 private val INDIVIDUAL_EVENT_TYPES = listOf(
-    "BIRT", // рождение
-    "DEAT", // смерть
-    "BURI", // погребение
-    "CHR",  // крещение
-    "BAPM", // крещение (баптизм)
-    "CREM", // кремация
-    "ADOP", // усыновление
-    "RESI", // проживание
-    "GRAD", // окончание учебы
-    "RETI", // выход на пенсию
-    "PROB", // завещание (пробация)
-    "WILL", // завещание
-    "EVEN"  // произвольное событие
+    "BIRT", // birth
+    "DEAT", // death
+    "BURI", // burial
+    "CHR",  // christening
+    "BAPM", // baptism
+    "CREM", // cremation
+    "ADOP", // adoption
+    "RESI", // residence
+    "GRAD", // graduation
+    "RETI", // retirement
+    "PROB", // probate
+    "WILL", // will
+    "EVEN"  // generic event
 )
 
-// Предопределённые GEDCOM-типы событий для семей
+// Predefined GEDCOM event types for families
 private val FAMILY_EVENT_TYPES = listOf(
-    "MARR", // брак
-    "ENGA", // помолвка
-    "DIV",  // развод
-    "ANUL", // аннулирование брака
-    "MARS", // брачный договор
-    "MARB", // публикация о браке
-    "MARL", // лицензия на брак
-    "EVEN"  // произвольное событие
+    "MARR", // marriage
+    "ENGA", // engagement
+    "DIV",  // divorce
+    "ANUL", // annulment
+    "MARS", // marriage settlement
+    "MARB", // marriage banns
+    "MARL", // marriage license
+    "EVEN"  // generic event
 )
 
 @Composable
@@ -444,7 +444,7 @@ private fun EventItem(
         if (isSelected) {
             Spacer(Modifier.height(8.dp))
             
-            // Type field with predefined GEDCOM types (только выбор из списка)
+            // Type field with predefined GEDCOM types (dropdown only)
             var typeText by remember(event.id) { mutableStateOf(event.type ?: "") }
             var typeMenuExpanded by remember(event.id) { mutableStateOf(false) }
 

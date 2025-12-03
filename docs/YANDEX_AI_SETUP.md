@@ -1,104 +1,104 @@
-# Настройка Yandex AI для приложения
+# Yandex AI Setup for Application
 
-Приложение поддерживает интеграцию с Yandex Cloud AI (YandexGPT и Yandex SpeechKit) для генерации текста и распознавания речи.
+The application supports integration with Yandex Cloud AI (YandexGPT and Yandex SpeechKit) for text generation and speech recognition.
 
-## Способы подключения
+## Connection Methods
 
-### Способ 1: API ключ сервисного аккаунта (рекомендуется)
+### Method 1: Service Account API Key (Recommended)
 
-Это самый простой способ - вам нужен только API ключ. Folder ID можно не указывать (оставьте "default"), тогда будет использован каталог, в котором создан сервисный аккаунт.
+This is the simplest method - you only need an API key. Folder ID can be left as "default", and the folder where the service account was created will be used.
 
-#### Шаги настройки:
+#### Setup Steps:
 
-1. **Зарегистрируйтесь в Yandex Cloud**
-   - Перейдите на [cloud.yandex.ru](https://cloud.yandex.ru)
-   - Создайте аккаунт и привяжите платёжный аккаунт (есть бесплатный грант)
+1. **Register in Yandex Cloud**
+   - Go to [cloud.yandex.ru](https://cloud.yandex.ru)
+   - Create an account and link a billing account (free grant available)
 
-2. **Создайте сервисный аккаунт**
-   - В консоли Yandex Cloud перейдите в раздел "Identity and Access Management" (или "Сервисные аккаунты")
-   - Нажмите "Создать сервисный аккаунт"
-   - Укажите имя (например, "family-tree-ai")
-   - **ВАЖНО: Назначьте роли!** Без этого вы получите ошибку `PermissionDenied`.
-     - `ai.languageModels.user` - для YandexGPT (генерация текста)
-     - `ai.speechkit-stt.user` - для Yandex SpeechKit (распознавание речи)
+2. **Create Service Account**
+   - In Yandex Cloud console, go to "Identity and Access Management" (or "Service Accounts")
+   - Click "Create Service Account"
+   - Enter a name (e.g., "family-tree-ai")
+   - **IMPORTANT: Assign roles!** Without this, you'll get a `PermissionDenied` error.
+     - `ai.languageModels.user` - for YandexGPT (text generation)
+     - `ai.speechkit-stt.user` - for Yandex SpeechKit (speech recognition)
 
-3. **Создайте API ключ**
-   - Выберите созданный сервисный аккаунт
-   - Перейдите в раздел "API-ключи" (или "Ключи доступа" -> "Создать API-ключ")
-   - Нажмите "Создать API-ключ"
-   - **Сохраните ключ** - он показывается только один раз!
-   - Формат ключа: `AQVN...`
+3. **Create API Key**
+   - Select the created service account
+   - Go to "API Keys" section (or "Access Keys" → "Create API Key")
+   - Click "Create API Key"
+   - **Save the key** - it's shown only once!
+   - Key format: `AQVN...`
 
-4. **Настройте приложение**
-   - Откройте приложение
-   - Перейдите в меню → "AI Settings"
-   - Выберите провайдер "YANDEX" (для генерации текста) или "Yandex SpeechKit" (для распознавания речи)
-   - Вставьте API ключ в поле "Yandex Cloud API Key"
-   - В поле Folder ID оставьте `default` (или укажите конкретный ID, если нужно)
-   - Нажмите "Продолжить"
+4. **Configure Application**
+   - Open the application
+   - Go to menu → "AI Settings"
+   - Select provider "YANDEX" (for text generation) or "Yandex SpeechKit" (for speech recognition)
+   - Paste the API key in "Yandex Cloud API Key" field
+   - In Folder ID field, leave `default` (or specify a specific ID if needed)
+   - Click "Continue"
 
-### Способ 2: API ключ с явным указанием Folder ID
+### Method 2: API Key with Explicit Folder ID
 
-Если вы хотите явно контролировать, какой каталог используется, можете указать Folder ID.
+If you want to explicitly control which folder is used, you can specify the Folder ID.
 
-#### Дополнительные шаги:
+#### Additional Steps:
 
-1. **Найдите Folder ID**
-   - В консоли Yandex Cloud выберите нужную папку (каталог)
-   - Folder ID отображается вверху страницы рядом с названием папки
-   - Формат: `b1g...`
+1. **Find Folder ID**
+   - In Yandex Cloud console, select the desired folder (catalog)
+   - Folder ID is displayed at the top of the page next to the folder name
+   - Format: `b1g...`
 
-2. **Укажите в настройках**
-   - В настройках AI введите Folder ID в соответствующее поле
-   - Это переопределит автоматическое определение каталога
+2. **Specify in Settings**
+   - In AI settings, enter the Folder ID in the corresponding field
+   - This will override automatic folder detection
 
-## Модели YandexGPT
+## YandexGPT Models
 
-Приложение поддерживает следующие модели:
+The application supports the following models:
 
-- **YandexGPT 4** (`yandexgpt-4`) - основная модель, более мощная
-- **YandexGPT 4 Lite** (`yandexgpt-4-lite`) - облегчённая версия, быстрее и дешевле
+- **YandexGPT 4** (`yandexgpt-4`) - main model, more powerful
+- **YandexGPT 4 Lite** (`yandexgpt-4-lite`) - lightweight version, faster and cheaper
 
 ## Yandex SpeechKit
 
-Для распознавания речи используется тот же API ключ:
+For speech recognition, the same API key is used:
 
-1. В настройках AI выберите "Провайдер распознавания речи" → "Yandex SpeechKit"
-2. Введите тот же API ключ
-3. Yandex SpeechKit особенно хорош для русского языка и языков СНГ
+1. In AI settings, select "Speech Recognition Provider" → "Yandex SpeechKit"
+2. Enter the same API key
+3. Yandex SpeechKit is especially good for Russian and CIS languages
 
-## Стоимость
+## Pricing
 
-- Первые 1000 запросов в месяц - бесплатно (грант для новых пользователей)
-- YandexGPT Lite: ~0.12₽ за 1000 токенов
-- YandexGPT Pro: ~0.6₽ за 1000 токенов
-- SpeechKit: ~0.24₽ за минуту аудио
+- First 1000 requests per month - free (grant for new users)
+- YandexGPT Lite: ~0.12₽ per 1000 tokens
+- YandexGPT Pro: ~0.6₽ per 1000 tokens
+- SpeechKit: ~0.24₽ per minute of audio
 
-Актуальные цены: [yandex.cloud/ru/docs/foundation-models/pricing](https://yandex.cloud/ru/docs/foundation-models/pricing)
+Current prices: [yandex.cloud/ru/docs/foundation-models/pricing](https://yandex.cloud/ru/docs/foundation-models/pricing)
 
-## Решение проблем
+## Troubleshooting
 
-### Ошибка "Permission denied" (401 Unauthorized)
-**Симптомы:** Ошибка вида `Permission to [resource-manager.folder ...] denied`.
-**Причина:** У сервисного аккаунта нет прав на выполнение операции.
-**Решение:**
-1. Зайдите в консоль Yandex Cloud.
-2. Найдите ваш сервисный аккаунт.
-3. Убедитесь, что ему назначены роли:
-   - `ai.languageModels.user` (для GPT)
-   - `ai.speechkit-stt.user` (для распознавания речи)
-4. Если ролей нет, добавьте их на вкладке "Роли" или при редактировании каталога.
+### Error "Permission denied" (401 Unauthorized)
+**Symptoms:** Error like `Permission to [resource-manager.folder ...] denied`.
+**Cause:** Service account doesn't have permissions to perform the operation.
+**Solution:**
+1. Go to Yandex Cloud console.
+2. Find your service account.
+3. Ensure it has the following roles assigned:
+   - `ai.languageModels.user` (for GPT)
+   - `ai.speechkit-stt.user` (for speech recognition)
+4. If roles are missing, add them in the "Roles" tab or when editing the folder.
 
-### Ошибка "API key is required"
-- Проверьте, что вы скопировали API ключ полностью
-- API ключ должен начинаться с `AQVN`
+### Error "API key is required"
+- Check that you copied the API key completely
+- API key should start with `AQVN`
 
-### Ошибка "Folder ID is required"
-- Если вы используете API ключ сервисного аккаунта, попробуйте оставить поле Folder ID со значением `default`
-- Если ошибка сохраняется, укажите Folder ID явно (см. Способ 2)
+### Error "Folder ID is required"
+- If using service account API key, try leaving the Folder ID field with value `default`
+- If error persists, specify Folder ID explicitly (see Method 2)
 
-## Полезные ссылки
+## Useful Links
 
-- [Документация YandexGPT](https://yandex.cloud/ru/docs/foundation-models/concepts/yandexgpt)
-- [Документация SpeechKit](https://yandex.cloud/ru/docs/speechkit/)
-- [Консоль Yandex Cloud](https://console.cloud.yandex.ru/)
+- [YandexGPT Documentation](https://yandex.cloud/ru/docs/foundation-models/concepts/yandexgpt)
+- [SpeechKit Documentation](https://yandex.cloud/ru/docs/speechkit/)
+- [Yandex Cloud Console](https://console.cloud.yandex.ru/)

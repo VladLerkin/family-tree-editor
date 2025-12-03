@@ -14,7 +14,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 
-// Полноценный KMP-эквивалент JavaFX DatePhraseDialog с формализованными режимами и форматами GEDCOM
+// Full KMP equivalent of JavaFX DatePhraseDialog with formalized modes and GEDCOM formats
 
 private enum class CalKind(val title: String, val prefix: String) {
     GREGORIAN("Gregorian", ""),
@@ -36,8 +36,8 @@ private fun isMonthCodeStrict(s: String): Boolean {
     return false
 }
 
-// ВАЖНО: поля должны быть observable для Compose, иначе TextField/Checkbox не смогут обновлять значение.
-// Поэтому используем mutableStateOf для каждого свойства.
+// IMPORTANT: fields must be observable for Compose, otherwise TextField/Checkbox won't be able to update values.
+// Therefore we use mutableStateOf for each property.
 private class ExactState(
     cal: CalKind = CalKind.GREGORIAN,
     day: String = "",
@@ -61,13 +61,13 @@ fun DatePhraseDialog(
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Основное состояние диалога
+    // Main dialog state
     var mode by remember { mutableStateOf(Mode.EXACT) }
 
     // Exact
     val exact = remember { ExactState() }
 
-    // Period (FROM/TO опциональны)
+    // Period (FROM/TO are optional)
     var useFrom by remember { mutableStateOf(false) }
     var useTo by remember { mutableStateOf(false) }
     val fromState = remember { ExactState() }
@@ -82,14 +82,14 @@ fun DatePhraseDialog(
     var approxType by remember { mutableStateOf("ABT") }
     val approxExact = remember { ExactState() }
 
-    // Interpreted: дата + фраза
+    // Interpreted: date + phrase
     val interpretedExact = remember { ExactState() }
     var interpretedPhrase by remember { mutableStateOf("") }
 
-    // Phrase: свободный текст
+    // Phrase: free text
     var phrase by remember { mutableStateOf("") }
 
-    // Парсинг initial → состояние
+    // Parse initial → state
     LaunchedEffect(initial) {
         parseInitialToState(initial, onMode = { mode = it }) { target, value ->
             when (target) {
@@ -111,8 +111,8 @@ fun DatePhraseDialog(
         }
     }
 
-    // Используем BasicAlertDialog, чтобы контролировать ширину контейнера (на Android стандартный AlertDialog имеет фиксированную узкую ширину)
-    // ВАЖНО: properties.usePlatformDefaultWidth = false — снимает платформенное ограничение ширины на Android
+    // Use BasicAlertDialog to control container width (on Android standard AlertDialog has fixed narrow width)
+    // IMPORTANT: properties.usePlatformDefaultWidth = false — removes platform width restriction on Android
     BasicAlertDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -121,22 +121,22 @@ fun DatePhraseDialog(
             shape = MaterialTheme.shapes.extraLarge,
             tonalElevation = 6.dp,
             modifier = Modifier
-                .fillMaxWidth(1.0f) // максимально широко по экрану
-                .widthIn(min = 1100.dp, max = 1920.dp) // ещё шире (~+20%)
+                .fillMaxWidth(1.0f) // maximum width on screen
+                .widthIn(min = 1100.dp, max = 1920.dp) // even wider (~+20%)
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
                 // Title
                 Text("Event Date", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))
 
-                // Content + Actions (прокручиваемые вместе, чтобы кнопки были видны на всех вкладках)
+                // Content + Actions (scrollable together so buttons are visible on all tabs)
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .heightIn(max = 540.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Переключатель режима
+                    // Mode selector
                     ModeSelector(mode = mode, onMode = { mode = it })
                     Spacer(Modifier.height(8.dp))
 
@@ -416,7 +416,7 @@ private fun DayMonthYearRow(state: ExactState) {
     }
 }
 
-// ----------------- ЛОГИКА ПАРСИНГА/СБОРКИ -----------------
+// ----------------- PARSING/BUILDING LOGIC -----------------
 
 private data class ParseDetails(
     val rangeType: String? = null,
@@ -468,7 +468,7 @@ private fun parseInitialToState(
         if (parts.size == 3) {
             day = parts[0]; month = parts[1]; year = parts[2]
         } else if (parts.size == 2) {
-            // если одна из двух — месяц, другая — год или день
+            // if one of two is month, the other is year or day
             val isMonth0 = isMonthCodeStrict(parts[0])
             val isMonth1 = isMonthCodeStrict(parts[1])
             if (isMonth0 && !isMonth1) { month = parts[0]; year = parts[1] }
@@ -567,7 +567,7 @@ private fun parseInitialToState(
 
 private fun buildExact(s: ExactState): String? {
     val sb = StringBuilder()
-    // календарный префикс
+    // calendar prefix
     if (s.cal != CalKind.GREGORIAN) sb.append(s.cal.prefix)
     if (s.day.isNotEmpty()) sb.append(s.day).append(' ')
     if (s.month.isNotEmpty()) sb.append(s.month).append(' ')

@@ -149,7 +149,7 @@ fun TreeRenderer(
     
     val density = LocalDensity.current
 
-    // Измеритель текста для динамических размеров карточек
+    // Text measurer for dynamic card sizes
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
 
     data class RectF(val x: Float, val y: Float, val w: Float, val h: Float) {
@@ -174,21 +174,21 @@ fun TreeRenderer(
             val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
             return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
         }
-        // Минимальные размеры + паддинги масштабируются с зумом; измеряем три строки: имя, фамилия и даты
-        val baseMinW = if (PlatformEnv.isDesktop) 74.25f else 49.5f  // На мобильных уменьшаем в 1.5 раза
-        val baseMinH = if (PlatformEnv.isDesktop) 50.625f else 33.75f  // Увеличено для третьей строки (1.5x от старого значения)
+        // Minimum sizes + paddings scale with zoom; measure three lines: first name, last name and dates
+        val baseMinW = if (PlatformEnv.isDesktop) 74.25f else 49.5f  // On mobile reduce by 1.5x
+        val baseMinH = if (PlatformEnv.isDesktop) 50.625f else 33.75f  // Increased for third line (1.5x from old value)
         val extraFudge = 0f
         val minW = baseMinW * scale
         val minH = baseMinH * scale
-        // Синхронизация с отрисовкой: горизонтальный паддинг ~4.5px*scale, вертикальный ~4.5px*scale с ограничением
+        // Sync with rendering: horizontal padding ~4.5px*scale, vertical ~4.5px*scale with limit
         val padX = 4.5f * scale
         val padY = padYpxForScale(scale)
         val lineGap = lineGapPxForScale(scale)
         val first = firstName
         val last = lastName
-        // Формируем строку с датами для измерения
+        // Format date string for measurement
         val dateText = formatDates(birthDate, deathDate, firstName, lastName)
-        // Подбираем общий кегль (sp) для имени, фамилии и дат, чтобы все три строки гарантированно поместились
+        // Select common font size (sp) for first name, last name and dates so all three lines fit
         val candidates = listOf(3.75f, 3.375f, 3f, 2.625f, 2.25f, 1.875f, 1.5f, 1.3125f, 1.125f)
         var chosenFsBaseSp = 3f
         var resFirstHeight = 0
@@ -199,18 +199,18 @@ fun TreeRenderer(
         var resDateWidth = 0
         val isAndroid = !PlatformEnv.isDesktop
         for (fsBase in candidates) {
-            // Базовый кегль в sp с учётом zoom
+            // Base font size in sp with zoom
             val baseFsSp = (fsBase.sp * scale)
-            // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
+            // On mobile devices do NOT apply minimums so cards can actually shrink
             val effFsSp = baseFsSp
 
             val lhFactor = lhFactorForScale(scale)
-            // Предварительное значение lineHeight
+            // Preliminary lineHeight value
             val lineHeightSp = effFsSp * lhFactor
 
             val nameStyle = TextStyle(
                 fontSize = effFsSp,
-                // Используем Normal, чтобы измерение соответствовало фактической отрисовке
+                // Use Normal so measurement matches actual rendering
                 fontWeight = FontWeight.Normal,
                 lineHeight = lineHeightSp
             )
@@ -227,20 +227,20 @@ fun TreeRenderer(
                 style = nameStyle,
                 softWrap = false
             )
-            // Всегда измеряем фамилию (даже если пустая), чтобы резервировать место
+            // Always measure last name (even if empty) to reserve space
             val rLast = measurer.measure(
                 text = androidx.compose.ui.text.AnnotatedString(if (last.isNotBlank()) last else " "),
                 style = lastStyle,
                 softWrap = false
             )
-            // Всегда измеряем даты (даже если пустые), чтобы резервировать место
+            // Always measure dates (even if empty) to reserve space
             val rDate = measurer.measure(
                 text = androidx.compose.ui.text.AnnotatedString(if (!dateText.isNullOrEmpty()) dateText else " "),
                 style = dateStyle,
                 softWrap = false
             )
             
-            // Рассчитываем высоту контента ВСЕГДА с учетом всех трех строк
+            // Calculate content height ALWAYS including all three lines
             var contentHTemp = rFirst.size.height.toFloat()
             contentHTemp += lineGap + rLast.size.height.toFloat()
             contentHTemp += lineGap + rDate.size.height.toFloat()
@@ -256,9 +256,9 @@ fun TreeRenderer(
             chosenFsBaseSp = fsBase
             if (totalH <= minH) break
         }
-        // Учитываем ширину всех трех строк: имя, фамилия и даты
+        // Account for width of all three lines: first name, last name and dates
         val contentW = max(resFirstWidth, max(resLastWidth, resDateWidth))
-        // Высота ВСЕГДА включает три строки
+        // Height ALWAYS includes three lines
         var contentH = resFirstHeight.toFloat()
         contentH += lineGap + resLastHeight.toFloat()
         contentH += lineGap + resDateHeight.toFloat()
@@ -520,13 +520,13 @@ fun TreeRenderer(
             modifier = Modifier
                 .offset { IntOffset(pan.x.roundToInt(), pan.y.roundToInt()) }
         ) {
-            // Edges (сначала рёбра) - only render edges for families with visible participants
+            // Edges (edges first) - only render edges for families with visible participants
             Canvas(Modifier.fillMaxSize()) {
                 val edgeColor = Color(0xFF607D8B)
                 val barGap = 4.5f * scale  // gap below spouse boxes (scaled)
                 val childBarGap = 4.5f * scale  // gap above children (scaled)
-                // Минимальная толщина линий для мобильных устройств при малых масштабах:
-                // при scale >= 1.0 → 2px, при малых масштабах → минимум 1.2px для видимости
+                // Minimum line thickness for mobile devices at small scales:
+                // at scale >= 1.0 → 2px, at small scales → minimum 1.2px for visibility
                 val baseStroke = 2f * scale
                 val strokeW = if (PlatformEnv.isDesktop) baseStroke else max(baseStroke, 1.2f)
                 
@@ -753,7 +753,7 @@ fun TreeRenderer(
                 }
             }
 
-            // Nodes (поверх рёбер) - only render visible nodes
+            // Nodes (on top of edges) - only render visible nodes
             // Use key() to stabilize node composition and avoid unnecessary recompositions
             visibleIndividuals.forEach { ind ->
                 androidx.compose.runtime.key(ind.id) {
@@ -867,7 +867,7 @@ private fun NodeCard(
             }
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            // Скруглённая рамка у карточки узла
+            // Rounded border for node card
             drawRoundRect(
                 color = borderColor,
                 style = Stroke(width = borderWidth),
@@ -877,11 +877,11 @@ private fun NodeCard(
         
         // Skip text rendering in simplified mode (small scale with many nodes)
         if (!simplified) {
-            // Три строки: имя (первая), фамилия (вторая), даты (третья)
+            // Three lines: first name (first), last name (second), dates (third)
             val first = firstName
             val last = lastName
             
-            // Используем те же формулы, что и в measureNodePx для полной синхронизации
+            // Use the same formulas as in measureNodePx for full synchronization
             fun lhFactorForScale(s: Float): Float {
                 val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f)
                 return 1.10f - 0.10f * u
@@ -900,13 +900,13 @@ private fun NodeCard(
             val innerPadYdpClamped = with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
             val lineGapDp = with(densityLocal) { lineGapPx.toDp() }
 
-            // Базовый кегль, который пришёл из измерителя, умноженный на текущий zoom
+            // Base font size from measurer, multiplied by current zoom
             val baseFsSp = lastFsBaseSp.sp * fontScale
-            // На мобильных устройствах НЕ применяем минимумы, чтобы карточки могли реально уменьшаться
-            // и текст масштабировался пропорционально карточке, избегая наложения при малых масштабах
+            // On mobile devices do NOT apply minimums so cards can actually shrink
+            // and text scales proportionally with card, avoiding overlap at small scales
             val effFsSp = baseFsSp
             
-            // Межстрочный интервал пропорционален размеру шрифта
+            // Line spacing proportional to font size
             val effLineHeightSp = effFsSp * lhFactor
             androidx.compose.foundation.layout.Column(
                 modifier = Modifier
@@ -914,22 +914,22 @@ private fun NodeCard(
                     .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Первая строка: имя (всегда показывается)
+                // First line: first name (always shown)
                 Text(
                     first,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
                     fontSize = effFsSp,
-                    // Рисуем обычным (не жирным) начертанием, чтобы имена не выглядели «болдом» на канвасе
+                    // Draw with normal (not bold) weight so names don't look "bolded" on canvas
                     fontWeight = FontWeight.Normal,
                     lineHeight = effLineHeightSp,
                     softWrap = false,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    // Минимальная высота строки, чтобы избежать 0px на Android при округлениях
+                    // Minimum line height to avoid 0px on Android with rounding
                     modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
-                // Вторая строка: фамилия (всегда резервируется место)
+                // Second line: last name (space always reserved)
                 androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
                 Text(
                     text = last.ifEmpty { "" },
@@ -942,7 +942,7 @@ private fun NodeCard(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
-                // Третья строка: даты (всегда резервируется место)
+                // Third line: dates (space always reserved)
                 val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
                 androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
                 Text(
@@ -958,7 +958,7 @@ private fun NodeCard(
                 )
             }
         }
-        // Встроенное контекстное меню для узла
+        // Embedded context menu for node
         menuContent()
     }
 }

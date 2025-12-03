@@ -1,116 +1,116 @@
-# Добавлена поддержка Yandex SpeechKit
+# Yandex SpeechKit Integration
 
-## Что нового?
+## What's New?
 
-В проект добавлена поддержка **Yandex SpeechKit** в качестве дополнительного провайдера распознавания речи для голосового ввода.
+The project now includes support for **Yandex SpeechKit** as an additional speech recognition provider for voice input.
 
-## Изменения
+## Changes
 
-### Новые файлы
+### New Files
 
 1. **`core/src/commonMain/kotlin/com/family/tree/core/ai/YandexSpeechClient.kt`**
-   - Клиент для работы с Yandex SpeechKit API
-   - Поддержка форматов: OggOpus, LPCM
-   - Автоматическая конвертация языковых кодов
+   - Client for working with Yandex SpeechKit API
+   - Support for formats: OggOpus, LPCM
+   - Automatic language code conversion
 
 2. **`docs/YANDEX_SPEECHKIT_SETUP.md`**
-   - Подробная инструкция по настройке Yandex SpeechKit
-   - Как получить API ключ
-   - Сравнение с другими провайдерами
+   - Detailed setup instructions for Yandex SpeechKit
+   - How to obtain an API key
+   - Comparison with other providers
 
-### Измененные файлы
+### Modified Files
 
 1. **`core/src/commonMain/kotlin/com/family/tree/core/ai/AiConfig.kt`**
-   - Добавлен `YANDEX_SPEECHKIT` в enum `TranscriptionProvider`
-   - Добавлено поле `yandexApiKey: String` для хранения API ключа
-   - Обновлен метод `getApiKeyForTranscription()` для поддержки Yandex
+   - Added `YANDEX_SPEECHKIT` to `TranscriptionProvider` enum
+   - Added `yandexApiKey: String` field for storing API key
+   - Updated `getApiKeyForTranscription()` method to support Yandex
 
 2. **`core/src/commonMain/kotlin/com/family/tree/core/ai/TranscriptionClient.kt`**
-   - Добавлен `YandexSpeechClient` в фабрику `TranscriptionClientFactory`
+   - Added `YandexSpeechClient` to `TranscriptionClientFactory`
 
 3. **`core/src/commonMain/kotlin/com/family/tree/core/ai/VoiceInputProcessor.kt`**
-   - Обновлены лог-сообщения для отображения Yandex SpeechKit
+   - Updated log messages to display Yandex SpeechKit
 
 4. **`docs/VOICE_INPUT.md`**
-   - Обновлена документация с упоминанием Yandex SpeechKit
-   - Добавлена информация о новых файлах
-   - Обновлена архитектурная диаграмма
+   - Updated documentation with Yandex SpeechKit mention
+   - Added information about new files
+   - Updated architecture diagram
 
-## Как использовать?
+## How to Use?
 
-### 1. Получите API ключ Yandex Cloud
+### 1. Get Yandex Cloud API Key
 
-Следуйте инструкции в [`docs/YANDEX_SPEECHKIT_SETUP.md`](docs/YANDEX_SPEECHKIT_SETUP.md)
+Follow the instructions in [`docs/YANDEX_SPEECHKIT_SETUP.md`](docs/YANDEX_SPEECHKIT_SETUP.md)
 
-### 2. Настройте в приложении
+### 2. Configure in Application
 
-1. Откройте меню → **"AI Settings..."**
-2. В разделе **"Transcription Settings"**:
-   - **Provider**: Выберите **"Yandex SpeechKit"**
-   - **API Key**: Вставьте ваш API ключ
-   - **Language**: Выберите `ru` (или другой поддерживаемый язык)
-3. Нажмите **"Save"**
+1. Open menu → **"AI Settings..."**
+2. In **"Transcription Settings"** section:
+   - **Provider**: Select **"Yandex SpeechKit"**
+   - **API Key**: Paste your API key
+   - **Language**: Select `ru` (or other supported language)
+3. Click **"Save"**
 
-### 3. Используйте голосовой ввод
+### 3. Use Voice Input
 
-1. Откройте меню → **"Voice Input 🎤"**
-2. Произнесите фразу с описанием родственников
-3. Система автоматически распознает речь через Yandex SpeechKit
+1. Open menu → **"Voice Input 🎤"**
+2. Speak a phrase describing relatives
+3. The system will automatically recognize speech via Yandex SpeechKit
 
-## Преимущества Yandex SpeechKit
+## Yandex SpeechKit Advantages
 
-- ✅ **Отличная поддержка русского языка** - одна из лучших на рынке
-- ✅ **Поддержка языков СНГ** - украинский, казахский, узбекский и др.
-- ✅ **Быстрая обработка** - низкая задержка
-- ✅ **Бесплатный лимит** - 15 часов в месяц бесплатно
+- ✅ **Excellent Russian language support** - one of the best on the market
+- ✅ **CIS language support** - Ukrainian, Kazakh, Uzbek, and others
+- ✅ **Fast processing** - low latency
+- ✅ **Free tier** - 15 hours per month free
 
-## Поддерживаемые провайдеры транскрипции
+## Supported Transcription Providers
 
-Теперь доступны три провайдера:
+Three providers are now available:
 
-| Провайдер | Лучше для | Бесплатный лимит |
-|-----------|-----------|------------------|
-| **OpenAI Whisper** | Многоязычность | Нет (платно) |
-| **Google Speech-to-Text** | Универсальность | 60 минут/месяц |
-| **Yandex SpeechKit** | Русский язык | 15 часов/месяц |
+| Provider | Best For | Free Tier |
+|----------|----------|-----------|
+| **OpenAI Whisper** | Multilingual | None (paid) |
+| **Google Speech-to-Text** | Universal | 60 min/month |
+| **Yandex SpeechKit** | Russian language | 15 hours/month |
 
-## Технические детали
+## Technical Details
 
 ### API Endpoint
 ```
 https://stt.api.cloud.yandex.net/speech/v1/stt:recognize
 ```
 
-### Поддерживаемые форматы аудио
-- OggOpus (рекомендуется)
+### Supported Audio Formats
+- OggOpus (recommended)
 - LPCM (Linear PCM)
 
-### Поддерживаемые языки
-- Русский (`ru-RU`)
-- Английский (`en-US`)
-- Турецкий (`tr-TR`)
-- Украинский (`uk-UA`)
-- Казахский (`kk-KZ`)
-- Узбекский (`uz-UZ`)
-- И другие (см. документацию)
+### Supported Languages
+- Russian (`ru-RU`)
+- English (`en-US`)
+- Turkish (`tr-TR`)
+- Ukrainian (`uk-UA`)
+- Kazakh (`kk-KZ`)
+- Uzbek (`uz-UZ`)
+- And others (see documentation)
 
-## Тестирование
+## Testing
 
-Проект успешно скомпилирован:
+Project compiled successfully:
 ```bash
 ./gradlew :core:build
 # BUILD SUCCESSFUL
 ```
 
-## Дальнейшие улучшения
+## Future Improvements
 
-- [ ] Добавить поддержку streaming API для реального времени
-- [ ] Добавить настройку модели распознавания (general, numbers, dates)
-- [ ] Добавить фильтр ненормативной лексики (опционально)
-- [ ] Добавить поддержку пользовательских словарей
+- [ ] Add streaming API support for real-time recognition
+- [ ] Add recognition model configuration (general, numbers, dates)
+- [ ] Add profanity filter (optional)
+- [ ] Add custom dictionary support
 
-## Документация
+## Documentation
 
-- [Настройка Yandex SpeechKit](docs/YANDEX_SPEECHKIT_SETUP.md)
-- [Голосовой ввод](docs/VOICE_INPUT.md)
-- [Официальная документация Yandex SpeechKit](https://cloud.yandex.ru/docs/speechkit/)
+- [Yandex SpeechKit Setup](docs/YANDEX_SPEECHKIT_SETUP.md)
+- [Voice Input](docs/VOICE_INPUT.md)
+- [Official Yandex SpeechKit Documentation](https://cloud.yandex.ru/docs/speechkit/)
