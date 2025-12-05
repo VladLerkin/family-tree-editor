@@ -19,7 +19,7 @@ class GoogleClient : AiClient {
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
         val apiKey = config.getApiKeyForProvider()
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("Google API key is required")
+            throw IllegalArgumentException("Google API key is required. Please configure it in the AI Settings menu.")
         }
         
         val baseUrl = config.baseUrl.ifBlank { "https://generativelanguage.googleapis.com/v1" }

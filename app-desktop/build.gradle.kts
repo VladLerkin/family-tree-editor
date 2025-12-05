@@ -34,7 +34,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "FamilyTreeEditor"
-            packageVersion = "1.3.14"
+            packageVersion = "1.3.15"
             
             description = "Family Tree Editor Application"
             copyright = "© 2024 Family Tree. All rights reserved."
@@ -47,13 +47,13 @@ compose.desktop {
             
             macOS {
                 bundleID = "com.family.tree.desktop"
-                // iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
+                iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
                 dockName = "Family Tree"
             }
             
             windows {
                 menuGroup = "Family Tree"
-                // iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
+                iconFile.set(project.file("src/jvmMain/resources/icon.ico"))
                 upgradeUuid = "12345678-1234-1234-1234-123456789012" // Fixed UUID for upgrades
             }
         }

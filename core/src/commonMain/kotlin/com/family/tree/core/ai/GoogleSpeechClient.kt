@@ -101,7 +101,7 @@ class GoogleSpeechClient : TranscriptionClient {
     override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         val apiKey = config.getApiKeyForTranscription()
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("Google Cloud API key is required for Google Speech-to-Text")
+            throw IllegalArgumentException("Google Cloud API key is required for Google Speech-to-Text. Please configure it in the AI Settings menu.")
         }
         
         val url = "https://speech.googleapis.com/v1/speech:recognize?key=$apiKey"

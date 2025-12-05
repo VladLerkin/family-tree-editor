@@ -67,7 +67,7 @@ class YandexSpeechClient : TranscriptionClient {
     override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         val apiKey = config.getApiKeyForTranscription()
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("Yandex Cloud API key is required for Yandex SpeechKit")
+            throw IllegalArgumentException("Yandex Cloud API key is required for Yandex SpeechKit. Please configure it in the AI Settings menu.")
         }
         
         // Yandex SpeechKit REST API v3 endpoint

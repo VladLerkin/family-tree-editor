@@ -23,7 +23,7 @@ class YandexClient : AiClient {
         val folderId = config.yandexFolderId.trim()
 
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("Yandex Cloud API key is required. Get it from Yandex Cloud Console.")
+            throw IllegalArgumentException("Yandex Cloud API key is required. Please configure it in the AI Settings menu.")
         }
 
         // Determine model (yandexgpt or yandexgpt-lite)

@@ -21,7 +21,7 @@ class OpenAiClient : AiClient {
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
         val apiKey = config.getApiKeyForProvider()
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("OpenAI API key is required")
+            throw IllegalArgumentException("OpenAI API key is required. Please configure it in the AI Settings menu.")
         }
         
         val baseUrl = config.baseUrl.ifBlank { "https://api.openai.com/v1" }

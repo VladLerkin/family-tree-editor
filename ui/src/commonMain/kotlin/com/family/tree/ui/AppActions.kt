@@ -9,6 +9,7 @@ package com.family.tree.ui
  */
 object AppActions {
     // File - backing fields
+    private var _newProject: () -> Unit = {}
     private var _openPed: () -> Unit = {}
     private var _savePed: () -> Unit = {}
     private var _importRel: () -> Unit = {}
@@ -32,6 +33,10 @@ object AppActions {
     private var _exit: () -> Unit = {}
 
     // File - public setters and call methods
+    var newProject: () -> Unit
+        get() = { _newProject() }
+        set(value) { _newProject = value }
+    
     var openPed: () -> Unit
         get() = { _openPed() }
         set(value) { _openPed = value }

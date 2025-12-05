@@ -13,7 +13,7 @@ android {
         minSdk = (project.findProperty("android.minSdk") as String).toInt()
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
         versionCode = 1
-        versionName = "0.1"
+        versionName = "1.3.15"
         
         // Support multiple architectures
         ndk {

@@ -21,7 +21,7 @@ class OpenAiWhisperClient : TranscriptionClient {
     override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         val apiKey = config.getApiKeyForTranscription()
         if (apiKey.isBlank()) {
-            throw IllegalArgumentException("OpenAI API key is required for transcription")
+            throw IllegalArgumentException("OpenAI API key is required for transcription. Please configure it in the AI Settings menu.")
         }
         
         val baseUrl = config.baseUrl.ifBlank { "https://api.openai.com/v1" }

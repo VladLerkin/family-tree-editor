@@ -10,6 +10,7 @@ fun main() = application {
     Window(onCloseRequest = ::exitApplication, title = "Family Tree") {
         MenuBar {
             Menu("File") {
+                Item("New") { AppActions.newProject() }
                 Item("Open") { AppActions.openPed() }
                 Item("Save") { AppActions.savePed() }
                 Separator()

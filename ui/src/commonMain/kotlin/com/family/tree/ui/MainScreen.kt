@@ -314,7 +314,24 @@ fun MainScreen() {
     }
 
     // Wire global app actions for Desktop menu and other entry points
+    AppActions.newProject = {
+        println("[DEBUG_LOG] MainScreen.newProject: Creating new empty project")
+        // Create empty project
+        project = ProjectData(
+            individuals = emptyList(),
+            families = emptyList(),
+            sources = emptyList()
+        )
+        projectLayout = null
+        selectedIds = emptySet()
+        selectedFamilyId = null
+        // Reset viewport
+        scale = 1f
+        pan = Offset.Zero
+        println("[DEBUG_LOG] MainScreen.newProject: New project created")
+    }
     AppActions.openPed = {
+
         DesktopActions.openPed { loaded ->
             println("[DEBUG_LOG] MainScreen.openPed callback: loaded=$loaded")
             if (loaded != null) {
@@ -528,6 +545,7 @@ fun MainScreen() {
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("New") }, onClick = { showMenu = false; AppActions.newProject() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showMenu = false; AppActions.openPed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showMenu = false; AppActions.savePed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showMenu = false; AppActions.importRel() })
@@ -571,6 +589,7 @@ fun MainScreen() {
                             expanded = showDesktopMenu,
                             onDismissRequest = { showDesktopMenu = false }
                         ) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("New") }, onClick = { showDesktopMenu = false; AppActions.newProject() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showDesktopMenu = false; AppActions.openPed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showDesktopMenu = false; AppActions.savePed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showDesktopMenu = false; AppActions.importRel() })
