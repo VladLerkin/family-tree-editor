@@ -27,6 +27,9 @@ object AppActions {
     private var _zoomOut: () -> Unit = {}
     private var _reset: () -> Unit = {}
 
+    // Edit - backing fields
+    private var _manageSources: () -> Unit = {}
+
     // Help - backing fields
     private var _showAbout: () -> Unit = {}
     private var _showAiSettings: () -> Unit = {}
@@ -93,6 +96,11 @@ object AppActions {
     var reset: () -> Unit
         get() = { _reset() }
         set(value) { _reset = value }
+
+    // Edit - public setters and call methods
+    var manageSources: () -> Unit
+        get() = { _manageSources() }
+        set(value) { _manageSources = value }
 
     // Help - public setters and call methods
     var showAbout: () -> Unit

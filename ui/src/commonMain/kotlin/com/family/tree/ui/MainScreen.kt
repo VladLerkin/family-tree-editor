@@ -480,6 +480,7 @@ fun MainScreen() {
     AppActions.zoomIn = { setScaleAnimated(scale * 1.1f) }
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
+    AppActions.manageSources = { showSourcesDialog = true }
     AppActions.showAbout = { showAboutDialog = true }
     AppActions.showAiSettings = { showAiSettingsDialog = true }
 
@@ -531,6 +532,7 @@ fun MainScreen() {
             // Top toolbar
             if (!PlatformEnv.isDesktop) {
                 var showMenu by remember { mutableStateOf(false) }
+                var showImportMenu by remember { mutableStateOf(false) }
                 var shouldExit by remember { mutableStateOf(false) }
                 androidx.compose.material3.TopAppBar(
                     title = { Text("Family Tree Editor") },
@@ -548,17 +550,23 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("New") }, onClick = { showMenu = false; AppActions.newProject() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showMenu = false; AppActions.openPed() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showMenu = false; AppActions.savePed() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showMenu = false; AppActions.importRel() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showMenu = false; AppActions.importGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import...") }, onClick = { showMenu = false; showImportMenu = true })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showMenu = false; AppActions.importAiText() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showMenu = false; AppActions.voiceInput() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; showSourcesDialog = true })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; AppActions.manageSources() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showMenu = false; AppActions.showAiSettings() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showMenu = false; shouldExit = true })
+                        }
+                        androidx.compose.material3.DropdownMenu(
+                            expanded = showImportMenu,
+                            onDismissRequest = { showImportMenu = false }
+                        ) {
+                            androidx.compose.material3.DropdownMenuItem(text = { Text(".rel") }, onClick = { showImportMenu = false; AppActions.importRel() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("GEDCOM") }, onClick = { showImportMenu = false; AppActions.importGedcom() })
                         }
                     }
                 )
@@ -566,8 +574,7 @@ fun MainScreen() {
                     ExitAppAction(onExit = { AppActions.exit() })
                 }
             } else {
-                var showDesktopMenu by remember { mutableStateOf(false) }
-                var shouldExitDesktop by remember { mutableStateOf(false) }
+                // Desktop: Simple toolbar with title and zoom (menu is in native MenuBar)
                 Row(
                     Modifier.fillMaxWidth().padding(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -576,37 +583,6 @@ fun MainScreen() {
                     Text("Family Tree Editor", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.weight(1f))
                     Text("${(scale * 100).toInt()}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
-                    
-                    // Desktop menu
-                    Box {
-                        androidx.compose.material3.IconButton(onClick = { showDesktopMenu = true }) {
-                            androidx.compose.material3.Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Filled.MoreVert,
-                                contentDescription = "Menu"
-                            )
-                        }
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = showDesktopMenu,
-                            onDismissRequest = { showDesktopMenu = false }
-                        ) {
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("New") }, onClick = { showDesktopMenu = false; AppActions.newProject() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showDesktopMenu = false; AppActions.openPed() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showDesktopMenu = false; AppActions.savePed() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import .rel") }, onClick = { showDesktopMenu = false; AppActions.importRel() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.importGedcom() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showDesktopMenu = false; AppActions.importAiText() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showDesktopMenu = false; AppActions.voiceInput() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showDesktopMenu = false; AppActions.exportGedcom() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgCurrent() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showDesktopMenu = false; AppActions.exportSvgFit() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showDesktopMenu = false; showSourcesDialog = true })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showDesktopMenu = false; AppActions.showAiSettings() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showDesktopMenu = false; shouldExitDesktop = true })
-                        }
-                    }
-                }
-                if (shouldExitDesktop) {
-                    ExitAppAction(onExit = { AppActions.exit() })
                 }
             }
 
