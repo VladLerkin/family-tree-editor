@@ -3,14 +3,23 @@ name: CI - All Platforms
 on:
   push:
     branches: [ main, develop ]
-    paths:
-      - '**'
-      - '.github/workflows/**'
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
   pull_request:
     branches: [ main, develop ]
-    paths:
-      - '**'
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Desktop builds for Linux, macOS, and Windows
