@@ -13,7 +13,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.17"
+private const val APP_VERSION = "v1.3.18"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 
 /**
