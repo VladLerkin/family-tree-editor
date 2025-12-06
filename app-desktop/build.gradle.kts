@@ -34,7 +34,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "FamilyTreeEditor"
-            packageVersion = "1.3.16"
+            packageVersion = "1.3.17"
             
             description = "Family Tree Editor Application"
             copyright = "© 2024 Family Tree. All rights reserved."
