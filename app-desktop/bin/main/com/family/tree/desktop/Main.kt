@@ -28,6 +28,8 @@ fun main() = application {
                     Separator()
                     Item("GEDCOM") { AppActions.exportGedcom() }
                 }
+                Separator()
+                Item("Exit") { AppActions.exit() }
             }
             Menu("Edit") {
                 Item("Manage Sources...") { AppActions.manageSources() }
@@ -37,8 +39,10 @@ fun main() = application {
                 Item("Zoom Out") { AppActions.zoomOut() }
                 Item("Reset / Fit") { AppActions.reset() }
             }
-            Menu("Tools") {
+            Menu("AI Tools") {
+                Item("Import AI Text") { AppActions.importAiText() }
                 Item("Voice Input 🎤") { AppActions.voiceInput() }
+                Separator()
                 Item("AI Settings...") { AppActions.showAiSettings() }
             }
             Menu("Help") {

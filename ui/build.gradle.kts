@@ -28,7 +28,7 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                implementation("androidx.activity:activity-compose:1.9.3")
+                implementation("androidx.activity:activity-compose:1.12.1")
             }
         }
         val desktopMain by getting {
@@ -37,8 +37,8 @@ kotlin {
             }
         }
     }
-    // Align Kotlin JVM toolchain in this module to 17 (Android & desktop target compilation)
-    jvmToolchain(17)
+    // Align Kotlin JVM toolchain in this module to 21 (Android & desktop target compilation)
+    jvmToolchain(21)
 }
 
 android {
@@ -52,9 +52,9 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
     }
-    // Align Java compile options for Android to 17
+    // Align Java compile options for Android to 21
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }

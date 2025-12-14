@@ -13,7 +13,7 @@ android {
         minSdk = (project.findProperty("android.minSdk") as String).toInt()
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
         versionCode = 1
-        versionName = "1.3.18"
+        versionName = "1.3.19"
         
         // Support multiple architectures
         ndk {
@@ -53,10 +53,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
     }
-    // Align Java toolchain for Android to 17
+    // Align Java toolchain for Android to 21
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     packaging {
@@ -69,15 +69,15 @@ android {
     }
 }
 
-// Align Kotlin JVM toolchain for Android to 17
+// Align Kotlin JVM toolchain for Android to 21
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 dependencies {
     implementation(project(":core"))
     implementation(project(":ui"))
-    implementation(platform("androidx.compose:compose-bom:2024.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
