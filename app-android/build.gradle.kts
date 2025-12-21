@@ -12,8 +12,8 @@ android {
         applicationId = "com.family.tree.android"
         minSdk = (project.findProperty("android.minSdk") as String).toInt()
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
-        versionCode = 3
-        versionName = "1.3.21"
+        versionCode = 4
+        versionName = "1.3.22"
         
         // Support multiple architectures
         ndk {

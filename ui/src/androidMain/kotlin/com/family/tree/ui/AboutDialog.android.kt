@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.21"
+private const val APP_VERSION = "v1.3.22"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 /**
@@ -75,7 +75,7 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
                         fontSize = 14.sp
                     )
                     TextButton(
-                        onClick = { openUrl(GITHUB_URL) },
+                        onClick = { openUrl(context, GITHUB_URL) },
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         Text(
@@ -113,5 +113,14 @@ private fun openEmail(context: Context, email: String) {
         } catch (ex2: Exception) {
             System.err.println("Could not open email client: ${ex2.message}")
         }
+    }
+}
+
+private fun openUrl(context: Context, url: String) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        context.startActivity(intent)
+    } catch (ex: Exception) {
+        System.err.println("Could not open URL: ${ex.message}")
     }
 }

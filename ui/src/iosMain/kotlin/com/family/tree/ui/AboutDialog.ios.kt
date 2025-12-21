@@ -13,7 +13,7 @@ import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.21"
+private const val APP_VERSION = "v1.3.22"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 
@@ -121,5 +121,16 @@ private fun openEmail(email: String) {
         }
     } catch (ex: Exception) {
         println("Could not open email client: ${ex.message}")
+    }
+}
+
+private fun openUrl(url: String) {
+    try {
+        val nsUrl = NSURL.URLWithString(url)
+        if (nsUrl != null && UIApplication.sharedApplication.canOpenURL(nsUrl)) {
+            UIApplication.sharedApplication.openURL(nsUrl)
+        }
+    } catch (ex: Exception) {
+        println("Could not open browser: ${ex.message}")
     }
 }
