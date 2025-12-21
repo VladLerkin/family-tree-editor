@@ -14,8 +14,9 @@ import java.awt.Desktop
 import java.net.URI
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.20"
+private const val APP_VERSION = "v1.3.21"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
+private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 
 @Composable
 actual fun AboutDialog(onDismiss: () -> Unit) {
@@ -70,6 +71,24 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
                     }
                 }
 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "The source code is available on",
+                        fontSize = 14.sp
+                    )
+                    TextButton(
+                        onClick = { openUrl(GITHUB_URL) },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "GitHub",
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
                 Text(
                     text = "Please send all comments and feedback to the email above.",
                     fontSize = 14.sp,
@@ -101,5 +120,18 @@ private fun openEmail(email: String) {
         }
     } catch (ex: Exception) {
         System.err.println("Could not open email client: ${ex.message}")
+    }
+}
+
+private fun openUrl(url: String) {
+    try {
+        if (Desktop.isDesktopSupported()) {
+            val desktop = Desktop.getDesktop()
+            if (desktop.isSupported(Desktop.Action.BROWSE)) {
+                desktop.browse(URI(url))
+            }
+        }
+    } catch (ex: Exception) {
+        System.err.println("Could not open browser: ${ex.message}")
     }
 }

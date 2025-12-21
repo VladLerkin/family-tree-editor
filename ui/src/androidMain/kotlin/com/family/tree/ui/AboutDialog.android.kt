@@ -14,9 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.3.20"
+private const val APP_VERSION = "v1.3.21"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
-
+private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 /**
  * Android implementation of AboutDialog.
  * Uses Material3 AlertDialog for native Android look and feel.
@@ -62,6 +62,24 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
                     ) {
                         Text(
                             text = AUTHOR_EMAIL,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "The source code is available on",
+                        fontSize = 14.sp
+                    )
+                    TextButton(
+                        onClick = { openUrl(GITHUB_URL) },
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        Text(
+                            text = "GitHub",
                             fontSize = 14.sp
                         )
                     }
