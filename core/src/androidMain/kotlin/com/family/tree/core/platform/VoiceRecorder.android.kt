@@ -17,6 +17,11 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import android.media.AudioRecord
 import android.media.AudioFormat as AndroidAudioFormat
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.Future
+import android.os.Handler
+import android.os.Looper
 
 /**
  * Параметры формата записи для MediaRecorder
@@ -44,6 +49,15 @@ actual class VoiceRecorder actual constructor(context: Any?) {
     private val SAMPLE_RATE = 16000
     private val CHANNEL_CONFIG = AndroidAudioFormat.CHANNEL_IN_MONO
     private val AUDIO_FORMAT = AndroidAudioFormat.ENCODING_PCM_16BIT
+    
+    // Executor for background operations
+    private val executor = Executors.newSingleThreadExecutor()
+    // Separate executor for stop operations to avoid deadlock
+    private val stopExecutor = Executors.newSingleThreadExecutor()
+    private val STOP_TIMEOUT_SECONDS = 3L
+    
+    // Handler for posting callbacks to main thread
+    private val mainHandler = Handler(Looper.getMainLooper())
     
     actual fun isAvailable(): Boolean {
         return androidContext != null
@@ -80,6 +94,16 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         recording = true
         
         try {
+            // На Android TV устройствах MediaRecorder.stop() зависает, используем AudioRecord для всех форматов
+            val isAndroidTV = Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true) && 
+                             Build.MODEL.contains("MiTV", ignoreCase = true)
+            
+            if (isAndroidTV) {
+                println("[DEBUG_LOG] VoiceRecorder: Detected Android TV device, using AudioRecord instead of MediaRecorder")
+                startWavRecording()
+                return
+            }
+            
             // Handle WAV format separately using AudioRecord
             if (format == AudioFormat.WAV) {
                 startWavRecording()
@@ -158,14 +182,22 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             val errorMsg = "Ошибка запуска записи: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
             e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
+            
+            // Post error callback to main thread
+            mainHandler.post {
+                errorCallback?.invoke(errorMsg)
+            }
             cleanup()
         } catch (e: Exception) {
             recording = false
             val errorMsg = "Неизвестная ошибка: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
             e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
+            
+            // Post error callback to main thread
+            mainHandler.post {
+                errorCallback?.invoke(errorMsg)
+            }
             cleanup()
         }
     }
@@ -181,34 +213,92 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             return
         }
         
-        try {
-            println("[DEBUG_LOG] VoiceRecorder: Stopping recording")
-            mediaRecorder?.stop()
-            mediaRecorder?.release()
-            mediaRecorder = null
-            recording = false
-            
-            // Читаем аудио файл и передаем данные в callback
-            val file = audioFile
-            if (file != null && file.exists()) {
-                val audioData = file.readBytes()
-                println("[DEBUG_LOG] VoiceRecorder: Read ${audioData.size} bytes from audio file")
-                resultCallback?.invoke(audioData)
+        val recorder = mediaRecorder
+        val file = audioFile
+        val onResult = resultCallback
+        val onError = errorCallback
+        
+        println("[DEBUG_LOG] VoiceRecorder: Stopping recording")
+        recording = false
+        
+        // Execute stop operation in background thread with timeout
+        executor.execute {
+            try {
+                if (recorder != null) {
+                    // Safely stop MediaRecorder with timeout - can hang on some Android TV devices
+                    val stopFuture: Future<*> = stopExecutor.submit {
+                        try {
+                            println("[DEBUG_LOG] VoiceRecorder: Calling MediaRecorder.stop() in background thread")
+                            recorder.stop()
+                            println("[DEBUG_LOG] VoiceRecorder: MediaRecorder stopped successfully")
+                        } catch (e: IllegalStateException) {
+                            println("[DEBUG_LOG] VoiceRecorder: IllegalStateException during stop (device-specific issue): ${e.message}")
+                            // Continue with cleanup even if stop() fails
+                        } catch (e: RuntimeException) {
+                            println("[DEBUG_LOG] VoiceRecorder: RuntimeException during stop: ${e.message}")
+                            // Continue with cleanup
+                        }
+                    }
+                    
+                    // Wait for stop with timeout
+                    try {
+                        stopFuture.get(STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    } catch (e: java.util.concurrent.TimeoutException) {
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder.stop() timeout after ${STOP_TIMEOUT_SECONDS}s, forcing cleanup")
+                        stopFuture.cancel(true)
+                    }
+                    
+                    // Reset before release to ensure proper cleanup (important for some Android TV devices)
+                    try {
+                        recorder.reset()
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder reset successfully")
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] VoiceRecorder: Exception during reset: ${e.message}")
+                    }
+                    
+                    // Release resources
+                    try {
+                        recorder.release()
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder released successfully")
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] VoiceRecorder: Exception during release: ${e.message}")
+                    }
+                }
                 
-                // Удаляем временный файл
-                file.delete()
-                audioFile = null
-            } else {
-                println("[DEBUG_LOG] VoiceRecorder: Audio file not found or null")
-                errorCallback?.invoke("Аудио файл не найден")
+                mediaRecorder = null
+                
+                // Читаем аудио файл и передаем данные в callback
+                if (file != null && file.exists()) {
+                    val audioData = file.readBytes()
+                    println("[DEBUG_LOG] VoiceRecorder: Read ${audioData.size} bytes from audio file")
+                    
+                    // Post callback to main thread
+                    mainHandler.post {
+                        onResult?.invoke(audioData)
+                    }
+                    
+                    // Удаляем временный файл
+                    file.delete()
+                    audioFile = null
+                } else {
+                    println("[DEBUG_LOG] VoiceRecorder: Audio file not found or null")
+                    
+                    // Post error callback to main thread
+                    mainHandler.post {
+                        onError?.invoke("Аудио файл не найден")
+                    }
+                }
+            } catch (e: Exception) {
+                val errorMsg = "Ошибка остановки записи: ${e.message}"
+                println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
+                e.printStackTrace()
+                
+                // Post error callback to main thread
+                mainHandler.post {
+                    onError?.invoke(errorMsg)
+                }
+                cleanup()
             }
-        } catch (e: Exception) {
-            recording = false
-            val errorMsg = "Ошибка остановки записи: ${e.message}"
-            println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
-            e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
-            cleanup()
         }
     }
     
@@ -237,25 +327,70 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             return
         }
         
-        try {
-            println("[DEBUG_LOG] VoiceRecorder: Cancelling recording (no callback)")
-            mediaRecorder?.stop()
-            mediaRecorder?.release()
-            mediaRecorder = null
-            recording = false
-            
-            // Удаляем временный файл без вызова callback
-            audioFile?.delete()
-            audioFile = null
-            
-            // Очищаем колбэки, чтобы они не вызывались
-            resultCallback = null
-            errorCallback = null
-        } catch (e: Exception) {
-            recording = false
-            println("[DEBUG_LOG] VoiceRecorder: Error cancelling recording: ${e.message}")
-            e.printStackTrace()
-            cleanup()
+        val recorder = mediaRecorder
+        val file = audioFile
+        
+        println("[DEBUG_LOG] VoiceRecorder: Cancelling recording (no callback)")
+        recording = false
+        
+        // Execute cancel operation in background thread with timeout
+        executor.execute {
+            try {
+                if (recorder != null) {
+                    // Safely stop MediaRecorder with timeout - can hang on some Android TV devices
+                    val stopFuture: Future<*> = stopExecutor.submit {
+                        try {
+                            println("[DEBUG_LOG] VoiceRecorder: Calling MediaRecorder.stop() in background thread (cancel)")
+                            recorder.stop()
+                            println("[DEBUG_LOG] VoiceRecorder: MediaRecorder stopped successfully (cancel)")
+                        } catch (e: IllegalStateException) {
+                            println("[DEBUG_LOG] VoiceRecorder: IllegalStateException during cancel stop (device-specific issue): ${e.message}")
+                            // Continue with cleanup even if stop() fails
+                        } catch (e: RuntimeException) {
+                            println("[DEBUG_LOG] VoiceRecorder: RuntimeException during cancel stop: ${e.message}")
+                            // Continue with cleanup
+                        }
+                    }
+                    
+                    // Wait for stop with timeout
+                    try {
+                        stopFuture.get(STOP_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                    } catch (e: java.util.concurrent.TimeoutException) {
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder.stop() timeout after ${STOP_TIMEOUT_SECONDS}s during cancel, forcing cleanup")
+                        stopFuture.cancel(true)
+                    }
+                    
+                    // Reset before release to ensure proper cleanup (important for some Android TV devices)
+                    try {
+                        recorder.reset()
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder reset successfully (cancel)")
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] VoiceRecorder: Exception during reset (cancel): ${e.message}")
+                    }
+                    
+                    // Release resources
+                    try {
+                        recorder.release()
+                        println("[DEBUG_LOG] VoiceRecorder: MediaRecorder released successfully (cancel)")
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] VoiceRecorder: Exception during release (cancel): ${e.message}")
+                    }
+                }
+                
+                mediaRecorder = null
+                
+                // Удаляем временный файл без вызова callback
+                file?.delete()
+                audioFile = null
+                
+                // Очищаем колбэки, чтобы они не вызывались
+                resultCallback = null
+                errorCallback = null
+            } catch (e: Exception) {
+                println("[DEBUG_LOG] VoiceRecorder: Error cancelling recording: ${e.message}")
+                e.printStackTrace()
+                cleanup()
+            }
         }
     }
     
@@ -311,8 +446,10 @@ actual class VoiceRecorder actual constructor(context: Any?) {
         try {
             val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
             if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
-                throw Exception("AudioRecord minBufferSize error")
+                throw Exception("AudioRecord minBufferSize error: $minBufferSize")
             }
+            
+            println("[DEBUG_LOG] VoiceRecorder: minBufferSize = $minBufferSize")
             
             audioFile = File.createTempFile("voice_", ".wav", androidContext?.cacheDir)
             println("[DEBUG_LOG] VoiceRecorder: Created temp WAV file: ${audioFile?.absolutePath}")
@@ -321,20 +458,61 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                 throw Exception("Permission denied")
             }
             
-            audioRecord = AudioRecord(MediaRecorder.AudioSource.MIC, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, minBufferSize * 2)
+            // Try different audio sources for Android TV compatibility
+            val audioSources = listOf(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION to "VOICE_RECOGNITION",
+                MediaRecorder.AudioSource.MIC to "MIC",
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION to "VOICE_COMMUNICATION",
+                MediaRecorder.AudioSource.DEFAULT to "DEFAULT"
+            )
             
-            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
-                 throw Exception("AudioRecord not initialized")
+            var lastException: Exception? = null
+            for ((source, sourceName) in audioSources) {
+                try {
+                    println("[DEBUG_LOG] VoiceRecorder: Trying audio source: $sourceName")
+                    audioRecord = AudioRecord(source, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, minBufferSize * 2)
+                    
+                    if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                        println("[DEBUG_LOG] VoiceRecorder: AudioRecord not initialized with $sourceName (state=${audioRecord?.state})")
+                        audioRecord?.release()
+                        audioRecord = null
+                        continue
+                    }
+                    
+                    println("[DEBUG_LOG] VoiceRecorder: AudioRecord initialized successfully with $sourceName")
+                    audioRecord?.startRecording()
+                    
+                    // Check if recording actually works by reading a small test buffer
+                    val testBuffer = ByteArray(minBufferSize)
+                    Thread.sleep(100) // Give it time to start
+                    val testRead = audioRecord?.read(testBuffer, 0, minBufferSize) ?: 0
+                    println("[DEBUG_LOG] VoiceRecorder: Test read from $sourceName: $testRead bytes")
+                    
+                    if (testRead > 0) {
+                        println("[DEBUG_LOG] VoiceRecorder: Successfully started recording with $sourceName")
+                        isRecordingWav = true
+                        
+                        recordingThread = Thread {
+                            writeWavDataToFile(minBufferSize)
+                        }
+                        recordingThread?.start()
+                        return // Success!
+                    } else {
+                        println("[DEBUG_LOG] VoiceRecorder: $sourceName returned 0 bytes, trying next source")
+                        audioRecord?.stop()
+                        audioRecord?.release()
+                        audioRecord = null
+                    }
+                } catch (e: Exception) {
+                    println("[DEBUG_LOG] VoiceRecorder: Failed with $sourceName: ${e.message}")
+                    lastException = e
+                    audioRecord?.release()
+                    audioRecord = null
+                }
             }
             
-            audioRecord?.startRecording()
-            isRecordingWav = true
-            
-            recordingThread = Thread {
-                writeWavDataToFile(minBufferSize)
-            }
-            recordingThread?.start()
-            println("[DEBUG_LOG] VoiceRecorder: WAV recording started")
+            // If we get here, all sources failed
+            throw Exception("Не удалось инициализировать запись аудио ни с одним источником. Возможно, на этом устройстве нет микрофона или он не поддерживается. Последняя ошибка: ${lastException?.message}")
             
         } catch (e: Exception) {
             recording = false
@@ -342,7 +520,11 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             val errorMsg = "Ошибка запуска WAV записи: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
             e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
+            
+            // Post error callback to main thread
+            mainHandler.post {
+                errorCallback?.invoke(errorMsg)
+            }
             cleanup()
         }
     }
@@ -385,18 +567,29 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                 
                 val audioData = file.readBytes()
                 println("[DEBUG_LOG] VoiceRecorder: Read ${audioData.size} bytes from WAV file")
-                resultCallback?.invoke(audioData)
+                
+                // Post callback to main thread
+                mainHandler.post {
+                    resultCallback?.invoke(audioData)
+                }
                 
                 file.delete()
                 audioFile = null
             } else {
-                errorCallback?.invoke("Аудио файл не найден")
+                // Post error callback to main thread
+                mainHandler.post {
+                    errorCallback?.invoke("Аудио файл не найден")
+                }
             }
         } catch (e: Exception) {
             val errorMsg = "Ошибка остановки WAV записи: ${e.message}"
             println("[DEBUG_LOG] VoiceRecorder: $errorMsg")
             e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
+            
+            // Post error callback to main thread
+            mainHandler.post {
+                errorCallback?.invoke(errorMsg)
+            }
             cleanup()
         }
     }

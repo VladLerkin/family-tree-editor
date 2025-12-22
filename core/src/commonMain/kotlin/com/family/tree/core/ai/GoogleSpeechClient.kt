@@ -171,6 +171,18 @@ class GoogleSpeechClient : TranscriptionClient {
                 put("languageCode", languageCode)
                 put("enableAutomaticPunctuation", true)
                 
+                // Параметры для улучшения распознавания длинных фраз с паузами
+                put("maxAlternatives", 1)  // Возвращать только лучший результат
+                put("profanityFilter", false)  // Не фильтровать нецензурную лексику
+                
+                // Включаем speaker diarization для лучшего распознавания длинных аудио с паузами
+                // Это помогает API не обрезать результаты при паузах в речи
+                putJsonObject("diarizationConfig") {
+                    put("enableSpeakerDiarization", true)
+                    put("minSpeakerCount", 1)
+                    put("maxSpeakerCount", 2)
+                }
+                
                 // Enhanced модели (latest_long + useEnhanced) доступны не для всех языков
                 // Для ka-GE (грузинский) используем стандартную модель
                 // Список языков с enhanced моделями: en-US, en-GB, es-ES, fr-FR, ja-JP, ko-KR, pt-BR, ru-RU, zh-CN и др.
