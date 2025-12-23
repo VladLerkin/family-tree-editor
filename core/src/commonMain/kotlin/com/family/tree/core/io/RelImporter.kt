@@ -59,248 +59,279 @@ class RelImporter {
         var file: String? = null
     )
 
-    fun importFromBytes(bytes: ByteArray, layout: ProjectLayout? = null): LoadedProject {
-        // Remove all NUL bytes (0x00) – they are abundant in .rel TLV and break textual parsing
-        val cleaned = stripZeroBytes(bytes)
+    // Pre-compiled regex patterns for performance (reused across all person/family blocks)
+    private val objePatternForName = Regex("OBJE\\s*[\\s\\S]+?(?=(?:OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
+    private val notePatternForName = Regex("(?:NOTE|NOTES)\\s*[\\s\\S]+?(?=(?:SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
+    private val namePattern1 = Regex("NAME\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|GIVN|SURN|P\\d+|F\\d+|_X|_Y)|$)")
+    private val namePattern2 = Regex("(?:NAME|.AME)\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|P\\d+|F\\d+|_X|_Y)|$)")
+    private val namePattern3 = Regex("[\\p{L} .]+?\\s+/[^/]+/")
+    private val rusNamePattern = Regex("ФАМИЛИ[ЯИ]\\P{L}*([^\\r\\n]+)", RegexOption.IGNORE_CASE)
+    private val sexPattern = Regex("SEX\\P{L}*([MFmf12МЖмж])")
+    private val birtDatePattern = Regex("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)")
+    private val birtPlacePattern = Regex("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)")
+    private val deatDatePattern = Regex("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)")
+    private val deatPlacePattern = Regex("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)")
+    private val posXPattern = Regex("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", RegexOption.IGNORE_CASE)
+    private val posYPattern = Regex("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", RegexOption.IGNORE_CASE)
+    private val notePattern = Regex("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
+    private val objePattern = Regex("OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
+    private val objeFormPattern = Regex("FORM\\s*([^\\r\\n\\s]+)", RegexOption.IGNORE_CASE)
+    private val objeTitlePattern = Regex("TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE)
+    private val objeFilePattern = Regex("FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE)
+    private val husbPattern = Regex("HUSB\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE)
+    private val wifePattern = Regex("WIFE\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE)
+    private val chilPattern = Regex("CHIL\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE)
+    private val marrDatePattern = Regex("MARR.*?DATE\\((.+?)\\)")
+    private val marrPlacePattern = Regex("MARR.*?PLAC\\s*([^PF\\r\\n]+)")
 
-        // First attempt: UTF-8
-        var textUtf8 = cleaned.decodeToString()
-        textUtf8 = stripSubmitterBlocks(textUtf8)
-        var bundle = parseBundle(textUtf8)
-        println("[DEBUG_LOG] RelImporter: After UTF-8 parse - persons=${bundle.persons.size}, families=${bundle.fams.size}")
-
-        val poorNames = bundle.persons.values.all { r ->
-            (r.given.isNullOrBlank()) && (r.surname.isNullOrBlank()) && (r.name.isNullOrBlank())
-        }
+    fun importFromBytes(
+        bytes: ByteArray, 
+        layout: ProjectLayout? = null,
+        onProgress: ((String) -> Unit)? = null
+    ): LoadedProject {
+        println("[DEBUG_LOG] RelImporter.importFromBytes: START - file size=${bytes.size / 1024} KB")
+        onProgress?.invoke("Подготовка файла...")
         
-        // If all names look missing and there are high-bytes, try Windows-1251 decoding fallback
-        if (poorNames && hasNonAscii(cleaned)) {
-            try {
-                var textCp1251 = decodeWindows1251(cleaned)
-                textCp1251 = stripSubmitterBlocks(textCp1251)
-                val alt = parseBundle(textCp1251)
-                val altBetter = alt.persons.values.any { r ->
-                    !r.given.isNullOrBlank() || !r.surname.isNullOrBlank() || !r.name.isNullOrBlank()
-                }
-                if (altBetter) bundle = alt
-            } catch (_: Exception) {
-                // keep UTF-8 result if fallback fails
+        try {
+            // Remove all NUL bytes (0x00) – they are abundant in .rel TLV and break textual parsing
+            val cleaned = stripZeroBytes(bytes)
+            println("[DEBUG_LOG] RelImporter: Stripped zeros, size=${cleaned.size / 1024} KB")
+            onProgress?.invoke("Очистка данных...")
+
+            // Decode to string (UTF-8)
+            val text = cleaned.decodeToString()
+            println("[DEBUG_LOG] RelImporter: Decoded to text, length=${text.length / 1024} KB")
+            onProgress?.invoke("Декодирование текста...")
+            
+            // Strip submitter blocks
+            val cleanedText = stripSubmitterBlocks(text)
+            println("[DEBUG_LOG] RelImporter: Cleaned text, length=${cleanedText.length / 1024} KB")
+            onProgress?.invoke("Поиск секций...")
+            
+            // Force GC before parsing to maximize available memory
+            System.gc()
+            println("[DEBUG_LOG] RelImporter: GC requested before parsing")
+            
+            // Parse bundle
+            val bundle = parseBundle(cleanedText) { progress ->
+                onProgress?.invoke(progress)
             }
-        }
+            println("[DEBUG_LOG] RelImporter: Parsed - persons=${bundle.persons.size}, families=${bundle.fams.size}")
+            onProgress?.invoke("Построение модели данных...")
+            
+            // Force GC after parsing to free intermediate strings
+            System.gc()
+            println("[DEBUG_LOG] RelImporter: GC requested after parsing")
 
-        // Build model
-        val individuals = mutableListOf<Individual>()
-        val families = mutableListOf<Family>()
-        val sources = mutableListOf<Source>()
+            // Build model
+            println("[DEBUG_LOG] RelImporter: Building model...")
+            val individuals = mutableListOf<Individual>()
+            val families = mutableListOf<Family>()
+            val sources = mutableListOf<Source>()
 
-        // Add global/common SOUR1..SOUR6 as Source records first so we can link citations
-        val sourNumToId: MutableMap<Int, String> = mutableMapOf()
-        if (bundle.commonSources.isNotEmpty()) {
-            for ((key, full) in bundle.commonSources) {
-                val abbr = extractSourceTag(full, "ABBR")
-                val titl = extractSourceTag(full, "TITL")
-                val title = if (!titl.isNullOrBlank()) {
-                    titl.trim()
+            // Add global/common SOUR1..SOUR6 as Source records first so we can link citations
+            val sourNumToId: MutableMap<Int, String> = mutableMapOf()
+            if (bundle.commonSources.isNotEmpty()) {
+                for ((key, full) in bundle.commonSources) {
+                    val abbr = extractSourceTag(full, "ABBR")
+                    val titl = extractSourceTag(full, "TITL")
+                    val title = if (!titl.isNullOrBlank()) {
+                        titl.trim()
+                    } else {
+                        val nl = full.indexOf('\n')
+                        val provisional = if (nl >= 0) full.substring(0, nl).trim() else full.trim()
+                        val short = if (provisional.length > 80) provisional.substring(0, 80) + "…" else provisional
+                        if (short.isBlank()) "SOUR $key" else short
+                    }
+                    val src = Source(
+                        id = SourceId.generate(),
+                        title = title,
+                        abbreviation = abbr ?: "",
+                        text = full
+                    )
+                    sources.add(src)
+                    sourNumToId[key] = src.id.value
+                }
+            }
+
+            val idMap: MutableMap<String, String> = mutableMapOf() // P### -> Individual.id
+            
+            // Collect referenced person section ids from families to avoid dropping real, unnamed members
+            val referenced: MutableSet<String> = mutableSetOf()
+            for (rf0 in bundle.fams.values) {
+                rf0.husb?.let { referenced.add(it) }
+                rf0.wife?.let { referenced.add(it) }
+                for (cx0 in rf0.children) cx0?.let { referenced.add(it) }
+            }
+
+            println("[DEBUG_LOG] RelImporter: Processing ${bundle.persons.size} persons, ${referenced.size} referenced")
+            
+            // Keep track of person records for coordinate extraction
+            val personRecByKey = mutableMapOf<String, PersonRec>()
+        
+            for ((key, r) in bundle.persons) {
+                var first: String
+                var last: String
+                
+                // Prefer NAME field if it looks well-structured
+                val nameLooksStructured = !r.name.isNullOrBlank() && (
+                    r.name!!.indexOf('/') >= 0 || r.name!!.any { (it.code and 0x80) != 0 }
+                )
+                
+                if (nameLooksStructured) {
+                    val nm = splitName(r.name)
+                    first = nm[0]
+                    last = nm[1]
+                } else if (!r.given.isNullOrBlank() || !r.surname.isNullOrBlank()) {
+                    first = if (!r.given.isNullOrBlank()) cleanToken(r.given) ?: "?" else "?"
+                    last = if (r.surname != null) cleanToken(r.surname) ?: "" else ""
                 } else {
-                    val nl = full.indexOf('\n')
-                    val provisional = if (nl >= 0) full.substring(0, nl).trim() else full.trim()
-                    val short = if (provisional.length > 80) provisional.substring(0, 80) + "…" else provisional
-                    if (short.isBlank()) "SOUR $key" else short
+                    val nm = splitName(r.name)
+                    first = nm[0]
+                    last = nm[1]
                 }
-                val src = Source(
-                    id = SourceId.generate(),
-                    title = title,
-                    abbreviation = abbr ?: "",
-                    text = full
-                )
-                sources.add(src)
-                sourNumToId[key] = src.id.value
-            }
-        }
+                
+                // Clean names
+                first = cleanNameValue(first) ?: first
+                last = cleanNameValue(last) ?: last
+                first = stripParensQuotes(first) ?: first
+                last = stripParensQuotes(last) ?: last
+                
+                if (first.isBlank()) first = "?"
+                if (last.isEmpty()) last = ""
+                
+                // Skip empty/garbage persons if not referenced
+                val nameBlank = (first.isBlank() || first == "?") && last.isBlank()
+                val sourceNameMissing = r.name.isNullOrBlank()
+                val looksEmpty = nameBlank && sourceNameMissing && r.birth == null && r.death == null && 
+                                 (r.sex == null || r.sex == Gender.UNKNOWN)
+                if (looksEmpty && !referenced.contains(key)) {
+                    continue
+                }
 
-        val idMap: MutableMap<String, String> = mutableMapOf() // P### -> Individual.id
-        
-        // Collect referenced person section ids from families to avoid dropping real, unnamed members
-        val referenced: MutableSet<String> = mutableSetOf()
-        for (rf0 in bundle.fams.values) {
-            rf0.husb?.let { referenced.add(it) }
-            rf0.wife?.let { referenced.add(it) }
-            for (cx0 in rf0.children) cx0?.let { referenced.add(it) }
-        }
-
-        println("[DEBUG_LOG] RelImporter: Processing ${bundle.persons.size} person records, ${referenced.size} referenced by families")
-        
-        // Keep track of person records for coordinate extraction
-        val personRecByKey = mutableMapOf<String, PersonRec>()
-        
-        for ((key, r) in bundle.persons) {
-            println("[DEBUG_LOG] RelImporter: Person $key - name='${r.name}', given='${r.given}', surname='${r.surname}', sex=${r.sex}")
-            var first: String
-            var last: String
-            
-            // Prefer NAME field if it looks well-structured
-            val nameLooksStructured = !r.name.isNullOrBlank() && (
-                r.name!!.indexOf('/') >= 0 || r.name!!.any { (it.code and 0x80) != 0 }
-            )
-            
-            if (nameLooksStructured) {
-                val nm = splitName(r.name)
-                first = nm[0]
-                last = nm[1]
-            } else if (!r.given.isNullOrBlank() || !r.surname.isNullOrBlank()) {
-                first = if (!r.given.isNullOrBlank()) cleanToken(r.given) ?: "?" else "?"
-                last = if (r.surname != null) cleanToken(r.surname) ?: "" else ""
-            } else {
-                val nm = splitName(r.name)
-                first = nm[0]
-                last = nm[1]
-            }
-            
-            // Clean names
-            first = cleanNameValue(first) ?: first
-            last = cleanNameValue(last) ?: last
-            first = stripParensQuotes(first) ?: first
-            last = stripParensQuotes(last) ?: last
-            
-            if (first.isBlank()) first = "?"
-            if (last.isEmpty()) last = ""
-            
-            println("[DEBUG_LOG] RelImporter: Person $key after processing - first='$first', last='$last'")
-            
-            // Skip empty/garbage persons if not referenced
-            val nameBlank = (first.isBlank() || first == "?") && last.isBlank()
-            val sourceNameMissing = r.name.isNullOrBlank()
-            val looksEmpty = nameBlank && sourceNameMissing && r.birth == null && r.death == null && 
-                             (r.sex == null || r.sex == Gender.UNKNOWN)
-            if (looksEmpty && !referenced.contains(key)) {
-                println("[DEBUG_LOG] RelImporter: SKIPPING person $key - looksEmpty=$looksEmpty, referenced=${referenced.contains(key)}")
-                continue
-            }
-            println("[DEBUG_LOG] RelImporter: KEEPING person $key")
-
-            val events = mutableListOf<GedcomEvent>()
-            
-            // BIRT event
-            val birthSrc = r.birthSource
-            if (!r.birth.isNullOrBlank() || !r.birthPlace.isNullOrBlank() || !birthSrc.isNullOrBlank()) {
-                val eventSources = mutableListOf<SourceCitation>()
-                if (!birthSrc.isNullOrBlank()) {
-                    val refId = resolveSourRef(birthSrc, sourNumToId)
-                    val sc = if (refId != null) {
-                        SourceCitation(
-                            id = SourceCitationId.generate(),
-                            sourceId = SourceId(refId),
-                            page = r.birthPage ?: ""
-                        )
-                    } else {
-                        SourceCitation(
-                            id = SourceCitationId.generate(),
-                            text = birthSrc
-                        )
+                val events = mutableListOf<GedcomEvent>()
+                
+                // BIRT event
+                val birthSrc = r.birthSource
+                if (!r.birth.isNullOrBlank() || !r.birthPlace.isNullOrBlank() || !birthSrc.isNullOrBlank()) {
+                    val eventSources = mutableListOf<SourceCitation>()
+                    if (!birthSrc.isNullOrBlank()) {
+                        val refId = resolveSourRef(birthSrc, sourNumToId)
+                        val sc = if (refId != null) {
+                            SourceCitation(
+                                id = SourceCitationId.generate(),
+                                sourceId = SourceId(refId),
+                                page = r.birthPage ?: ""
+                            )
+                        } else {
+                            SourceCitation(
+                                id = SourceCitationId.generate(),
+                                text = birthSrc
+                            )
+                        }
+                        eventSources.add(sc)
                     }
-                    eventSources.add(sc)
+                    events.add(GedcomEvent(
+                        id = GedcomEventId.generate(),
+                        type = "BIRT",
+                        date = r.birth ?: "",
+                        place = r.birthPlace ?: "",
+                        sources = eventSources
+                    ))
                 }
-                events.add(GedcomEvent(
-                    id = GedcomEventId.generate(),
-                    type = "BIRT",
-                    date = r.birth ?: "",
-                    place = r.birthPlace ?: "",
-                    sources = eventSources
-                ))
-            }
-            
-            // DEAT event
-            val deathSrc = r.deathSource
-            if (!r.death.isNullOrBlank() || !r.deathPlace.isNullOrBlank() || !deathSrc.isNullOrBlank()) {
-                val eventSources = mutableListOf<SourceCitation>()
-                if (!deathSrc.isNullOrBlank()) {
-                    val refId = resolveSourRef(deathSrc, sourNumToId)
-                    val sc = if (refId != null) {
-                        SourceCitation(
-                            id = SourceCitationId.generate(),
-                            sourceId = SourceId(refId),
-                            page = r.deathPage ?: ""
-                        )
-                    } else {
-                        SourceCitation(
-                            id = SourceCitationId.generate(),
-                            text = deathSrc
-                        )
+                
+                // DEAT event
+                val deathSrc = r.deathSource
+                if (!r.death.isNullOrBlank() || !r.deathPlace.isNullOrBlank() || !deathSrc.isNullOrBlank()) {
+                    val eventSources = mutableListOf<SourceCitation>()
+                    if (!deathSrc.isNullOrBlank()) {
+                        val refId = resolveSourRef(deathSrc, sourNumToId)
+                        val sc = if (refId != null) {
+                            SourceCitation(
+                                id = SourceCitationId.generate(),
+                                sourceId = SourceId(refId),
+                                page = r.deathPage ?: ""
+                            )
+                        } else {
+                            SourceCitation(
+                                id = SourceCitationId.generate(),
+                                text = deathSrc
+                            )
+                        }
+                        eventSources.add(sc)
                     }
-                    eventSources.add(sc)
+                    events.add(GedcomEvent(
+                        id = GedcomEventId.generate(),
+                        type = "DEAT",
+                        date = r.death ?: "",
+                        place = r.deathPlace ?: "",
+                        sources = eventSources
+                    ))
                 }
-                events.add(GedcomEvent(
-                    id = GedcomEventId.generate(),
-                    type = "DEAT",
-                    date = r.death ?: "",
-                    place = r.deathPlace ?: "",
-                    sources = eventSources
-                ))
-            }
-            
-            // Notes
-            val notes = r.notes.map { noteText ->
-                Note(id = NoteId.generate(), text = noteText)
-            }
-            
-            // Media
-            val media = r.media.map { m ->
-                MediaAttachment(
-                    id = MediaAttachmentId.generate(),
-                    fileName = m.title ?: m.file ?: "",
-                    relativePath = m.file ?: ""
+                
+                // Notes
+                val notes = r.notes.map { noteText ->
+                    Note(id = NoteId.generate(), text = noteText)
+                }
+                
+                // Media
+                val media = r.media.map { m ->
+                    MediaAttachment(
+                        id = MediaAttachmentId.generate(),
+                        fileName = m.title ?: m.file ?: "",
+                        relativePath = m.file ?: ""
+                    )
+                }
+
+                val ind = Individual(
+                    id = IndividualId(uuid4()),
+                    firstName = first,
+                    lastName = last,
+                    gender = r.sex ?: Gender.UNKNOWN,
+                    events = events,
+                    notes = notes,
+                    media = media
                 )
+                individuals.add(ind)
+                idMap[key] = ind.id.value
+                personRecByKey[key] = r
             }
 
-            val ind = Individual(
-                id = IndividualId(uuid4()),
-                firstName = first,
-                lastName = last,
-                gender = r.sex ?: Gender.UNKNOWN,
-                events = events,
-                notes = notes,
-                media = media
-            )
-            individuals.add(ind)
-            idMap[key] = ind.id.value
-            personRecByKey[key] = r
-        }
+            // Build families
+            for ((fkey, rf) in bundle.fams) {
+                val husbandId = rf.husb?.let { idMap[it] }?.let { IndividualId(it) }
+                val wifeId = rf.wife?.let { idMap[it] }?.let { IndividualId(it) }
+                val childrenIds = rf.children.mapNotNull { child ->
+                    child?.let { idMap[it] }?.let { IndividualId(it) }
+                }
+                
+                val famEvents = mutableListOf<GedcomEvent>()
+                if (!rf.marriageDate.isNullOrBlank() || !rf.marriagePlace.isNullOrBlank()) {
+                    famEvents.add(GedcomEvent(
+                        id = GedcomEventId.generate(),
+                        type = "MARR",
+                        date = rf.marriageDate ?: "",
+                        place = rf.marriagePlace ?: ""
+                    ))
+                }
 
-        // Build families
-        for ((fkey, rf) in bundle.fams) {
-            val husbandId = rf.husb?.let { idMap[it] }?.let { IndividualId(it) }
-            val wifeId = rf.wife?.let { idMap[it] }?.let { IndividualId(it) }
-            val childrenIds = rf.children.mapNotNull { child ->
-                child?.let { idMap[it] }?.let { IndividualId(it) }
-            }
-            
-            val famEvents = mutableListOf<GedcomEvent>()
-            if (!rf.marriageDate.isNullOrBlank() || !rf.marriagePlace.isNullOrBlank()) {
-                famEvents.add(GedcomEvent(
-                    id = GedcomEventId.generate(),
-                    type = "MARR",
-                    date = rf.marriageDate ?: "",
-                    place = rf.marriagePlace ?: ""
-                ))
+                val fam = Family(
+                    id = FamilyId(uuid4()),
+                    husbandId = husbandId,
+                    wifeId = wifeId,
+                    childrenIds = childrenIds,
+                    events = famEvents
+                )
+                families.add(fam)
             }
 
-            val fam = Family(
-                id = FamilyId(uuid4()),
-                husbandId = husbandId,
-                wifeId = wifeId,
-                childrenIds = childrenIds,
-                events = famEvents
-            )
-            families.add(fam)
-        }
-
-        // Build ProjectLayout with coordinates from .rel file
-        val nodePositions = mutableMapOf<String, com.family.tree.core.layout.NodePos>()
-        for ((key, personRec) in personRecByKey) {
-            val individualId = idMap[key]
-            if (individualId != null && personRec.posX != null && personRec.posY != null) {
-                nodePositions[individualId] = com.family.tree.core.layout.NodePos(
-                    x = personRec.posX!!,
+            // Build ProjectLayout with coordinates from .rel file
+            val nodePositions = mutableMapOf<String, com.family.tree.core.layout.NodePos>()
+            for ((key, personRec) in personRecByKey) {
+                val individualId = idMap[key]
+                if (individualId != null && personRec.posX != null && personRec.posY != null) {
+                    nodePositions[individualId] = com.family.tree.core.layout.NodePos(
+                        x = personRec.posX!!,
                     y = personRec.posY!!
                 )
             }
@@ -318,17 +349,41 @@ class RelImporter {
             layout // Use passed-in layout if no coordinates were imported
         }
 
-        val data = ProjectData(
-            individuals = individuals,
-            families = families,
-            sources = sources
-        )
+            val data = ProjectData(
+                individuals = individuals,
+                families = families,
+                sources = sources
+            )
 
-        return LoadedProject(data = data, layout = importedLayout, meta = null)
+            println("[DEBUG_LOG] RelImporter: SUCCESS - ${individuals.size} individuals, ${families.size} families")
+            return LoadedProject(data = data, layout = importedLayout, meta = null)
+            
+        } catch (e: OutOfMemoryError) {
+            println("[DEBUG_LOG] RelImporter: FATAL - OutOfMemoryError! File size: ${bytes.size / 1024 / 1024} MB")
+            e.printStackTrace()
+            throw Exception("Out of memory while importing .rel file. File is too large (${bytes.size / 1024 / 1024} MB). Try a smaller file or free up device memory.", e)
+        } catch (e: Exception) {
+            println("[DEBUG_LOG] RelImporter: ERROR - ${e.message}")
+            e.printStackTrace()
+            throw e
+        }
     }
 
     private fun stripZeroBytes(bytes: ByteArray): ByteArray {
-        return bytes.filter { it != 0.toByte() }.toByteArray()
+        // Memory-optimized version: count non-zero bytes first, then copy once
+        var count = 0
+        for (b in bytes) {
+            if (b != 0.toByte()) count++
+        }
+        
+        val result = ByteArray(count)
+        var idx = 0
+        for (b in bytes) {
+            if (b != 0.toByte()) {
+                result[idx++] = b
+            }
+        }
+        return result
     }
 
     private fun hasNonAscii(bytes: ByteArray): Boolean {
@@ -354,70 +409,132 @@ class RelImporter {
         return text
     }
 
-    private fun parseBundle(text: String): Bundle {
+    private fun parseBundle(text: String, onProgress: ((String) -> Unit)? = null): Bundle {
         val persons = mutableMapOf<String, PersonRec>()
         val fams = mutableMapOf<String, FamRec>()
         val commonSources = mutableMapOf<Int, String>()
 
-        // Extract common sources (SOUR1, SOUR2, etc.)
-        val sourPattern = Regex("SOUR(\\d+)\\s+([\\s\\S]+?)(?=(?:SOUR\\d+|P\\d+|F\\d+|$))")
-        for (match in sourPattern.findAll(text)) {
-            val num = match.groupValues[1].toIntOrNull() ?: continue
-            val content = match.groupValues[2].trim()
-            commonSources[num] = content
-        }
+        println("[DEBUG_LOG] RelImporter: Starting parseBundle, text length=${text.length / 1024} KB")
 
-        // Find all P### and F### sections (simple pattern matching all candidates)
-        val sectionPattern = Regex("(P\\d{1,5}|F\\d{1,5})")
-        val candidateMatches = sectionPattern.findAll(text).toList()
-        
-        // Filter to likely section starts by checking context
+        // Extract common sources (SOUR1, SOUR2, etc.) - optimized with single pass
+        var idx = 0
+        while (idx < text.length) {
+            val sourIdx = text.indexOf("SOUR", idx, ignoreCase = true)
+            if (sourIdx < 0) break
+            
+            // Check if it's SOUR followed by digits
+            var numStart = sourIdx + 4
+            while (numStart < text.length && text[numStart].isWhitespace()) numStart++
+            if (numStart < text.length && text[numStart].isDigit()) {
+                var numEnd = numStart
+                while (numEnd < text.length && text[numEnd].isDigit()) numEnd++
+                val num = text.substring(numStart, numEnd).toIntOrNull()
+                if (num != null) {
+                    // Find content until next SOUR/P/F section
+                    var contentEnd = text.length
+                    for (tag in listOf("SOUR", "P", "F")) {
+                        val nextIdx = text.indexOf(tag, numEnd, ignoreCase = false)
+                        if (nextIdx > numEnd && nextIdx < contentEnd) {
+                            contentEnd = nextIdx
+                        }
+                    }
+                    val content = text.substring(numEnd, contentEnd).trim()
+                    if (content.isNotEmpty()) {
+                        commonSources[num] = content
+                    }
+                }
+            }
+            idx = sourIdx + 4
+        }
+        println("[DEBUG_LOG] RelImporter: Extracted ${commonSources.size} common sources")
+
+        // Find all P### and F### sections - optimized linear scan instead of regex
+        onProgress?.invoke("Поиск записей...")
         val validMatches = mutableListOf<Pair<Int, String>>()
-        for (match in candidateMatches) {
-            val sectionId = match.value
-            val idx = match.range.first
-            
-            // Avoid matching cross-references like "HUSB P1" or "CHIL P3" by checking previous character
-            if (idx > 0) {
-                val prev = text[idx - 1]
-                if (prev.isLetterOrDigit()) continue
+        idx = 0
+        var sectionCount = 0
+        
+        while (idx < text.length) {
+            // Look for P or F followed by digits
+            val ch = text[idx]
+            if ((ch == 'P' || ch == 'F') && idx + 1 < text.length) {
+                // Check previous character to avoid matching cross-references
+                if (idx > 0 && text[idx - 1].isLetterOrDigit()) {
+                    idx++
+                    continue
+                }
+                
+                // Extract digits
+                var digitEnd = idx + 1
+                while (digitEnd < text.length && text[digitEnd].isDigit() && (digitEnd - idx - 1) < 5) {
+                    digitEnd++
+                }
+                
+                if (digitEnd > idx + 1) {
+                    val sectionId = text.substring(idx, digitEnd)
+                    
+                    // Quick validation: look ahead for expected tags
+                    val windowEnd = minOf(text.length, digitEnd + 200)
+                    val lookahead = text.substring(digitEnd, windowEnd)
+                    val isValid = if (ch == 'P') {
+                        lookahead.contains("NAME", ignoreCase = true) || 
+                        lookahead.contains("SEX", ignoreCase = true) || 
+                        lookahead.contains("GIVN", ignoreCase = true) || 
+                        lookahead.contains("SURN", ignoreCase = true) || 
+                        lookahead.contains("_X", ignoreCase = true) || 
+                        lookahead.contains("_Y", ignoreCase = true)
+                    } else {
+                        lookahead.contains("HUSB", ignoreCase = true) || 
+                        lookahead.contains("WIFE", ignoreCase = true) || 
+                        lookahead.contains("CHIL", ignoreCase = true) || 
+                        lookahead.contains("MARR", ignoreCase = true)
+                    }
+                    
+                    if (isValid) {
+                        validMatches.add(Pair(idx, sectionId))
+                        sectionCount++
+                        if (sectionCount % 100 == 0) {
+                            println("[DEBUG_LOG] RelImporter: Found $sectionCount sections...")
+                            onProgress?.invoke("Найдено записей: $sectionCount...")
+                        }
+                    }
+                    idx = digitEnd
+                    continue
+                }
             }
-            
-            // Look ahead for expected tags to confirm this is a real section
-            val windowEnd = minOf(text.length, idx + 200)
-            val lookahead = text.substring(idx, windowEnd).uppercase()
-            val isValid = if (sectionId.startsWith("P")) {
-                lookahead.contains("NAME") || lookahead.contains("SEX") || 
-                lookahead.contains("GIVN") || lookahead.contains("SURN") || 
-                lookahead.contains("_X") || lookahead.contains("_Y")
-            } else { // F###
-                lookahead.contains("HUSB") || lookahead.contains("WIFE") || 
-                lookahead.contains("CHIL") || lookahead.contains("MARR")
-            }
-            
-            if (isValid) {
-                validMatches.add(Pair(idx, sectionId))
-            }
+            idx++
         }
         
-        println("[DEBUG_LOG] RelImporter.parseBundle: Found ${validMatches.size} valid section markers (from ${candidateMatches.size} candidates)")
+        println("[DEBUG_LOG] RelImporter: Found ${validMatches.size} valid sections, starting parsing...")
+        onProgress?.invoke("Обработка ${validMatches.size} записей...")
         
+        // Parse sections
         for (i in validMatches.indices) {
             val (startIdx, sectionId) = validMatches[i]
-            val start = startIdx + sectionId.length // body begins after id
+            val start = startIdx + sectionId.length
             val end = if (i < validMatches.size - 1) validMatches[i + 1].first else text.length
             val block = text.substring(start, end)
 
             if (sectionId.startsWith("P")) {
                 persons[sectionId] = parsePersonBlock(block)
             } else if (sectionId.startsWith("F")) {
-                println("[DEBUG_LOG] RelImporter.parseBundle: Processing family section $sectionId")
                 fams[sectionId] = parseFamilyBlock(block)
             }
+            
+            // Progress reporting and periodic GC
+            if (i % 50 == 0 && i > 0) {
+                val percent = (i * 100) / validMatches.size
+                onProgress?.invoke("Обработано: $i/${validMatches.size} ($percent%)")
+                if (i % 100 == 0) {
+                    println("[DEBUG_LOG] RelImporter: Parsed $i/${validMatches.size} sections ($percent%)...")
+                }
+                if (i % 500 == 0) {
+                    System.gc()
+                }
+            }
         }
-        
-        println("[DEBUG_LOG] RelImporter.parseBundle: Parsed ${persons.size} persons, ${fams.size} families")
 
+        println("[DEBUG_LOG] RelImporter: Parsing complete - ${persons.size} persons, ${fams.size} families")
         return Bundle(persons, fams, commonSources)
     }
 
@@ -425,47 +542,52 @@ class RelImporter {
         val rec = PersonRec()
 
         // For name extraction, pre-strip OBJE and NOTE(S) blocks to avoid contamination (matching JavaFX logic)
-        val objePatternForName = Regex("OBJE\\s*[\\s\\S]+?(?=(?:OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
-        val notePatternForName = Regex("(?:NOTE|NOTES)\\s*[\\s\\S]+?(?=(?:SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
-        var blockForName = objePatternForName.replace(block, " ")
-        blockForName = notePatternForName.replace(blockForName, " ")
+        // Memory optimization: use lazy evaluation, only create blockForName if needed
+        var blockForName: String? = null
+        fun getCleanedBlock(): String {
+            if (blockForName == null) {
+                var cleaned = objePatternForName.replace(block, " ")
+                cleaned = notePatternForName.replace(cleaned, " ")
+                blockForName = cleaned
+            }
+            return blockForName!!
+        }
 
         // NAME - try multiple patterns for binary .rel format
         // Pattern 1: Standard NAME with content on same or next line (with optional prefix character)
-        var nameMatch = Regex("NAME\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|GIVN|SURN|P\\d+|F\\d+|_X|_Y)|$)").find(blockForName)
+        var nameMatch = namePattern1.find(getCleanedBlock())
         if (nameMatch != null) {
             rec.name = nameMatch.groupValues[1].trim()
         }
         // Pattern 2: Corrupted NAME (sometimes first char is corrupted in binary format)
         if (rec.name.isNullOrBlank()) {
-            nameMatch = Regex("(?:NAME|.AME)\\s*([\\s\\S]+?)(?=\\s*(?:SEX|BIRT|DEAT|FAMC|FAMS|NOTE|P\\d+|F\\d+|_X|_Y)|$)").find(blockForName)
+            nameMatch = namePattern2.find(getCleanedBlock())
             if (nameMatch != null) {
                 rec.name = nameMatch.groupValues[1].trim()
             }
         }
         // Pattern 3: Inline GEDCOM-style name anywhere before SEX
         if (rec.name.isNullOrBlank()) {
-            val gedcomInline = Regex("[\\p{L} .]+?\\s+/[^/]+/").find(blockForName)
+            val gedcomInline = namePattern3.find(getCleanedBlock())
             if (gedcomInline != null) {
                 rec.name = gedcomInline.value.trim()
             }
         }
         
         // GIVN and SURN (also use cleaned block)
-        rec.given = extractTag(blockForName, "GIVN")
-        rec.surname = extractTag(blockForName, "SURN")
+        rec.given = extractTag(getCleanedBlock(), "GIVN")
+        rec.surname = extractTag(getCleanedBlock(), "SURN")
         
         // Russian alternatives
         if (rec.given.isNullOrBlank()) {
             rec.given = extractTag(block, "ИМЯ", ignoreCase = true)
         }
         if (rec.surname.isNullOrBlank()) {
-            val rusPattern = Regex("ФАМИЛИ[ЯИ]\\P{L}*([^\\r\\n]+)", RegexOption.IGNORE_CASE)
-            rec.surname = rusPattern.find(block)?.groupValues?.get(1)?.trim()
+            rec.surname = rusNamePattern.find(block)?.groupValues?.get(1)?.trim()
         }
 
         // SEX
-        val sexMatch = Regex("SEX\\P{L}*([MFmf12МЖмж])").find(block)
+        val sexMatch = sexPattern.find(block)
         if (sexMatch != null) {
             val sexChar = sexMatch.groupValues[1].uppercase()
             rec.sex = when {
@@ -476,10 +598,10 @@ class RelImporter {
         }
 
         // BIRT - extract date and place first
-        val birtMatch = Regex("BIRT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
+        val birtMatch = birtDatePattern.find(block)
         rec.birth = cleanToken(birtMatch?.groupValues?.get(1)?.trim())
         
-        val birtPlacMatch = Regex("BIRT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:DEAT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
+        val birtPlacMatch = birtPlacePattern.find(block)
         rec.birthPlace = cleanToken(birtPlacMatch?.groupValues?.get(1)?.trim())
         
         // Extract SOUR and PAGE inside BIRT block boundaries (matching JavaFX logic)
@@ -495,10 +617,10 @@ class RelImporter {
         }
 
         // DEAT - extract date and place first
-        val deatMatch = Regex("DEAT.*?DATE\\s*([^\\x00]+?)(?=\\s*(?:PLAC|SOUR|PAGE|BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
+        val deatMatch = deatDatePattern.find(block)
         rec.death = cleanToken(deatMatch?.groupValues?.get(1)?.trim())
         
-        val deatPlacMatch = Regex("DEAT.*?PLAC\\s*([^\\r\\n]+?)(?=(?:BIRT|NOTE|FAMC|FAMS|P\\d+|F\\d+|_X|_Y)|$)").find(block)
+        val deatPlacMatch = deatPlacePattern.find(block)
         rec.deathPlace = cleanToken(deatPlacMatch?.groupValues?.get(1)?.trim())
         
         // Extract SOUR and PAGE inside DEAT block boundaries (matching JavaFX logic)
@@ -514,14 +636,13 @@ class RelImporter {
         }
 
         // Position
-        val xMatch = Regex("_X\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", RegexOption.IGNORE_CASE).find(block)
+        val xMatch = posXPattern.find(block)
         rec.posX = xMatch?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull()
         
-        val yMatch = Regex("_Y\\P{Alnum}*([+-]?\\d+(?:[.,]\\d+)?)", RegexOption.IGNORE_CASE).find(block)
+        val yMatch = posYPattern.find(block)
         rec.posY = yMatch?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull()
 
         // Notes
-        val notePattern = Regex("(?:NOTE|NOTES)\\s*([\\s\\S]+?)\\s*(?=(SOUR|SEX|BIRT|DEAT|FAMC|FAMS|NOTE|NOTES|TITL|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
         for (match in notePattern.findAll(block)) {
             val noteText = match.groupValues[1].trim()
             if (noteText.isNotBlank()) {
@@ -530,13 +651,12 @@ class RelImporter {
         }
 
         // Media
-        val objePattern = Regex("OBJE\\s*([\\s\\S]+?)\\s*(?=(OBJE|NOTE|NOTES|SOUR|SEX|BIRT|DEAT|FAMC|FAMS|SUBM|P\\d+|F\\d+|_X|_Y)|$)", RegexOption.IGNORE_CASE)
         for (match in objePattern.findAll(block)) {
             val objeBlock = match.groupValues[1]
             val media = MediaRec()
-            media.form = Regex("FORM\\s*([^\\r\\n\\s]+)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
-            media.title = Regex("TITL\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
-            media.file = Regex("FILE\\s*([\\s\\S]+?)\\s*(?=(FORM|FILE|TITL|OBJE)|$)", RegexOption.IGNORE_CASE).find(objeBlock)?.groupValues?.get(1)?.trim()
+            media.form = objeFormPattern.find(objeBlock)?.groupValues?.get(1)?.trim()
+            media.title = objeTitlePattern.find(objeBlock)?.groupValues?.get(1)?.trim()
+            media.file = objeFilePattern.find(objeBlock)?.groupValues?.get(1)?.trim()
             if (media.file != null || media.title != null) {
                 rec.media.add(media)
             }
@@ -547,31 +667,25 @@ class RelImporter {
 
     private fun parseFamilyBlock(block: String): FamRec {
         val rec = FamRec()
-        
-        println("[DEBUG_LOG] RelImporter.parseFamilyBlock: block length=${block.length}, first 200 chars: ${block.take(200)}")
 
         // HUSB
-        val husbMatch = Regex("HUSB\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE).find(block)
+        val husbMatch = husbPattern.find(block)
         rec.husb = husbMatch?.groupValues?.get(1)
-        println("[DEBUG_LOG] RelImporter.parseFamilyBlock: husbMatch=${husbMatch?.value}, husb=${rec.husb}")
 
         // WIFE
-        val wifeMatch = Regex("WIFE\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE).find(block)
+        val wifeMatch = wifePattern.find(block)
         rec.wife = wifeMatch?.groupValues?.get(1)
-        println("[DEBUG_LOG] RelImporter.parseFamilyBlock: wifeMatch=${wifeMatch?.value}, wife=${rec.wife}")
 
         // CHIL
-        val chilPattern = Regex("CHIL\\P{Alnum}*(P\\d+)", RegexOption.IGNORE_CASE)
         for (match in chilPattern.findAll(block)) {
             rec.children.add(match.groupValues[1])
         }
-        println("[DEBUG_LOG] RelImporter.parseFamilyBlock: children count=${rec.children.size}, children=${rec.children}")
 
         // MARR
-        val marrDateMatch = Regex("MARR.*?DATE\\((.+?)\\)").find(block)
+        val marrDateMatch = marrDatePattern.find(block)
         rec.marriageDate = marrDateMatch?.groupValues?.get(1)?.trim()
         
-        val marrPlacMatch = Regex("MARR.*?PLAC\\s*([^PF\\r\\n]+)").find(block)
+        val marrPlacMatch = marrPlacePattern.find(block)
         rec.marriagePlace = marrPlacMatch?.groupValues?.get(1)?.trim()
 
         return rec

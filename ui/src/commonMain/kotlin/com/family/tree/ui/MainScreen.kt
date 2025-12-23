@@ -260,6 +260,14 @@ fun MainScreen() {
     var showRelImportDialog by remember { mutableStateOf(false) }
     var pendingRelImportCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
     
+    // .rel import progress state
+    var showRelImportProgress by remember { mutableStateOf(false) }
+    var relImportProgressMessage by remember { mutableStateOf("") }
+    
+    // .rel import error state
+    var showRelImportError by remember { mutableStateOf(false) }
+    var relImportErrorMessage by remember { mutableStateOf("") }
+    
     // GEDCOM dialog state
     var showGedcomImportDialog by remember { mutableStateOf(false) }
     var showGedcomExportDialog by remember { mutableStateOf(false) }
@@ -1045,6 +1053,96 @@ fun MainScreen() {
         }
     }
     
+    // .rel Import Progress dialog
+    if (showRelImportProgress) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { /* Cannot dismiss during import */ }
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .width(400.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                ) {
+                    Text(
+                        text = ".rel Import",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(64.dp),
+                        strokeWidth = 6.dp
+                    )
+                    
+                    Text(
+                        text = relImportProgressMessage,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+    
+    // .rel Import Error dialog
+    if (showRelImportError) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = {
+                showRelImportError = false
+                relImportErrorMessage = ""
+            }
+        ) {
+            androidx.compose.material3.Surface(
+                modifier = Modifier
+                    .width(500.dp)
+                    .wrapContentHeight(),
+                shape = MaterialTheme.shapes.large,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(24.dp)
+                        .fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = ".rel Import Error",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    
+                    Text(
+                        text = relImportErrorMessage,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    ) {
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                showRelImportError = false
+                                relImportErrorMessage = ""
+                            }
+                        ) {
+                            Text("OK")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     // AI Import Info dialog (for errors/warnings like PDF detection)
     if (showAiImportInfoDialog) {
         androidx.compose.ui.window.Dialog(
@@ -1212,27 +1310,63 @@ fun MainScreen() {
             val callback = pendingOpenCallback
             println("[DEBUG_LOG] MainScreen.onOpenResult: callback=$callback")
             if (bytes != null) {
-                val loaded = runCatching {
-                    // Try RelRepository first (for .ped ZIP format with JSON)
-                    RelRepository().read(bytes)
-                }.recoverCatching {
-                    // Fallback to RelImporter for legacy .rel binary TLV format
-                    println("[DEBUG_LOG] MainScreen.onOpenResult: RelRepository failed, trying RelImporter for legacy .rel format")
-                    RelImporter().importFromBytes(bytes)
-                }.getOrNull()
-                println("[DEBUG_LOG] MainScreen.onOpenResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
-                // Instead of invoking callback directly, store in temp state to trigger LaunchedEffect
-                if (loaded != null) {
-                    loadedProjectTemp = loaded
+                // Show progress dialog
+                showRelImportProgress = true
+                relImportProgressMessage = "Opening file..."
+                
+                // Import in background to avoid blocking UI on Android TV
+                scope.launch {
+                    try {
+                        val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            runCatching {
+                                // Try RelRepository first (for .ped ZIP format with JSON)
+                                RelRepository().read(bytes)
+                            }.recoverCatching {
+                                // Fallback to RelImporter for legacy .rel binary TLV format
+                                println("[DEBUG_LOG] MainScreen.onOpenResult: RelRepository failed, trying RelImporter for legacy .rel format")
+                                RelImporter().importFromBytes(bytes, onProgress = { progress ->
+                                    // Update progress message on main thread
+                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                        relImportProgressMessage = progress
+                                    }
+                                })
+                            }.getOrNull()
+                        }
+                        println("[DEBUG_LOG] MainScreen.onOpenResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
+                        
+                        // Hide progress dialog
+                        showRelImportProgress = false
+                        
+                        // Instead of invoking callback directly, store in temp state to trigger LaunchedEffect
+                        if (loaded != null) {
+                            loadedProjectTemp = loaded
+                        }
+                        callback?.invoke(loaded)
+                        println("[DEBUG_LOG] MainScreen.onOpenResult: callback invoked")
+                        
+                        // Reset dialog state
+                        showOpenDialog = false
+                        pendingOpenCallback = null
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] MainScreen.onOpenResult: ERROR opening file - ${e.message}")
+                        e.printStackTrace()
+                        
+                        // Hide progress dialog
+                        showRelImportProgress = false
+                        
+                        callback?.invoke(null)
+                        
+                        // Reset dialog state
+                        showOpenDialog = false
+                        pendingOpenCallback = null
+                    }
                 }
-                callback?.invoke(loaded)
-                println("[DEBUG_LOG] MainScreen.onOpenResult: callback invoked, project now has ${project.individuals.size} individuals")
             } else {
                 println("[DEBUG_LOG] MainScreen.onOpenResult: bytes is null, invoking callback with null")
                 callback?.invoke(null)
+                showOpenDialog = false
+                pendingOpenCallback = null
             }
-            showOpenDialog = false
-            pendingOpenCallback = null
         },
         showSave = showSaveDialog,
         onDismissSave = {
@@ -1253,22 +1387,74 @@ fun MainScreen() {
             println("[DEBUG_LOG] MainScreen.onRelImportResult: received bytes=${bytes?.size ?: 0} bytes")
             val callback = pendingRelImportCallback
             if (bytes != null) {
-                val loaded = runCatching {
-                    // Use RelImporter for legacy .rel binary TLV format
-                    println("[DEBUG_LOG] MainScreen.onRelImportResult: Using RelImporter for .rel format")
-                    RelImporter().importFromBytes(bytes)
-                }.getOrNull()
-                println("[DEBUG_LOG] MainScreen.onRelImportResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
-                if (loaded != null) {
-                    loadedProjectTemp = loaded
+                // Show progress dialog
+                showRelImportProgress = true
+                relImportProgressMessage = "Preparing to import..."
+                
+                // Import in background to avoid blocking UI on Android TV
+                scope.launch {
+                    try {
+                        // Give UI time to render the progress dialog
+                        delay(100)
+                        
+                        // Aggressive memory cleanup before import
+                        println("[DEBUG_LOG] MainScreen.onRelImportResult: Aggressive GC before import")
+                        System.gc()
+                        delay(100)
+                        System.gc()
+                        delay(100)
+                        
+                        relImportProgressMessage = "Importing .rel file..."
+                        
+                        val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            runCatching {
+                                // Use RelImporter for legacy .rel binary TLV format
+                                println("[DEBUG_LOG] MainScreen.onRelImportResult: Using RelImporter for .rel format")
+                                RelImporter().importFromBytes(bytes, onProgress = { progress ->
+                                    // Update progress message on main thread
+                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                        relImportProgressMessage = progress
+                                    }
+                                })
+                            }.getOrNull()
+                        }
+                        println("[DEBUG_LOG] MainScreen.onRelImportResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
+                        
+                        // Hide progress dialog
+                        showRelImportProgress = false
+                        
+                        if (loaded != null) {
+                            loadedProjectTemp = loaded
+                        }
+                        callback?.invoke(loaded)
+                        
+                        // Reset dialog state
+                        showRelImportDialog = false
+                        pendingRelImportCallback = null
+                    } catch (e: Exception) {
+                        println("[DEBUG_LOG] MainScreen.onRelImportResult: ERROR importing .rel - ${e.message}")
+                        e.printStackTrace()
+                        
+                        // Hide progress dialog
+                        showRelImportProgress = false
+                        
+                        // Show error dialog with detailed message
+                        relImportErrorMessage = e.message ?: "Unknown error occurred while importing .rel file"
+                        showRelImportError = true
+                        
+                        callback?.invoke(null)
+                        
+                        // Reset dialog state
+                        showRelImportDialog = false
+                        pendingRelImportCallback = null
+                    }
                 }
-                callback?.invoke(loaded)
             } else {
                 println("[DEBUG_LOG] MainScreen.onRelImportResult: bytes is null")
                 callback?.invoke(null)
+                showRelImportDialog = false
+                pendingRelImportCallback = null
             }
-            showRelImportDialog = false
-            pendingRelImportCallback = null
         },
         // GEDCOM import
         showGedcomImport = showGedcomImportDialog,
