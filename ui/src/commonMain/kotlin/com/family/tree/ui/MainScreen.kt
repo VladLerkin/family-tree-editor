@@ -1397,13 +1397,6 @@ fun MainScreen() {
                         // Give UI time to render the progress dialog
                         delay(100)
                         
-                        // Aggressive memory cleanup before import
-                        println("[DEBUG_LOG] MainScreen.onRelImportResult: Aggressive GC before import")
-                        System.gc()
-                        delay(100)
-                        System.gc()
-                        delay(100)
-                        
                         relImportProgressMessage = "Importing .rel file..."
                         
                         val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
