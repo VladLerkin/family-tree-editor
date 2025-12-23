@@ -108,20 +108,12 @@ class RelImporter {
             println("[DEBUG_LOG] RelImporter: Cleaned text, length=${cleanedText.length / 1024} KB")
             onProgress?.invoke("Поиск секций...")
             
-            // Force GC before parsing to maximize available memory
-            System.gc()
-            println("[DEBUG_LOG] RelImporter: GC requested before parsing")
-            
             // Parse bundle
             val bundle = parseBundle(cleanedText) { progress ->
                 onProgress?.invoke(progress)
             }
             println("[DEBUG_LOG] RelImporter: Parsed - persons=${bundle.persons.size}, families=${bundle.fams.size}")
             onProgress?.invoke("Построение модели данных...")
-            
-            // Force GC after parsing to free intermediate strings
-            System.gc()
-            println("[DEBUG_LOG] RelImporter: GC requested after parsing")
 
             // Build model
             println("[DEBUG_LOG] RelImporter: Building model...")
@@ -521,15 +513,12 @@ class RelImporter {
                 fams[sectionId] = parseFamilyBlock(block)
             }
             
-            // Progress reporting and periodic GC
+            // Progress reporting
             if (i % 50 == 0 && i > 0) {
                 val percent = (i * 100) / validMatches.size
                 onProgress?.invoke("Обработано: $i/${validMatches.size} ($percent%)")
                 if (i % 100 == 0) {
                     println("[DEBUG_LOG] RelImporter: Parsed $i/${validMatches.size} sections ($percent%)...")
-                }
-                if (i % 500 == 0) {
-                    System.gc()
                 }
             }
         }
