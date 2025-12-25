@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     kotlin("multiplatform")
     id("com.android.library")
@@ -12,27 +14,39 @@ kotlin {
     iosX64()
     iosArm64()
     iosSimulatorArm64()
+    
+    // Web target
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser()
+    }
 
     sourceSets {
         commonMain.dependencies {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-            implementation("io.ktor:ktor-client-core:2.3.13")
+            implementation("io.ktor:ktor-client-core:3.0.3")
         }
         
         androidMain.dependencies {
-            implementation("io.ktor:ktor-client-okhttp:2.3.13")
+            implementation("io.ktor:ktor-client-okhttp:3.0.3")
             implementation("androidx.security:security-crypto:1.1.0")
             implementation("com.tom-roush:pdfbox-android:2.0.27.0")
         }
         
         val desktopMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-cio:2.3.13")
+                implementation("io.ktor:ktor-client-cio:3.0.3")
             }
         }
         
         iosMain.dependencies {
-            implementation("io.ktor:ktor-client-darwin:2.3.13")
+            implementation("io.ktor:ktor-client-darwin:3.0.3")
+        }
+        
+        val wasmJsMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-js:3.0.3")
+            }
         }
     }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 21

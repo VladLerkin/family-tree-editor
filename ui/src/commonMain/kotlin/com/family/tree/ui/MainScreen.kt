@@ -339,7 +339,6 @@ fun MainScreen() {
         println("[DEBUG_LOG] MainScreen.newProject: New project created")
     }
     AppActions.openPed = {
-
         DesktopActions.openPed { loaded ->
             println("[DEBUG_LOG] MainScreen.openPed callback: loaded=$loaded")
             if (loaded != null) {

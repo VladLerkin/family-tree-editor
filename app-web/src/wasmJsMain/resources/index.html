@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree Editor</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <!-- Pako library for DEFLATE decompression -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    <script>
+        // Kotlin/Wasm runtime support functions
+        window.js_code = {
+            'kotlin.wasm.internal.externrefToBoolean': (ref) => !!ref,
+            'kotlin.wasm.internal.externrefToInt': (ref) => ref | 0,
+            'kotlin.wasm.internal.externrefToLong': (ref) => BigInt(ref),
+            'kotlin.wasm.internal.externrefToFloat': (ref) => +ref,
+            'kotlin.wasm.internal.externrefToDouble': (ref) => +ref,
+            'kotlin.wasm.internal.booleanToExternref': (value) => !!value,
+            'kotlin.wasm.internal.intToExternref': (value) => value,
+            'kotlin.wasm.internal.longToExternref': (value) => value,
+            'kotlin.wasm.internal.floatToExternref': (value) => value,
+            'kotlin.wasm.internal.doubleToExternref': (value) => value
+        };
+    </script>
+</head>
+<body>
+    <canvas id="ComposeTarget"></canvas>
+    <script src="family-tree-web.js"></script>
+</body>
+</html>
