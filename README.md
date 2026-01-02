@@ -2,9 +2,9 @@
 
 > A cross-platform family tree editor built with Kotlin Multiplatform and Compose Multiplatform
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.7.1-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Gradle](https://img.shields.io/badge/Gradle-8.10-02303A.svg?logo=gradle)](https://gradle.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.9.3-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Gradle](https://img.shields.io/badge/Gradle-9.2.1-02303A.svg?logo=gradle)](https://gradle.org)
 
 ## ✨ Features
 
@@ -31,6 +31,7 @@ Get the latest version for your platform:
 - 🐧 **Linux** - Debian package (.deb) and AppImage
 - 🪟 **Windows** - MSI installer and portable .exe
 - 📱 **Android** - APK for Android 8.0+
+- 📺 **Android TV** - APK for Android TV
 - 🍎 **iOS** - Developer's build
 
 > 💡 No compilation needed! Just download and run for free.
@@ -68,12 +69,12 @@ Get the latest version for your platform:
 
 | Component | Version |
 |-----------|---------|
-| Kotlin | 2.1.0 |
-| Compose Multiplatform | 1.7.1 |
-| Gradle | 8.10 |
-| Android Gradle Plugin | 8.7.3 |
-| JDK | 21 |
-| Android Target | 17 |
+| Kotlin | 2.3.0 |
+| Compose Multiplatform | 1.9.3 |
+| Gradle | 9.2.1 |
+| Android Gradle Plugin | 8.13.2 |
+| JDK | 25 |
+| Android Target SDK | 36 |
 
 ## ⌨️ Keyboard Shortcuts (Desktop)
 
@@ -89,9 +90,9 @@ Get the latest version for your platform:
 <details>
 <summary><b>JDK Version Issues</b></summary>
 
-Ensure you're using JDK 21:
+Ensure you're using JDK 25:
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+export JAVA_HOME=$(/usr/libexec/java_home -v 25)
 ```
 </details>
 
