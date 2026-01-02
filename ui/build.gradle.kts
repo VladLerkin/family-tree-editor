@@ -44,8 +44,8 @@ kotlin {
             }
         }
     }
-    // Align Kotlin JVM toolchain in this module to 21 (Android & desktop target compilation)
-    jvmToolchain(21)
+    // Align Kotlin JVM toolchain in this module to 25 (Android & desktop target compilation)
+    jvmToolchain((project.findProperty("java.version") as String).toInt())
 }
 
 android {
@@ -59,9 +59,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
     }
-    // Align Java compile options for Android to 21
+    // Align Java compile options for Android to 25
+    val javaVer = (project.findProperty("java.version") as String).toInt()
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.toVersion(javaVer)
+        targetCompatibility = JavaVersion.toVersion(javaVer)
     }
 }

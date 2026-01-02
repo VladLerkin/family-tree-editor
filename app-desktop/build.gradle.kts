@@ -18,7 +18,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain((project.findProperty("java.version") as String).toInt())
     sourceSets {
         val main by getting {
             kotlin.srcDirs("src/jvmMain/kotlin")

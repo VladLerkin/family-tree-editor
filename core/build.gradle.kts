@@ -49,8 +49,8 @@ kotlin {
             }
         }
     }
-    // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 21
-    jvmToolchain(21)
+    // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 25
+    jvmToolchain((project.findProperty("java.version") as String).toInt())
 }
 
 android {
@@ -60,9 +60,10 @@ android {
         minSdk = (project.findProperty("android.minSdk") as String).toInt()
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
     }
-    // Align Java compile options for Android to 21
+    // Align Java compile options for Android to 25
+    val javaVer = (project.findProperty("java.version") as String).toInt()
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.toVersion(javaVer)
+        targetCompatibility = JavaVersion.toVersion(javaVer)
     }
 }

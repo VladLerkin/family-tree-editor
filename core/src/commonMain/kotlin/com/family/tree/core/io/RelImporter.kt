@@ -350,11 +350,12 @@ class RelImporter {
             println("[DEBUG_LOG] RelImporter: SUCCESS - ${individuals.size} individuals, ${families.size} families")
             return LoadedProject(data = data, layout = importedLayout, meta = null)
             
-        } catch (e: OutOfMemoryError) {
-            println("[DEBUG_LOG] RelImporter: FATAL - OutOfMemoryError! File size: ${bytes.size / 1024 / 1024} MB")
-            e.printStackTrace()
-            throw Exception("Out of memory while importing .rel file. File is too large (${bytes.size / 1024 / 1024} MB). Try a smaller file or free up device memory.", e)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
+            val message = e.message ?: ""
+            if (message.contains("OutOfMemory", ignoreCase = true)) {
+                println("[DEBUG_LOG] RelImporter: FATAL - Memory issue! File size: ${bytes.size / 1024 / 1024} MB")
+                throw Exception("Out of memory while importing .rel file. File is too large (${bytes.size / 1024 / 1024} MB). Try a smaller file or free up device memory.", e)
+            }
             println("[DEBUG_LOG] RelImporter: ERROR - ${e.message}")
             e.printStackTrace()
             throw e
