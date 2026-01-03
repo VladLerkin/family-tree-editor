@@ -9,11 +9,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.family.tree.core.BuildConfig
 import platform.Foundation.NSURL
 import platform.UIKit.UIApplication
 
 private const val APP_NAME = "Family Tree Editor"
-private const val APP_VERSION = "v1.4.0"
 private const val AUTHOR_EMAIL = "domfindus@gmail.com"
 private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 
@@ -46,7 +46,7 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
                 )
 
                 Text(
-                    text = "Version $APP_VERSION",
+                    text = "Version v${BuildConfig.APP_VERSION}",
                     fontSize = 14.sp
                 )
 
