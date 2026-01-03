@@ -13,7 +13,7 @@ This guide explains how to build and run the Family Tree iOS application on macO
      ```bash
      xcode-select --install
      ```
-3. **JDK 21** (already configured in the project)
+3. **JDK 25** (already configured in the project)
 4. **Kotlin Multiplatform Mobile plugin** for IntelliJ IDEA (optional but recommended)
 
 ### Verify Xcode Installation
@@ -86,8 +86,8 @@ android {
         targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 }
 ```

@@ -4,7 +4,7 @@ This guide explains how to build and run the Kotlin Multiplatform (KMP) Desktop 
 
 ## Prerequisites
 
-- **JDK 21** (required for Gradle and Compose Multiplatform)
+- **JDK 25** (required for Gradle and Compose Multiplatform)
 - **Gradle 9.1.0** (included via wrapper: `./gradlew` or `gradlew.bat`)
 - **Internet access** for Gradle to download dependencies
 - **Linux only:** Desktop environment (GNOME/KDE/etc.) for GUI display
@@ -15,28 +15,28 @@ Check your Java version:
 ```bash
 java -version
 ```
-Ensure it reports JDK 21. If you have multiple JDKs installed, set `JAVA_HOME`:
+Ensure it reports JDK 25. If you have multiple JDKs installed, set `JAVA_HOME`:
 
 **macOS:**
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+export JAVA_HOME=$(/usr/libexec/java_home -v 25)
 ```
 
 **Linux:**
 ```bash
-export JAVA_HOME=/path/to/jdk-21
-# Common locations: /usr/lib/jvm/java-21-openjdk-amd64 (Ubuntu/Debian)
-#                   /usr/lib/jvm/java-21-openjdk (Fedora/RHEL)
+export JAVA_HOME=/path/to/jdk-25
+# Common locations: /usr/lib/jvm/java-25-openjdk-amd64 (Ubuntu/Debian)
+#                   /usr/lib/jvm/java-25-openjdk (Fedora/RHEL)
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:JAVA_HOME="C:\Path\To\jdk-21"
+$env:JAVA_HOME="C:\Path\To\jdk-25"
 ```
 
 **Windows (CMD):**
 ```cmd
-set JAVA_HOME=C:\Path\To\jdk-21
+set JAVA_HOME=C:\Path\To\jdk-25
 ```
 
 ## Quick Start
@@ -92,7 +92,7 @@ To compile the Desktop application without launching it:
 2. Sync Gradle dependencies (IntelliJ usually prompts automatically)
 3. Navigate to `app-desktop/src/jvmMain/kotlin/com/family/tree/desktop/Main.kt`
 4. Click the green ▶️ icon next to `fun main()` or use Run → Run 'Main'
-5. Ensure the project JDK is set to 21 in **File → Project Structure → Project SDK**
+5. Ensure the project JDK is set to 25 in **File → Project Structure → Project SDK**
 
 ## Desktop Features
 
@@ -165,7 +165,7 @@ Refer to [Compose Multiplatform Desktop packaging docs](https://github.com/JetBr
 ## Troubleshooting
 
 ### "Unsupported class file major version 65" or similar
-- Ensure Gradle is using JDK 21. Check with `./gradlew --version` and verify the "JVM" line reports version 21.
+- Ensure Gradle is using JDK 25. Check with `./gradlew --version` and verify the "JVM" line reports version 25.
 - Set `JAVA_HOME` as shown above or configure the Gradle JVM in IntelliJ (**Preferences → Build, Execution, Deployment → Build Tools → Gradle → Gradle JVM**).
 
 ### "Could not resolve dependencies" or network errors
@@ -188,7 +188,7 @@ Refer to [Compose Multiplatform Desktop packaging docs](https://github.com/JetBr
 
 ## Notes
 
-- The KMP Desktop target uses **Compose for Desktop 1.7.0** and **Kotlin 2.0.21**.
+- The KMP Desktop target uses **Compose for Desktop 1.9.3** and **Kotlin 2.3.0**.
 - The build is **non-modular** (does not use Java Platform Module System).
 - The Desktop app shares the `:core` and `:ui` modules with the Android app, providing cross-platform business logic and UI.
 - File dialogs use AWT's `FileDialog` on Desktop for native look and feel.

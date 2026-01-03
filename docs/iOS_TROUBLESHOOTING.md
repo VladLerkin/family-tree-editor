@@ -39,7 +39,7 @@ The issue is likely caused by one or more of the following:
 
 2. **Version compatibility:** The current combination of:
    - Gradle 9.1.0
-   - Kotlin 2.0.21
+   - Kotlin 2.3.0
    - Compose Multiplatform 1.7.0
    
    May have compatibility issues with iOS targets. Kotlin/Native support for iOS in Compose Multiplatform was still maturing in these versions.
@@ -55,10 +55,10 @@ Update `settings.gradle.kts` and `gradle.properties` to use newer, more stable v
 **settings.gradle.kts:**
 ```kotlin
 plugins {
-    id("org.jetbrains.kotlin.multiplatform") version "2.1.21" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.21" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.21" apply false
-    id("org.jetbrains.compose") version "1.7.1" apply false
+    id("org.jetbrains.kotlin.multiplatform") version "2.3.0" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0" apply false
+    id("org.jetbrains.compose") version "1.9.3" apply false
     id("com.android.application") version "8.7.3" apply false
     id("com.android.library") version "8.7.3" apply false
 }
@@ -66,7 +66,7 @@ plugins {
 
 **gradle.properties:**
 ```properties
-kotlin.version=2.1.21
+kotlin.version=2.3.0
 compose.version=1.7.1
 agp.version=8.7.3
 ```
@@ -96,7 +96,7 @@ If the issue is due to incomplete Kotlin/Native download:
 
 ### Solution 3: Downgrade Gradle (If Needed)
 
-If the issue persists, try Gradle 8.10 (known to work well with Kotlin 2.0.x):
+If the issue persists, try Gradle 9.2 (known to work well with Kotlin 2.3.x):
 
 **gradle/wrapper/gradle-wrapper.properties:**
 ```properties
@@ -226,6 +226,6 @@ If none of these solutions work:
 
 ## Summary
 
-iOS support is **architecturally ready** but requires resolving a Gradle/Kotlin/Native compatibility issue. The most likely solution is updating to Kotlin 2.1.21+ and Compose Multiplatform 1.7.1+, which have more mature iOS support.
+iOS support is **architecturally ready** but requires resolving a Gradle/Kotlin/Native compatibility issue. The most likely solution is updating to Kotlin 2.3.0+ and Compose Multiplatform 1.9.3+, which have more mature iOS support.
 
 The iOS module structure, entry points, and documentation are already in place and will work once the build configuration is resolved.

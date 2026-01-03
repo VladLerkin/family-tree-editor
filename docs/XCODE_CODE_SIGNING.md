@@ -272,7 +272,7 @@ PRODUCT_BUNDLE_IDENTIFIER=com.family.tree.ios$(TEAM_ID)
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=0.1
 
-JAVA_HOME=/Users/YOUR_USERNAME/.sdkman/candidates/java/21.0.8-tem
+JAVA_HOME=/Users/YOUR_USERNAME/.sdkman/candidates/java/25-tem
 ```
 
 ### For CI/CD

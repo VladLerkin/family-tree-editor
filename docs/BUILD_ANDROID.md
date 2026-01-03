@@ -4,7 +4,7 @@ This guide explains how to build and run the Kotlin Multiplatform (KMP) Android 
 
 ## Prerequisites
 
-- **JDK 21** (required for Gradle and Compose Multiplatform)
+- **JDK 25** (required for Gradle and Compose Multiplatform)
 - **Android SDK 35** (Platform 35, Build-Tools 35.0.0, Platform-Tools)
 - **Gradle 9.1.0** (included via wrapper: `./gradlew` or `gradlew.bat`)
 - **Android device or emulator** (API level 35 recommended)
@@ -228,8 +228,8 @@ In Android Studio, use the **Logcat** tab at the bottom.
 - Try a clean build: `./gradlew clean :app-android:assembleDebug :app-android:installDebug`
 
 ### "Unsupported class file major version 65"
-- Ensure Gradle is using JDK 21: `./gradlew --version`
-- Set `JAVA_HOME` to JDK 21 as shown in Prerequisites
+- Ensure Gradle is using JDK 25: `./gradlew --version`
+- Set `JAVA_HOME` to JDK 25 as shown in Prerequisites
 
 ### Build is very slow
 - Enable Gradle daemon (should be on by default)
@@ -263,7 +263,7 @@ Refer to [Android documentation](https://developer.android.com/studio/publish/ap
 
 ## Notes
 
-- The KMP Android app uses **Compose for Android 1.7.0**, **Kotlin 2.0.21**, and **AGP 8.12.0**
+- The KMP Android app uses **Compose for Android 1.9.3**, **Kotlin 2.3.0**, and **AGP 8.13.2**
 - **Target SDK:** 35, **Min SDK:** 24 (Android 7.0+)
 - The app shares the `:core` and `:ui` modules with Desktop, providing cross-platform business logic and UI
 - Android file pickers (SAF) are planned but not yet implemented; currently shows placeholder dialogs
