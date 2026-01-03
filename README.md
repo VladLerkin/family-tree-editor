@@ -76,15 +76,6 @@ Get the latest version for your platform:
 | JDK | 25 |
 | Android Target SDK | 36 |
 
-## ⌨️ Keyboard Shortcuts (Desktop)
-
-| Action | Shortcut |
-|--------|----------|
-| Zoom In | `+` / `=` / `NumPad +` |
-| Zoom Out | `-` / `NumPad -` |
-| Clear Selection | `Esc` |
-| Accelerate Zoom | `Cmd/Ctrl` + Scroll |
-
 ## 🐛 Troubleshooting
 
 <details>
