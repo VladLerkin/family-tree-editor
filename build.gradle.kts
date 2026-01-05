@@ -9,6 +9,7 @@ allprojects {
         google()
         mavenCentral()
     }
+    version = project.findProperty("app.version")?.toString() ?: "1.0.0"
 }
 
 subprojects {

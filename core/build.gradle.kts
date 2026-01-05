@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
     kotlin("multiplatform")
@@ -21,10 +22,39 @@ kotlin {
         browser()
     }
 
+    val generateBuildConfig by tasks.registering {
+        val version = project.version.toString()
+        val packageName = "com.family.tree.core"
+        val outputDir = file("$buildDir/generated/buildConfig/commonMain/kotlin")
+        inputs.property("version", version)
+        outputs.dir(outputDir)
+
+        doLast {
+            val outputFile = file("${outputDir.path}/${packageName.replace(".", "/")}/BuildConfig.kt")
+            outputFile.parentFile.mkdirs()
+            outputFile.writeText(
+                """
+                package $packageName
+
+                /**
+                 * Build configuration constants.
+                 * Automatically generated from gradle.properties.
+                 */
+                object BuildConfig {
+                    const val APP_VERSION = "$version"
+                }
+                """.trimIndent()
+            )
+        }
+    }
+
     sourceSets {
-        commonMain.dependencies {
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-            implementation("io.ktor:ktor-client-core:3.0.3")
+        commonMain {
+            kotlin.srcDir(generateBuildConfig.map { it.outputs.files.asPath })
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+                implementation("io.ktor:ktor-client-core:3.0.3")
+            }
         }
         
         androidMain.dependencies {
