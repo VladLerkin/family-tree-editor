@@ -66,6 +66,51 @@ class ApiKeyVisualTransformation : VisualTransformation {
 }
 
 /**
+ * A custom OutlinedTextField for API keys that masks the input and prevents copying.
+ * It allows pasting.
+ */
+@Composable
+fun ApiKeyTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    placeholder: String,
+    supportingText: String,
+    modifier: Modifier = Modifier
+) {
+    val clipboardManager = LocalClipboardManager.current
+    
+    DisableSelection {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text(label) },
+            placeholder = { Text(placeholder) },
+            supportingText = { Text(supportingText) },
+            visualTransformation = ApiKeyVisualTransformation(),
+            modifier = modifier
+                .padding(bottom = 12.dp)
+                .onPreviewKeyEvent { keyEvent ->
+                    if (keyEvent.type == KeyEventType.KeyDown) {
+                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
+                        if (isCopy) return@onPreviewKeyEvent true // Block copy
+                        
+                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
+                        if (isPaste) {
+                            clipboardManager.getText()?.text?.let { pastedText ->
+                                onValueChange(pastedText)
+                            }
+                            return@onPreviewKeyEvent true // Handle paste
+                        }
+                    }
+                    false
+                },
+            singleLine = true
+        )
+    }
+}
+
+/**
  * Dialog for configuring AI settings before text import.
  */
 @Composable
@@ -93,10 +138,10 @@ fun AiConfigDialog(
     var googleApiKey by remember { mutableStateOf(initialConfig.googleApiKey) }  // Deprecated
     
     // New separate API keys for each provider group
-    var openaiApiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
+    var openAiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
 
-    var googleAiApiKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
-    var yandexApiKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
+    var googleKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
+    var yandexKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
     var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
     
     Dialog(onDismissRequest = onDismiss) {
@@ -167,90 +212,35 @@ fun AiConfigDialog(
                 // Show API key field depending on the selected provider
                 when (provider) {
                     "OPENAI" -> {
-                        DisableSelection {
-                            OutlinedTextField(
-                                value = openaiApiKey,
-                                onValueChange = { openaiApiKey = it },
-                                label = { Text("OpenAI API Key") },
-                                placeholder = { Text("sk-...") },
-                                supportingText = { Text("API key for OpenAI (GPT models). Get it from the OpenAI Dashboard.") },
-                                visualTransformation = ApiKeyVisualTransformation(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .onPreviewKeyEvent { keyEvent ->
-                                        if (keyEvent.type == KeyEventType.KeyDown) {
-                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
-                                            if (isCopy) return@onPreviewKeyEvent true
-                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
-                                            if (isPaste) {
-                                                clipboardManager.getText()?.text?.let { openaiApiKey = it }
-                                                return@onPreviewKeyEvent true
-                                            }
-                                        }
-                                        false
-                                    },
-                                singleLine = true
-                            )
-                        }
+                        ApiKeyTextField(
+                            value = openAiKey,
+                            onValueChange = { openAiKey = it },
+                            label = "OpenAI API Key",
+                            placeholder = "sk-...",
+                            supportingText = "Provided key is stored in memory and masked in logs.",
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
 
                     "GOOGLE" -> {
-                        DisableSelection {
-                            OutlinedTextField(
-                                value = googleAiApiKey,
-                                onValueChange = { googleAiApiKey = it },
-                                label = { Text("Google AI API Key") },
-                                placeholder = { Text("AIza...") },
-                                supportingText = { Text("API key for Google AI (Gemini models and Speech-to-Text). Get it from Google AI Studio.") },
-                                visualTransformation = ApiKeyVisualTransformation(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .onPreviewKeyEvent { keyEvent ->
-                                        if (keyEvent.type == KeyEventType.KeyDown) {
-                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
-                                            if (isCopy) return@onPreviewKeyEvent true
-                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
-                                            if (isPaste) {
-                                                clipboardManager.getText()?.text?.let { googleAiApiKey = it }
-                                                return@onPreviewKeyEvent true
-                                            }
-                                        }
-                                        false
-                                    },
-                                singleLine = true
-                            )
-                        }
+                        ApiKeyTextField(
+                            value = googleKey,
+                            onValueChange = { googleKey = it },
+                            label = "Google AI API Key",
+                            placeholder = "AIza...",
+                            supportingText = "Provided key is stored in memory and masked in logs.",
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                     "YANDEX" -> {
-                        DisableSelection {
-                            OutlinedTextField(
-                                value = yandexApiKey,
-                                onValueChange = { yandexApiKey = it },
-                                label = { Text("Yandex Cloud API Key") },
-                                placeholder = { Text("AQVN...") },
-                                supportingText = { Text("API key for Yandex Cloud. Get it from the Yandex Cloud Console.") },
-                                visualTransformation = ApiKeyVisualTransformation(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp)
-                                    .onPreviewKeyEvent { keyEvent ->
-                                        if (keyEvent.type == KeyEventType.KeyDown) {
-                                            val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
-                                            if (isCopy) return@onPreviewKeyEvent true
-                                            val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
-                                            if (isPaste) {
-                                                clipboardManager.getText()?.text?.let { yandexApiKey = it }
-                                                return@onPreviewKeyEvent true
-                                            }
-                                        }
-                                        false
-                                    },
-                                singleLine = true
-                            )
-                        }
-                        
+                        ApiKeyTextField(
+                            value = yandexKey,
+                            onValueChange = { yandexKey = it },
+                            label = "YandexGPT API Key",
+                            placeholder = "AQVN...",
+                            supportingText = "Provided key is stored in memory and masked in logs.",
+                            modifier = Modifier.fillMaxWidth()
+                        )
                         OutlinedTextField(
                             value = yandexFolderId,
                             onValueChange = { yandexFolderId = it },

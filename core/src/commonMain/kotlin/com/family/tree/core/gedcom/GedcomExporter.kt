@@ -80,39 +80,7 @@ class GedcomExporter {
             
             appendLine(sb, "1 SEX ${GedcomMapper.sexCode(ind.gender)}")
             
-            // Export events
-            for (event in ind.events) {
-                val type = event.type
-                if (type.isNotBlank()) {
-                    appendLine(sb, "1 $type")
-                    if (event.date?.isNotBlank() == true) {
-                        appendLine(sb, "2 DATE ${event.date}")
-                    }
-                    if (event.place?.isNotBlank() == true) {
-                        appendLine(sb, "2 PLAC ${event.place}")
-                    }
-                    
-                    // Export event notes
-                    for (note in event.notes) {
-                        val nx = noteXref[note.id.value]
-                        if (nx != null) {
-                            appendLine(sb, "2 NOTE $nx")
-                        }
-                    }
-                    
-                    // Export event sources
-                    for (citation in event.sources) {
-                        val srcId = citation.sourceId
-                        if (srcId != null) {
-                            val sourceXref = "@S${srcId.value}@"
-                            appendLine(sb, "2 SOUR $sourceXref")
-                            if (citation.page.isNotBlank()) {
-                                appendLine(sb, "3 PAGE ${escapeValue(citation.page)}")
-                            }
-                        }
-                    }
-                }
-            }
+            exportEvents(sb, ind.events, noteXref)
             
             // Family child/spouse links
             for (f in fams) {
@@ -127,18 +95,8 @@ class GedcomExporter {
                 }
             }
             
-            // Notes
-            for (note in ind.notes) {
-                val nx = noteXref[note.id.value]
-                if (nx != null) appendLine(sb, "1 NOTE $nx")
-            }
-            
-            // Tags as custom fields
-            for (tag in ind.tags) {
-                if (tag.name.isNotBlank()) {
-                    appendLine(sb, "1 _TAG ${escapeValue(tag.name)}")
-                }
-            }
+            exportNotes(sb, ind.notes, noteXref)
+            exportTags(sb, ind.tags)
         }
         
         // Families
@@ -161,52 +119,9 @@ class GedcomExporter {
                 if (cx != null) appendLine(sb, "1 CHIL $cx")
             }
             
-            // Export family events
-            for (event in fam.events) {
-                val type = event.type
-                if (type.isNotBlank()) {
-                    appendLine(sb, "1 $type")
-                    if (event.date?.isNotBlank() == true) {
-                        appendLine(sb, "2 DATE ${event.date}")
-                    }
-                    if (event.place?.isNotBlank() == true) {
-                        appendLine(sb, "2 PLAC ${event.place}")
-                    }
-                    
-                    // Export event notes
-                    for (note in event.notes) {
-                        val nx = noteXref[note.id.value]
-                        if (nx != null) {
-                            appendLine(sb, "2 NOTE $nx")
-                        }
-                    }
-                    
-                    // Export event sources
-                    for (citation in event.sources) {
-                        val srcId = citation.sourceId
-                        if (srcId != null) {
-                            val sourceXref = "@S${srcId.value}@"
-                            appendLine(sb, "2 SOUR $sourceXref")
-                            if (citation.page.isNotBlank()) {
-                                appendLine(sb, "3 PAGE ${escapeValue(citation.page)}")
-                            }
-                        }
-                    }
-                }
-            }
-            
-            // Notes
-            for (note in fam.notes) {
-                val nx = noteXref[note.id.value]
-                if (nx != null) appendLine(sb, "1 NOTE $nx")
-            }
-            
-            // Tags as custom fields
-            for (tag in fam.tags) {
-                if (tag.name.isNotBlank()) {
-                    appendLine(sb, "1 _TAG ${escapeValue(tag.name)}")
-                }
-            }
+            exportEvents(sb, fam.events, noteXref)
+            exportNotes(sb, fam.notes, noteXref)
+            exportTags(sb, fam.tags)
         }
         
         // Notes
@@ -222,6 +137,56 @@ class GedcomExporter {
         appendLine(sb, "0 TRLR")
         
         return sb.toString()
+    }
+    
+    private fun exportEvents(sb: StringBuilder, events: List<GedcomEvent>, noteXref: Map<String, String>) {
+        for (event in events) {
+            val type = event.type
+            if (type.isNotBlank()) {
+                appendLine(sb, "1 $type")
+                if (event.date?.isNotBlank() == true) {
+                    appendLine(sb, "2 DATE ${event.date}")
+                }
+                if (event.place?.isNotBlank() == true) {
+                    appendLine(sb, "2 PLAC ${event.place}")
+                }
+                
+                // Export event notes
+                for (note in event.notes) {
+                    val nx = noteXref[note.id.value]
+                    if (nx != null) {
+                        appendLine(sb, "2 NOTE $nx")
+                    }
+                }
+                
+                // Export event sources
+                for (citation in event.sources) {
+                    val srcId = citation.sourceId
+                    if (srcId != null) {
+                        val sourceXref = "@S${srcId.value}@"
+                        appendLine(sb, "2 SOUR $sourceXref")
+                        if (citation.page.isNotBlank()) {
+                            appendLine(sb, "3 PAGE ${escapeValue(citation.page)}")
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private fun exportNotes(sb: StringBuilder, notes: List<Note>, noteXref: Map<String, String>) {
+        for (note in notes) {
+            val nx = noteXref[note.id.value]
+            if (nx != null) appendLine(sb, "1 NOTE $nx")
+        }
+    }
+
+    private fun exportTags(sb: StringBuilder, tags: List<Tag>) {
+        for (tag in tags) {
+            if (tag.name.isNotBlank()) {
+                appendLine(sb, "1 _TAG ${escapeValue(tag.name)}")
+            }
+        }
     }
     
     private fun appendLine(sb: StringBuilder, line: String) {
