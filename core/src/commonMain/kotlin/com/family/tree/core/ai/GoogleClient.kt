@@ -1,20 +1,11 @@
 package com.family.tree.core.ai
 
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
  * Client for Google Gemini API.
  */
-class GoogleClient : AiClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+class GoogleClient : BaseAiClient() {
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
         val apiKey = config.getApiKeyForProvider()
@@ -61,61 +52,46 @@ class GoogleClient : AiClient {
             }
         }
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for LLM processing
-                connectTimeoutMillis = 30_000  // 30 seconds for connection
-                socketTimeoutMillis = 120_000  // 120 seconds for socket
-            }
-        }
-        try {
-            // Log request for debugging
-            val requestBodyString = requestBody.toString()
-            println("[DEBUG_LOG] GoogleClient: Sending request to Gemini API")
-            println("[DEBUG_LOG] GoogleClient: Request body length: ${requestBodyString.length}")
-            println("[DEBUG_LOG] GoogleClient: Request body preview (first 1000 chars): ${requestBodyString.take(1000)}")
-            
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(requestBodyString)
-            }
-            
-            val responseText = response.bodyAsText()
-            val responseJson = json.parseToJsonElement(responseText).jsonObject
-            
-            // Log full response for debugging
-            println("[DEBUG_LOG] GoogleClient: Full Gemini API response: $responseText")
-            
-            // Extract response text from Gemini API structure
-            val candidates = responseJson["candidates"]?.jsonArray
-            if (candidates == null || candidates.isEmpty()) {
-                // Check for block information
-                val promptFeedback = responseJson["promptFeedback"]?.jsonObject
-                if (promptFeedback != null) {
-                    println("[DEBUG_LOG] GoogleClient: promptFeedback found: $promptFeedback")
-                    val blockReason = promptFeedback["blockReason"]?.jsonPrimitive?.content
-                    if (blockReason != null) {
-                        throw Exception("Google Gemini blocked the request: $blockReason")
-                    }
+        // Log request for debugging
+        val requestBodyString = requestBody.toString()
+        println("[DEBUG_LOG] GoogleClient: Sending request to Gemini API")
+        println("[DEBUG_LOG] GoogleClient: Request body length: ${requestBodyString.length}")
+        println("[DEBUG_LOG] GoogleClient: Request body preview (first 1000 chars): ${requestBodyString.take(1000)}")
+        
+        val responseText = executeRequest(url, requestBodyString)
+        
+        val responseJson = json.parseToJsonElement(responseText).jsonObject
+        
+        // Log full response for debugging
+        println("[DEBUG_LOG] GoogleClient: Full Gemini API response: $responseText")
+        
+        // Extract response text from Gemini API structure
+        val candidates = responseJson["candidates"]?.jsonArray
+        if (candidates == null || candidates.isEmpty()) {
+            // Check for block information
+            val promptFeedback = responseJson["promptFeedback"]?.jsonObject
+            if (promptFeedback != null) {
+                println("[DEBUG_LOG] GoogleClient: promptFeedback found: $promptFeedback")
+                val blockReason = promptFeedback["blockReason"]?.jsonPrimitive?.content
+                if (blockReason != null) {
+                    throw Exception("Google Gemini blocked the request: $blockReason")
                 }
-                throw Exception("No candidates in Google Gemini response. Full response: $responseText")
             }
-            
-            val content = candidates[0].jsonObject["content"]?.jsonObject
-            val parts = content?.get("parts")?.jsonArray
-            if (parts == null || parts.isEmpty()) {
-                throw Exception("No parts in Google Gemini response")
-            }
-            
-            val text = parts[0].jsonObject["text"]?.jsonPrimitive?.content
-            
-            if (text == null) {
-                throw Exception("No text in Google Gemini response")
-            }
-            
-            return text
-        } finally {
-            client.close()
+            throw Exception("No candidates in Google Gemini response. Full response: $responseText")
         }
+        
+        val content = candidates[0].jsonObject["content"]?.jsonObject
+        val parts = content?.get("parts")?.jsonArray
+        if (parts == null || parts.isEmpty()) {
+            throw Exception("No parts in Google Gemini response")
+        }
+        
+        val text = parts[0].jsonObject["text"]?.jsonPrimitive?.content
+        
+        if (text == null) {
+            throw Exception("No text in Google Gemini response")
+        }
+        
+        return text
     }
 }

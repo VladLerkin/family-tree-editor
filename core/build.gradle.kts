@@ -8,6 +8,9 @@ plugins {
 }
 
 kotlin {
+    val ktorVersion = project.findProperty("ktor.version") as String
+    val serializationVersion = project.findProperty("serialization.version") as String
+
     androidTarget()
     jvm("desktop")
     
@@ -52,30 +55,30 @@ kotlin {
         commonMain {
             kotlin.srcDir(generateBuildConfig.map { it.outputs.files.asPath })
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
-                implementation("io.ktor:ktor-client-core:3.0.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
+                implementation("io.ktor:ktor-client-core:$ktorVersion")
             }
         }
         
         androidMain.dependencies {
-            implementation("io.ktor:ktor-client-okhttp:3.0.3")
+            implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
             implementation("androidx.security:security-crypto:1.1.0")
             implementation("com.tom-roush:pdfbox-android:2.0.27.0")
         }
         
         val desktopMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-cio:3.0.3")
+                implementation("io.ktor:ktor-client-cio:$ktorVersion")
             }
         }
         
         iosMain.dependencies {
-            implementation("io.ktor:ktor-client-darwin:3.0.3")
+            implementation("io.ktor:ktor-client-darwin:$ktorVersion")
         }
         
         val wasmJsMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-js:3.0.3")
+                implementation("io.ktor:ktor-client-js:$ktorVersion")
             }
         }
     }

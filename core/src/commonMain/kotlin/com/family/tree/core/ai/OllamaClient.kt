@@ -1,21 +1,12 @@
 package com.family.tree.core.ai
 
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
  * Клиент для работы с локальными моделями через Ollama.
  * Ollama использует OpenAI-совместимый API.
  */
-class OllamaClient : AiClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+class OllamaClient : BaseAiClient() {
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
         val baseUrl = config.baseUrl.ifBlank { "http://localhost:11434" }
@@ -36,20 +27,9 @@ class OllamaClient : AiClient {
             }
         }
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for LLM processing
-                connectTimeoutMillis = 30_000  // 30 seconds for connection
-                socketTimeoutMillis = 120_000  // 120 seconds for socket
-            }
-        }
         try {
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(requestBody.toString())
-            }
+            val responseText = executeRequest(url, requestBody.toString())
             
-            val responseText = response.bodyAsText()
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
             // Извлекаем текст ответа из структуры Ollama
@@ -69,8 +49,6 @@ class OllamaClient : AiClient {
                 "Original error: ${e.message}",
                 e
             )
-        } finally {
-            client.close()
         }
     }
 }

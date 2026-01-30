@@ -1,22 +1,12 @@
 package com.family.tree.core.ai
 
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.utils.io.core.*
 import kotlinx.serialization.json.*
 
 /**
  * Client for OpenAI API.
  */
-class OpenAiClient : AiClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+class OpenAiClient : BaseAiClient() {
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
         val apiKey = config.getApiKeyForProvider()
@@ -39,39 +29,25 @@ class OpenAiClient : AiClient {
             }
         }
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for LLM processing
-                connectTimeoutMillis = 30_000  // 30 seconds for connection
-                socketTimeoutMillis = 120_000  // 120 seconds for socket
-            }
+        val responseText = executeRequest(url, requestBody.toString()) {
+            header("Authorization", "Bearer $apiKey")
         }
-        try {
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                header("Authorization", "Bearer $apiKey")
-                setBody(requestBody.toString())
-            }
-            
-            val responseText = response.bodyAsText()
-            val responseJson = json.parseToJsonElement(responseText).jsonObject
-            
-            // Extract response text from OpenAI structure
-            val choices = responseJson["choices"]?.jsonArray
-            if (choices == null || choices.isEmpty()) {
-                throw Exception("No choices in OpenAI response")
-            }
-            
-            val message = choices[0].jsonObject["message"]?.jsonObject
-            val content = message?.get("content")?.jsonPrimitive?.content
-            
-            if (content == null) {
-                throw Exception("No content in OpenAI response")
-            }
-            
-            return content
-        } finally {
-            client.close()
+        
+        val responseJson = json.parseToJsonElement(responseText).jsonObject
+        
+        // Extract response text from OpenAI structure
+        val choices = responseJson["choices"]?.jsonArray
+        if (choices == null || choices.isEmpty()) {
+            throw Exception("No choices in OpenAI response")
         }
+        
+        val message = choices[0].jsonObject["message"]?.jsonObject
+        val content = message?.get("content")?.jsonPrimitive?.content
+        
+        if (content == null) {
+            throw Exception("No content in OpenAI response")
+        }
+        
+        return content
     }
 }
