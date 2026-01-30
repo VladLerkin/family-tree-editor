@@ -22,93 +22,8 @@ import androidx.compose.ui.window.Dialog
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 
-/**
- * Visual transformation for masking the API key.
- * Shows the first 4 characters, then asterisks, then the last 4 characters.
- */
-class ApiKeyVisualTransformation : VisualTransformation {
-    override fun filter(text: AnnotatedString): TransformedText {
-        val original = text.text
-        
-        // If the key is short or empty, show it as is
-        if (original.length <= 12) {
-            return TransformedText(text, OffsetMapping.Identity)
-        }
-        
-        // Show the first 4 characters, 6 asterisks, the last 4 characters
-        val masked = buildString {
-            append(original.take(4))
-            append("******")
-            append(original.takeLast(4))
-        }
-        
-        return TransformedText(
-            AnnotatedString(masked),
-            object : OffsetMapping {
-                override fun originalToTransformed(offset: Int): Int {
-                    return when {
-                        offset <= 4 -> offset
-                        offset >= original.length - 4 -> offset - original.length + masked.length
-                        else -> 4 + 3 // middle of asterisks
-                    }
-                }
-                
-                override fun transformedToOriginal(offset: Int): Int {
-                    return when {
-                        offset <= 4 -> offset
-                        offset >= masked.length - 4 -> offset - masked.length + original.length
-                        else -> 4 + (original.length - 8) / 2 // middle of original text
-                    }
-                }
-            }
-        )
-    }
-}
 
-/**
- * A custom OutlinedTextField for API keys that masks the input and prevents copying.
- * It allows pasting.
- */
-@Composable
-fun ApiKeyTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    supportingText: String,
-    modifier: Modifier = Modifier
-) {
-    val clipboardManager = LocalClipboardManager.current
-    
-    DisableSelection {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            placeholder = { Text(placeholder) },
-            supportingText = { Text(supportingText) },
-            visualTransformation = ApiKeyVisualTransformation(),
-            modifier = modifier
-                .padding(bottom = 12.dp)
-                .onPreviewKeyEvent { keyEvent ->
-                    if (keyEvent.type == KeyEventType.KeyDown) {
-                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.C
-                        if (isCopy) return@onPreviewKeyEvent true // Block copy
-                        
-                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && keyEvent.key == Key.V
-                        if (isPaste) {
-                            clipboardManager.getText()?.text?.let { pastedText ->
-                                onValueChange(pastedText)
-                            }
-                            return@onPreviewKeyEvent true // Handle paste
-                        }
-                    }
-                    false
-                },
-            singleLine = true
-        )
-    }
-}
+
 
 /**
  * Dialog for configuring AI settings before text import.
@@ -139,7 +54,6 @@ fun AiConfigDialog(
     
     // New separate API keys for each provider group
     var openAiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
-
     var googleKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
     var yandexKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
     var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
@@ -367,113 +281,38 @@ fun AiConfigDialog(
                 
                 // OpenAI API Key (shown only when OpenAI Whisper is selected)
                 if (transcriptionProvider == "OPENAI_WHISPER") {
-                    DisableSelection {
-                        OutlinedTextField(
-                            value = openaiApiKey,
-                            onValueChange = { openaiApiKey = it },
-                            label = { Text("OpenAI API Key (Whisper)") },
-                            placeholder = { Text("sk-...") },
-                            supportingText = { Text("API key for OpenAI Whisper transcription. Uses the same key as for GPT models.") },
-                            visualTransformation = ApiKeyVisualTransformation(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .onPreviewKeyEvent { keyEvent ->
-                                    if (keyEvent.type == KeyEventType.KeyDown) {
-                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                     keyEvent.key == Key.C
-                                        if (isCopy) {
-                                            return@onPreviewKeyEvent true
-                                        }
-                                        
-                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                      keyEvent.key == Key.V
-                                        if (isPaste) {
-                                            clipboardManager.getText()?.text?.let { pastedText ->
-                                                openaiApiKey = pastedText
-                                            }
-                                            return@onPreviewKeyEvent true
-                                        }
-                                    }
-                                    false
-                                },
-                            singleLine = true
-                        )
-                    }
+                    ApiKeyTextField(
+                        value = openAiKey,
+                        onValueChange = { openAiKey = it },
+                        label = "OpenAI API Key (Whisper)",
+                        placeholder = "sk-...",
+                        supportingText = "API key for OpenAI Whisper transcription. Uses the same key as for GPT models.",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 
                 // Google AI API Key (shown only when Google Speech is selected)
                 if (transcriptionProvider == "GOOGLE_SPEECH") {
-                    DisableSelection {
-                        OutlinedTextField(
-                            value = googleAiApiKey,
-                            onValueChange = { googleAiApiKey = it },
-                            label = { Text("Google AI API Key (Speech-to-Text)") },
-                            placeholder = { Text("AIza...") },
-                            supportingText = { Text("API key for Google Speech-to-Text. Uses the same key as for Gemini models.") },
-                            visualTransformation = ApiKeyVisualTransformation(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .onPreviewKeyEvent { keyEvent ->
-                                    if (keyEvent.type == KeyEventType.KeyDown) {
-                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                     keyEvent.key == Key.C
-                                        if (isCopy) {
-                                            return@onPreviewKeyEvent true
-                                        }
-                                        
-                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                      keyEvent.key == Key.V
-                                        if (isPaste) {
-                                            clipboardManager.getText()?.text?.let { pastedText ->
-                                                googleAiApiKey = pastedText
-                                            }
-                                            return@onPreviewKeyEvent true
-                                        }
-                                    }
-                                    false
-                                },
-                            singleLine = true
-                        )
-                    }
+                    ApiKeyTextField(
+                        value = googleKey,
+                        onValueChange = { googleKey = it },
+                        label = "Google AI API Key (Speech-to-Text)",
+                        placeholder = "AIza...",
+                        supportingText = "API key for Google Speech-to-Text. Uses the same key as for Gemini models.",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 
                 // Yandex API Key (shown only when Yandex SpeechKit is selected)
                 if (transcriptionProvider == "YANDEX_SPEECHKIT") {
-                    DisableSelection {
-                        OutlinedTextField(
-                            value = yandexApiKey,
-                            onValueChange = { yandexApiKey = it },
-                            label = { Text("Yandex Cloud API Key (SpeechKit)") },
-                            placeholder = { Text("AQVN...") },
-                            supportingText = { Text("API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.") },
-                            visualTransformation = ApiKeyVisualTransformation(),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 12.dp)
-                                .onPreviewKeyEvent { keyEvent ->
-                                    if (keyEvent.type == KeyEventType.KeyDown) {
-                                        val isCopy = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                     keyEvent.key == Key.C
-                                        if (isCopy) {
-                                            return@onPreviewKeyEvent true
-                                        }
-                                        
-                                        val isPaste = (keyEvent.isMetaPressed || keyEvent.isCtrlPressed) && 
-                                                      keyEvent.key == Key.V
-                                        if (isPaste) {
-                                            clipboardManager.getText()?.text?.let { pastedText ->
-                                                yandexApiKey = pastedText
-                                            }
-                                            return@onPreviewKeyEvent true
-                                        }
-                                    }
-                                    false
-                                },
-                            singleLine = true
-                        )
-                    }
+                    ApiKeyTextField(
+                        value = yandexKey,
+                        onValueChange = { yandexKey = it },
+                        label = "Yandex Cloud API Key (SpeechKit)",
+                        placeholder = "AQVN...",
+                        supportingText = "API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.",
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
                 
                 // Advanced settings
@@ -537,10 +376,9 @@ fun AiConfigDialog(
                                 googleApiKey = googleApiKey,  // Deprecated
                                 
                                 // New fields for separate provider group keys
-                                openaiApiKey = openaiApiKey,
-
-                                googleAiApiKey = googleAiApiKey,
-                                yandexApiKey = yandexApiKey,
+                                openaiApiKey = openAiKey,
+                                googleAiApiKey = googleKey,
+                                yandexApiKey = yandexKey,
                                 yandexFolderId = yandexFolderId
                             )
                             onConfirm(config)
@@ -553,3 +391,4 @@ fun AiConfigDialog(
         }
     }
 }
+
