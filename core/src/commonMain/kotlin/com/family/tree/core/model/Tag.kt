@@ -23,7 +23,7 @@ data class Tag(
 @JvmInline
 value class TagId(val value: String) {
     companion object {
-        fun generate(): TagId = TagId(uuid4())
+        fun generate(): TagId = TagId(com.family.tree.core.utils.uuid4())
     }
 }
 
@@ -31,15 +31,4 @@ object TagIdSerializer : KSerializer<TagId> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("TagId", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: TagId) = encoder.encodeString(value.value)
     override fun deserialize(decoder: Decoder): TagId = TagId(decoder.decodeString())
-}
-
-// Simple UUID generator for common code
-private fun uuid4(): String {
-    val chars = "0123456789abcdef"
-    return buildString(36) {
-        for (i in 0 until 36) {
-            if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-            else append(chars[Random.nextInt(chars.length)])
-        }
-    }
 }

@@ -27,7 +27,7 @@ data class SourceCitation(
 @JvmInline
 value class SourceCitationId(val value: String) {
     companion object {
-        fun generate(): SourceCitationId = SourceCitationId(uuid4())
+        fun generate(): SourceCitationId = SourceCitationId(com.family.tree.core.utils.uuid4())
     }
 }
 
@@ -35,7 +35,7 @@ value class SourceCitationId(val value: String) {
 @JvmInline
 value class SourceId(val value: String) {
     companion object {
-        fun generate(): SourceId = SourceId(uuid4())
+        fun generate(): SourceId = SourceId(com.family.tree.core.utils.uuid4())
     }
 }
 
@@ -49,14 +49,4 @@ object SourceIdSerializer : KSerializer<SourceId> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("SourceId", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: SourceId) = encoder.encodeString(value.value)
     override fun deserialize(decoder: Decoder): SourceId = SourceId(decoder.decodeString())
-}
-
-private fun uuid4(): String {
-    val chars = "0123456789abcdef"
-    return buildString(36) {
-        for (i in 0 until 36) {
-            if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-            else append(chars[Random.nextInt(chars.length)])
-        }
-    }
 }

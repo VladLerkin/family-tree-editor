@@ -276,7 +276,7 @@ class RelImporter {
                 }
 
                 val ind = Individual(
-                    id = IndividualId(uuid4()),
+                    id = IndividualId(com.family.tree.core.utils.uuid4()),
                     firstName = first,
                     lastName = last,
                     gender = r.sex ?: Gender.UNKNOWN,
@@ -308,7 +308,7 @@ class RelImporter {
                 }
 
                 val fam = Family(
-                    id = FamilyId(uuid4()),
+                    id = FamilyId(com.family.tree.core.utils.uuid4()),
                     husbandId = husbandId,
                     wifeId = wifeId,
                     childrenIds = childrenIds,
@@ -842,14 +842,5 @@ class RelImporter {
             }
         }
     }
-
-    private fun uuid4(): String {
-        val chars = "0123456789abcdef"
-        return buildString(36) {
-            for (i in 0 until 36) {
-                if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-                else append(chars[Random.nextInt(chars.length)])
-            }
-        }
-    }
 }
+

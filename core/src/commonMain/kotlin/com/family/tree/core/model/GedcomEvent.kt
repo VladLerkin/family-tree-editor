@@ -33,7 +33,7 @@ data class GedcomEvent(
 @JvmInline
 value class GedcomEventId(val value: String) {
     companion object {
-        fun generate(): GedcomEventId = GedcomEventId(uuid4())
+        fun generate(): GedcomEventId = GedcomEventId(com.family.tree.core.utils.uuid4())
     }
 }
 
@@ -41,14 +41,4 @@ object GedcomEventIdSerializer : KSerializer<GedcomEventId> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("GedcomEventId", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: GedcomEventId) = encoder.encodeString(value.value)
     override fun deserialize(decoder: Decoder): GedcomEventId = GedcomEventId(decoder.decodeString())
-}
-
-private fun uuid4(): String {
-    val chars = "0123456789abcdef"
-    return buildString(36) {
-        for (i in 0 until 36) {
-            if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-            else append(chars[Random.nextInt(chars.length)])
-        }
-    }
 }

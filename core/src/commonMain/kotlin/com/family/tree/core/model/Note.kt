@@ -25,7 +25,7 @@ data class Note(
 @JvmInline
 value class NoteId(val value: String) {
     companion object {
-        fun generate(): NoteId = NoteId(uuid4())
+        fun generate(): NoteId = NoteId(com.family.tree.core.utils.uuid4())
     }
 }
 
@@ -33,14 +33,4 @@ object NoteIdSerializer : KSerializer<NoteId> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("NoteId", PrimitiveKind.STRING)
     override fun serialize(encoder: Encoder, value: NoteId) = encoder.encodeString(value.value)
     override fun deserialize(decoder: Decoder): NoteId = NoteId(decoder.decodeString())
-}
-
-private fun uuid4(): String {
-    val chars = "0123456789abcdef"
-    return buildString(36) {
-        for (i in 0 until 36) {
-            if (i == 8 || i == 13 || i == 18 || i == 23) append('-')
-            else append(chars[Random.nextInt(chars.length)])
-        }
-    }
 }
