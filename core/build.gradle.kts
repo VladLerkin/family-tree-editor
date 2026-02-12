@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
     kotlin("multiplatform")
-    id("com.android.library")
+    id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
@@ -11,7 +11,20 @@ kotlin {
     val ktorVersion = project.findProperty("ktor.version") as String
     val serializationVersion = project.findProperty("serialization.version") as String
 
-    androidTarget()
+
+    androidLibrary {
+        namespace = "com.family.tree.core"
+        compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
+        minSdk = (project.findProperty("android.minSdk") as String).toInt()
+        
+        // Java compatibility
+        with(java) {
+             toolchain {
+                 languageVersion.set(JavaLanguageVersion.of((project.findProperty("java.version") as String).toInt()))
+             }
+        }
+    }
+
     jvm("desktop")
     
     // iOS targets
@@ -28,7 +41,7 @@ kotlin {
     val generateBuildConfig by tasks.registering {
         val version = project.version.toString()
         val packageName = "com.family.tree.core"
-        val outputDir = file("$buildDir/generated/buildConfig/commonMain/kotlin")
+        val outputDir = layout.buildDirectory.dir("generated/buildConfig/commonMain/kotlin").get().asFile
         inputs.property("version", version)
         outputs.dir(outputDir)
 
@@ -84,19 +97,4 @@ kotlin {
     }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 25
     jvmToolchain((project.findProperty("java.version") as String).toInt())
-}
-
-android {
-    namespace = "com.family.tree.core"
-    compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
-    defaultConfig {
-        minSdk = (project.findProperty("android.minSdk") as String).toInt()
-        targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
-    }
-    // Align Java compile options for Android to 25
-    val javaVer = (project.findProperty("java.version") as String).toInt()
-    compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
 }

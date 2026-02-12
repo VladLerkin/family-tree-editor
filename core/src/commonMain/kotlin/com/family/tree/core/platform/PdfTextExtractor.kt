@@ -4,7 +4,7 @@ package com.family.tree.core.platform
  * Platform-specific PDF text extractor.
  * Extracts text content from PDF files for AI import processing.
  */
-expect class PdfTextExtractor {
+expect class PdfTextExtractor(context: Any? = null) {
     /**
      * Extracts text from a PDF file.
      * @param pdfBytes PDF file content as ByteArray

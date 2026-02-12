@@ -5,7 +5,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
 
-actual class PdfTextExtractor(context: Any?) {
+actual class PdfTextExtractor actual constructor(context: Any?) {
     
     init {
         // Initialize PDFBox resources with Android context

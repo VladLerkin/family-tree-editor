@@ -1,12 +1,12 @@
 plugins {
     id("com.android.application")
-    kotlin("android")
+
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 android {
     namespace = "com.family.tree.android"
-    compileSdkVersion((project.findProperty("android.compileSdk") as String).toInt())
+    compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
 
     defaultConfig {
         applicationId = "com.family.tree.android"

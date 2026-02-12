@@ -4,12 +4,25 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
-    id("com.android.library")
+    id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
 kotlin {
-    androidTarget()
+
+    androidLibrary {
+        namespace = "com.family.tree.ui"
+        compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
+        minSdk = (project.findProperty("android.minSdk") as String).toInt()
+        
+        // Java compatibility
+        with(java) {
+             toolchain {
+                 languageVersion.set(JavaLanguageVersion.of((project.findProperty("java.version") as String).toInt()))
+             }
+        }
+    }
+
     jvm("desktop")
     
     // iOS targets
@@ -46,23 +59,4 @@ kotlin {
     }
     // Align Kotlin JVM toolchain in this module to 25 (Android & desktop target compilation)
     jvmToolchain((project.findProperty("java.version") as String).toInt())
-}
-
-android {
-    namespace = "com.family.tree.ui"
-    compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
-    defaultConfig {
-        minSdk = (project.findProperty("android.minSdk") as String).toInt()
-        targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
-    }
-    buildFeatures { compose = true }
-    composeOptions {
-        kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
-    }
-    // Align Java compile options for Android to 25
-    val javaVer = (project.findProperty("java.version") as String).toInt()
-    compileOptions {
-        sourceCompatibility = JavaVersion.toVersion(javaVer)
-        targetCompatibility = JavaVersion.toVersion(javaVer)
-    }
 }
