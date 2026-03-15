@@ -79,8 +79,8 @@ app-web/
 - **ZIP архивы**: .rel файлы читаются/записываются, но требуется дополнительная библиотека
 
 ### Технические детали
-- **Kotlin**: 2.3.0
-- **Compose Multiplatform**: 1.9.3
+- **Kotlin**: 2.3.10
+- **Compose Multiplatform**: 1.10.2
 - **Vite**: 5.4.11
 - **Gradle**: 9.2.13 (с поддержкой wasmJs)
 - **Ktor Client**: 3.0.3 (с поддержкой wasmJs)
