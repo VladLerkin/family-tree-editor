@@ -21,6 +21,10 @@ expect fun PlatformFileDialogs(
     showGedcomExport: Boolean = false,
     onDismissGedcomExport: () -> Unit = {},
     gedcomBytesToSave: () -> ByteArray = { ByteArray(0) },
+    // Markdown Tree Export dialogs
+    showMarkdownExport: Boolean = false,
+    onDismissMarkdownExport: () -> Unit = {},
+    markdownBytesToSave: () -> ByteArray = { ByteArray(0) },
     // SVG export dialogs
     showSvgExport: Boolean = false,
     onDismissSvgExport: () -> Unit = {},

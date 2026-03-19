@@ -12,6 +12,7 @@ expect object DesktopActions {
     fun importGedcom(onLoaded: (ProjectData?) -> Unit)
     fun importAiText(onLoaded: (LoadedProject?) -> Unit, onProgress: (String) -> Unit = {})
     fun exportGedcom(data: ProjectData): Boolean
+    fun exportMarkdownTree(data: ProjectData): Boolean
     fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean
     fun exportSvgFit(project: ProjectData): Boolean
     // With options

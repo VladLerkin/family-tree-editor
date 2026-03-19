@@ -26,6 +26,10 @@ actual fun PlatformFileDialogs(
     showGedcomExport: Boolean,
     onDismissGedcomExport: () -> Unit,
     gedcomBytesToSave: () -> ByteArray,
+    // Markdown export dialog (unused on Desktop)
+    showMarkdownExport: Boolean,
+    onDismissMarkdownExport: () -> Unit,
+    markdownBytesToSave: () -> ByteArray,
     // SVG export dialogs (unused on Desktop - uses native dialogs in DesktopActions)
     showSvgExport: Boolean,
     onDismissSvgExport: () -> Unit,

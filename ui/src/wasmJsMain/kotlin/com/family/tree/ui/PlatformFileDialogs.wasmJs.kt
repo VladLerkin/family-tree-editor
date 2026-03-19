@@ -26,6 +26,9 @@ actual fun PlatformFileDialogs(
     showGedcomExport: Boolean,
     onDismissGedcomExport: () -> Unit,
     gedcomBytesToSave: () -> ByteArray,
+    showMarkdownExport: Boolean,
+    onDismissMarkdownExport: () -> Unit,
+    markdownBytesToSave: () -> ByteArray,
     showSvgExport: Boolean,
     onDismissSvgExport: () -> Unit,
     svgBytesToSave: () -> ByteArray,
@@ -81,6 +84,15 @@ actual fun PlatformFileDialogs(
             val bytes = gedcomBytesToSave()
             downloadFile(bytes, "family-tree.ged", "text/plain")
             onDismissGedcomExport()
+        }
+    }
+
+    // Markdown export dialog
+    if (showMarkdownExport) {
+        LaunchedEffect(Unit) {
+            val bytes = markdownBytesToSave()
+            downloadFile(bytes, "family-tree.md", "text/markdown")
+            onDismissMarkdownExport()
         }
     }
 

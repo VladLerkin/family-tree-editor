@@ -38,6 +38,9 @@ actual fun PlatformFileDialogs(
     showGedcomExport: Boolean,
     onDismissGedcomExport: () -> Unit,
     gedcomBytesToSave: () -> ByteArray,
+    showMarkdownExport: Boolean,
+    onDismissMarkdownExport: () -> Unit,
+    markdownBytesToSave: () -> ByteArray,
     // SVG export dialogs
     showSvgExport: Boolean,
     onDismissSvgExport: () -> Unit,
@@ -322,6 +325,55 @@ actual fun PlatformFileDialogs(
         }
     }
     
+    // Markdown Export dialog
+    if (showMarkdownExport) {
+        val delegate = remember {
+            object : NSObject(), UIDocumentPickerDelegateProtocol {
+                override fun documentPicker(
+                    controller: UIDocumentPickerViewController,
+                    didPickDocumentAtURL: NSURL
+                ) {
+                    onDismissMarkdownExport()
+                }
+                
+                override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
+                    onDismissMarkdownExport()
+                }
+            }
+        }
+        
+        LaunchedEffect(Unit) {
+            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            if (rootViewController != null) {
+                val bytes = markdownBytesToSave()
+                val data = byteArrayToNSData(bytes)
+                val fileManager = NSFileManager.defaultManager
+                val tempDir = platform.Foundation.NSTemporaryDirectory()
+                val tempPath = "${tempDir}family_tree.md"
+                val tempFileUrl = NSURL.fileURLWithPath(tempPath)
+                
+                val success = fileManager.createFileAtPath(
+                    path = tempPath,
+                    contents = data,
+                    attributes = null
+                )
+                
+                if (success) {
+                    val picker = UIDocumentPickerViewController(
+                        uRL = tempFileUrl,
+                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                    )
+                    picker.setDelegate(delegate)
+                    rootViewController.presentViewController(picker, animated = true, completion = null)
+                } else {
+                    onDismissMarkdownExport()
+                }
+            } else {
+                onDismissMarkdownExport()
+            }
+        }
+    }
+
     // GEDCOM Export dialog
     if (showGedcomExport) {
         val delegate = remember {

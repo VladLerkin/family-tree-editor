@@ -38,6 +38,11 @@ actual object DesktopActions {
         DialogActions.triggerGedcomExport(data)
         return true
     }
+    actual fun exportMarkdownTree(data: ProjectData): Boolean {
+        // Trigger the platform save dialog via DialogActions (not fully implemented yet)
+        DialogActions.triggerMarkdownExport(data)
+        return true
+    }
     actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean {
         DialogActions.triggerSvgExport(project, scale, pan)
         return true

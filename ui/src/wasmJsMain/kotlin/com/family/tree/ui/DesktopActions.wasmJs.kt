@@ -50,6 +50,12 @@ actual object DesktopActions {
         return true
     }
 
+    actual fun exportMarkdownTree(data: ProjectData): Boolean {
+        // Trigger the platform save dialog via DialogActions
+        DialogActions.triggerMarkdownExport(data)
+        return true
+    }
+
     actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean {
         // Trigger SVG export dialog
         DialogActions.triggerSvgExport(project, scale, pan)

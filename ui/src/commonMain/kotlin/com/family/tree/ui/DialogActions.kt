@@ -15,6 +15,7 @@ object DialogActions {
     var triggerRelImport: ((LoadedProject?) -> Unit) -> Unit = {}
     var triggerGedcomImport: ((ProjectData?) -> Unit) -> Unit = {}
     var triggerGedcomExport: (ProjectData) -> Unit = {}
+    var triggerMarkdownExport: (ProjectData) -> Unit = {}
     var triggerSvgExport: (ProjectData, Float, Offset) -> Unit = { _, _, _ -> }
     var triggerSvgExportFit: (ProjectData) -> Unit = {}
     var triggerAiTextImport: ((LoadedProject?) -> Unit) -> Unit = {}

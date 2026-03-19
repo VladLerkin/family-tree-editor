@@ -28,6 +28,9 @@ actual fun PlatformFileDialogs(
     showGedcomExport: Boolean,
     onDismissGedcomExport: () -> Unit,
     gedcomBytesToSave: () -> ByteArray,
+    showMarkdownExport: Boolean,
+    onDismissMarkdownExport: () -> Unit,
+    markdownBytesToSave: () -> ByteArray,
     // SVG export dialogs
     showSvgExport: Boolean,
     onDismissSvgExport: () -> Unit,
@@ -227,6 +230,22 @@ actual fun PlatformFileDialogs(
         }
     )
 
+    // MARKDOWN EXPORT — SAF CREATE_DOCUMENT
+    val markdownExportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("text/markdown"),
+        onResult = { uri: Uri? ->
+            if (uri != null) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { out ->
+                        out.write(markdownBytesToSave())
+                        out.flush()
+                    }
+                }
+            }
+            onDismissMarkdownExport()
+        }
+    )
+
     // GEDCOM EXPORT — SAF CREATE_DOCUMENT
     val gedcomExportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/x-gedcom"),
@@ -314,6 +333,12 @@ actual fun PlatformFileDialogs(
     if (showGedcomExport) {
         LaunchedEffect(Unit) {
             gedcomExportLauncher.launch("family_tree.ged")
+        }
+    }
+
+    if (showMarkdownExport) {
+        LaunchedEffect(Unit) {
+            markdownExportLauncher.launch("family_tree.md")
         }
     }
 

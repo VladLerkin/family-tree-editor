@@ -273,6 +273,33 @@ actual object DesktopActions {
         }
     }
 
+    actual fun exportMarkdownTree(data: ProjectData): Boolean {
+        val fd = FileDialog(null as Frame?, "Export Markdown Tree", FileDialog.SAVE)
+        fd.file = "ancestors.md"
+        fd.isVisible = true
+        val dir = fd.directory ?: return false
+        val file = fd.file ?: return false
+        val out = File(dir, if (file.endsWith(".md", ignoreCase = true)) file else "$file.md")
+        return try {
+            val exporter = com.family.tree.core.export.MarkdownTreeExporter()
+            val content = exporter.exportToString(data)
+            out.writeText(content, StandardCharsets.UTF_8)
+            println("[DEBUG_LOG] exportMarkdownTree: Successfully exported to ${out.absolutePath}")
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            java.awt.EventQueue.invokeLater {
+                javax.swing.JOptionPane.showMessageDialog(
+                    null,
+                    "Failed to export Markdown file:\n${e.message}",
+                    "Export Error",
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+                )
+            }
+            false
+        }
+    }
+
     actual fun exportSvg(project: ProjectData, scale: Float, pan: Offset): Boolean {
         val fd = FileDialog(null as Frame?, "Export SVG", FileDialog.SAVE)
         fd.file = "export.svg"

@@ -274,6 +274,10 @@ fun MainScreen() {
     var pendingGedcomImportCallback by remember { mutableStateOf<((ProjectData?) -> Unit)?>(null) }
     var pendingGedcomExportData by remember { mutableStateOf<ProjectData?>(null) }
     
+    // Markdown Tree export dialog state
+    var showMarkdownExportDialog by remember { mutableStateOf(false) }
+    var pendingMarkdownExportData by remember { mutableStateOf<ProjectData?>(null) }
+    
     // SVG export dialog state
     var showSvgExportDialog by remember { mutableStateOf(false) }
     var showSvgExportFitDialog by remember { mutableStateOf(false) }
@@ -480,6 +484,7 @@ fun MainScreen() {
         }
     }
     AppActions.exportGedcom = { DesktopActions.exportGedcom(project) }
+    AppActions.exportMarkdownTree = { DesktopActions.exportMarkdownTree(project) }
     AppActions.exportSvgCurrent = { DesktopActions.exportSvg(project, scale = scale, pan = pan) }
     AppActions.exportSvgFit = { DesktopActions.exportSvgFit(project) }
     AppActions.exportPngCurrent = { DesktopActions.exportPng(project, scale = scale, pan = pan) }
@@ -511,6 +516,10 @@ fun MainScreen() {
     DialogActions.triggerGedcomExport = { data ->
         pendingGedcomExportData = data
         showGedcomExportDialog = true
+    }
+    DialogActions.triggerMarkdownExport = { data ->
+        pendingMarkdownExportData = data
+        showMarkdownExportDialog = true
     }
     DialogActions.triggerSvgExport = { data, scale, pan ->
         pendingSvgExportData = Triple(data, scale, pan)
@@ -561,6 +570,7 @@ fun MainScreen() {
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showMenu = false; AppActions.importAiText() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showMenu = false; AppActions.voiceInput() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
+                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export Markdown Tree") }, onClick = { showMenu = false; AppActions.exportMarkdownTree() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                             androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; AppActions.manageSources() })
@@ -1477,6 +1487,18 @@ fun MainScreen() {
         gedcomBytesToSave = {
             val data = pendingGedcomExportData ?: project
             val exporter = com.family.tree.core.gedcom.GedcomExporter()
+            val content = exporter.exportToString(data)
+            content.encodeToByteArray()
+        },
+        // Markdown Tree export
+        showMarkdownExport = showMarkdownExportDialog,
+        onDismissMarkdownExport = {
+            showMarkdownExportDialog = false
+            pendingMarkdownExportData = null
+        },
+        markdownBytesToSave = {
+            val data = pendingMarkdownExportData ?: project
+            val exporter = com.family.tree.core.export.MarkdownTreeExporter()
             val content = exporter.exportToString(data)
             content.encodeToByteArray()
         },

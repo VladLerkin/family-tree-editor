@@ -17,6 +17,7 @@ object AppActions {
     private var _importAiText: () -> Unit = {}
     private var _voiceInput: () -> Unit = {}
     private var _exportGedcom: () -> Unit = {}
+    private var _exportMarkdownTree: () -> Unit = {}
     private var _exportSvgCurrent: () -> Unit = {}
     private var _exportSvgFit: () -> Unit = {}
     private var _exportPngCurrent: () -> Unit = {}
@@ -67,6 +68,10 @@ object AppActions {
     var exportGedcom: () -> Unit
         get() = { _exportGedcom() }
         set(value) { _exportGedcom = value }
+    
+    var exportMarkdownTree: () -> Unit
+        get() = { _exportMarkdownTree() }
+        set(value) { _exportMarkdownTree = value }
     
     var exportSvgCurrent: () -> Unit
         get() = { _exportSvgCurrent() }
