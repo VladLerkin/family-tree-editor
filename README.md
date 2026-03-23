@@ -2,14 +2,15 @@
 
 > A cross-platform family tree editor built with Kotlin Multiplatform and Compose Multiplatform
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.2-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Gradle](https://img.shields.io/badge/Gradle-9.3.1-02303A.svg?logo=gradle)](https://gradle.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Gradle](https://img.shields.io/badge/Gradle-9.4.1-02303A.svg?logo=gradle)](https://gradle.org)
 
 ## ✨ Features
 
 - 📊 **Interactive Tree Visualization** - Pan, zoom, and navigate your family tree
 - 💾 **JSON Persistence** - Save and load family trees in JSON format
+- 📝 **Markdown Export** - Export your family tree to an easy-to-read Markdown document
 - 🎨 **Modern UI** - Built with Compose Multiplatform for native look and feel
 - 🔍 **Inspector Panel** - View and edit individual and family details
 - ⌨️ **Keyboard Shortcuts** - Efficient navigation and editing
@@ -69,9 +70,9 @@ Get the latest version for your platform:
 
 | Component | Version |
 |-----------|---------|
-| Kotlin | 2.3.10 |
-| Compose Multiplatform | 1.10.2 |
-| Gradle | 9.3.1 |
+| Kotlin | 2.3.20 |
+| Compose Multiplatform | 1.10.3 |
+| Gradle | 9.4.1 |
 | Android Gradle Plugin | 9.1.0 |
 | JDK | 25 |
 | Android Target SDK | 36 |

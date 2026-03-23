@@ -27,6 +27,7 @@ fun main() = application {
                     Item("PNG (Fit to Content)") { AppActions.exportPngFit() }
                     Separator()
                     Item("GEDCOM") { AppActions.exportGedcom() }
+                    Item("Markdown Tree") { AppActions.exportMarkdownTree() }
                 }
                 Separator()
                 Item("Exit") { AppActions.exit() }
