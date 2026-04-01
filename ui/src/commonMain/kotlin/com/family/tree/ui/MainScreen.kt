@@ -57,7 +57,12 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import com.family.tree.ui.components.panels.RightSidebar
+import com.family.tree.ui.components.dialogs.MainScreenDialogState
+import com.family.tree.ui.components.dialogs.MainScreenDialogs
+import com.family.tree.ui.components.MainTopAppBar
 
+import com.family.tree.ui.components.panels.LeftSidebar
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun MainScreen() {
@@ -75,8 +80,6 @@ fun MainScreen() {
 
     // Search service and state
     val searchService = remember(project) { QuickSearchService(project) }
-    var individualsSearchQuery by remember { mutableStateOf("") }
-    var familiesSearchQuery by remember { mutableStateOf("") }
 
     // Selection state (supports multi-select for family highlighting)
     var selectedIds by remember { mutableStateOf<Set<IndividualId>>(emptySet()) }
@@ -239,70 +242,9 @@ fun MainScreen() {
         }
     }
 
-    // Person editor dialog state
-    var editPersonId by remember { mutableStateOf<IndividualId?>(null) }
-    // Family editor dialog state
-    var editFamilyId by remember { mutableStateOf<FamilyId?>(null) }
-    // Sources manager dialog state
-    var showSourcesDialog by remember { mutableStateOf(false) }
-    // About dialog state
-    var showAboutDialog by remember { mutableStateOf(false) }
-    // AI Settings dialog state
-    var showAiSettingsDialog by remember { mutableStateOf(false) }
+        val dialogState = remember { com.family.tree.ui.components.dialogs.MainScreenDialogState() }
 
-    // File dialog state for Android/platform file pickers
-    var showOpenDialog by remember { mutableStateOf(false) }
-    var showSaveDialog by remember { mutableStateOf(false) }
-    var pendingOpenCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
-    var pendingSaveData by remember { mutableStateOf<ProjectData?>(null) }
-    
-    // .rel import dialog state
-    var showRelImportDialog by remember { mutableStateOf(false) }
-    var pendingRelImportCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
-    
-    // .rel import progress state
-    var showRelImportProgress by remember { mutableStateOf(false) }
-    var relImportProgressMessage by remember { mutableStateOf("") }
-    
-    // .rel import error state
-    var showRelImportError by remember { mutableStateOf(false) }
-    var relImportErrorMessage by remember { mutableStateOf("") }
-    
-    // GEDCOM dialog state
-    var showGedcomImportDialog by remember { mutableStateOf(false) }
-    var showGedcomExportDialog by remember { mutableStateOf(false) }
-    var pendingGedcomImportCallback by remember { mutableStateOf<((ProjectData?) -> Unit)?>(null) }
-    var pendingGedcomExportData by remember { mutableStateOf<ProjectData?>(null) }
-    
-    // Markdown Tree export dialog state
-    var showMarkdownExportDialog by remember { mutableStateOf(false) }
-    var pendingMarkdownExportData by remember { mutableStateOf<ProjectData?>(null) }
-    
-    // SVG export dialog state
-    var showSvgExportDialog by remember { mutableStateOf(false) }
-    var showSvgExportFitDialog by remember { mutableStateOf(false) }
-    var pendingSvgExportData by remember { mutableStateOf<Triple<ProjectData, Float, Offset>?>(null) }
-    var pendingSvgExportFitData by remember { mutableStateOf<ProjectData?>(null) }
-    
-    // AI text import dialog state
-    var showAiTextImportDialog by remember { mutableStateOf(false) }
-    var pendingAiTextImportCallback by remember { mutableStateOf<((LoadedProject?) -> Unit)?>(null) }
-    
-    // AI import progress state
-    var showAiImportProgress by remember { mutableStateOf(false) }
-    var aiImportProgressMessage by remember { mutableStateOf("") }
-    
-    // AI import info dialog state
-    var showAiImportInfoDialog by remember { mutableStateOf(false) }
-    var aiImportInfoMessage by remember { mutableStateOf("") }
-    var isPermissionError by remember { mutableStateOf(false) }
-    
-    // Voice input state
-    var isVoiceRecording by remember { mutableStateOf(false) }
-    var voiceInputStatus by remember { mutableStateOf("") }
-    var showVoiceInputDialog by remember { mutableStateOf(false) }
-    
-    // Store loaded project temporarily to ensure state update happens in composition scope
+// Store loaded project temporarily to ensure state update happens in composition scope
     var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
 
     // Coroutine scope for AI operations
@@ -401,14 +343,14 @@ fun MainScreen() {
     }
     AppActions.importAiText = {
         // Show progress dialog
-        showAiImportProgress = true
-        aiImportProgressMessage = "Подготовка..."
+        dialogState.showAiImportProgress = true
+        dialogState.aiImportProgressMessage = "Подготовка..."
         
         DesktopActions.importAiText(
             onLoaded = { loaded ->
                 println("[DEBUG_LOG] MainScreen.importAiText callback: loaded=$loaded")
                 // Hide progress dialog
-                showAiImportProgress = false
+                dialogState.showAiImportProgress = false
                 
                 if (loaded != null) {
                     println("[DEBUG_LOG] MainScreen.importAiText: Received data with ${loaded.data.individuals.size} individuals, ${loaded.data.families.size} families")
@@ -424,38 +366,38 @@ fun MainScreen() {
             },
             onProgress = { message ->
                 println("[DEBUG_LOG] MainScreen.importAiText progress: $message")
-                aiImportProgressMessage = message
+                dialogState.aiImportProgressMessage = message
             }
         )
     }
     AppActions.voiceInput = {
         run {
             if (!voiceInputProcessor.isVoiceInputAvailable()) {
-                aiImportInfoMessage = "Голосовой ввод недоступен на этой платформе"
-                showAiImportInfoDialog = true
+                dialogState.aiImportInfoMessage = "Голосовой ввод недоступен на этой платформе"
+                dialogState.showAiImportInfoDialog = true
                 return@run
             }
             
             if (voiceInputProcessor.isRecording()) {
                 // Already recording, stop it
                 voiceInputProcessor.stopRecording()
-                isVoiceRecording = false
-                voiceInputStatus = ""
+                dialogState.isVoiceRecording = false
+                dialogState.voiceInputStatus = ""
                 return@run
             }
             
             // Загружаем сохраненные настройки и сразу начинаем запись
             println("[DEBUG_LOG] MainScreen.voiceInput: Starting voice input with saved settings")
-            isVoiceRecording = true
-            voiceInputStatus = "Speak..."
-            showVoiceInputDialog = true
+            dialogState.isVoiceRecording = true
+            dialogState.voiceInputStatus = "Speak..."
+            dialogState.showVoiceInputDialog = true
             
             voiceInputProcessor.startVoiceInput(
                 onSuccess = { loaded ->
                     println("[DEBUG_LOG] MainScreen.voiceInput: Success - ${loaded.data.individuals.size} individuals, ${loaded.data.families.size} families")
-                    isVoiceRecording = false
-                    showVoiceInputDialog = false
-                    voiceInputStatus = ""
+                    dialogState.isVoiceRecording = false
+                    dialogState.showVoiceInputDialog = false
+                    dialogState.voiceInputStatus = ""
                     
                     // Update project
                     project = loaded.data
@@ -465,20 +407,20 @@ fun MainScreen() {
                 },
                 onError = { errorMessage ->
                     println("[DEBUG_LOG] MainScreen.voiceInput: Error - $errorMessage")
-                    isVoiceRecording = false
-                    voiceInputStatus = ""
-                    showVoiceInputDialog = false
+                    dialogState.isVoiceRecording = false
+                    dialogState.voiceInputStatus = ""
+                    dialogState.showVoiceInputDialog = false
                     
                     // Check if it's a permission error
-                    isPermissionError = errorMessage.contains("разрешений") || errorMessage.contains("RECORD_AUDIO")
+                    dialogState.isPermissionError = errorMessage.contains("разрешений") || errorMessage.contains("RECORD_AUDIO")
                     
                     // Show error dialog
-                    aiImportInfoMessage = "Voice input error:\n$errorMessage"
-                    showAiImportInfoDialog = true
+                    dialogState.aiImportInfoMessage = "Voice input error:\n$errorMessage"
+                    dialogState.showAiImportInfoDialog = true
                 },
                 onRecognized = { recognizedText ->
                     println("[DEBUG_LOG] MainScreen.voiceInput: Recognized - $recognizedText")
-                    voiceInputStatus = "Recognized: \"$recognizedText\"\nProcessing via AI..."
+                    dialogState.voiceInputStatus = "Recognized: \"$recognizedText\"\nProcessing via AI..."
                 }
             )
         }
@@ -492,46 +434,46 @@ fun MainScreen() {
     AppActions.zoomIn = { setScaleAnimated(scale * 1.1f) }
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
-    AppActions.manageSources = { showSourcesDialog = true }
-    AppActions.showAbout = { showAboutDialog = true }
-    AppActions.showAiSettings = { showAiSettingsDialog = true }
+    AppActions.manageSources = { dialogState.showSourcesDialog = true }
+    AppActions.showAbout = { dialogState.showAboutDialog = true }
+    AppActions.showAiSettings = { dialogState.showAiSettingsDialog = true }
 
     // Wire dialog actions for platform file dialogs (used by Android DesktopActions)
     DialogActions.triggerOpenDialog = { callback ->
-        pendingOpenCallback = callback
-        showOpenDialog = true
+        dialogState.pendingOpenCallback = callback
+        dialogState.showOpenDialog = true
     }
     DialogActions.triggerSaveDialog = { data ->
-        pendingSaveData = data
-        showSaveDialog = true
+        dialogState.pendingSaveData = data
+        dialogState.showSaveDialog = true
     }
     DialogActions.triggerRelImport = { callback ->
-        pendingRelImportCallback = callback
-        showRelImportDialog = true
+        dialogState.pendingRelImportCallback = callback
+        dialogState.showRelImportDialog = true
     }
     DialogActions.triggerGedcomImport = { callback ->
-        pendingGedcomImportCallback = callback
-        showGedcomImportDialog = true
+        dialogState.pendingGedcomImportCallback = callback
+        dialogState.showGedcomImportDialog = true
     }
     DialogActions.triggerGedcomExport = { data ->
-        pendingGedcomExportData = data
-        showGedcomExportDialog = true
+        dialogState.pendingGedcomExportData = data
+        dialogState.showGedcomExportDialog = true
     }
     DialogActions.triggerMarkdownExport = { data ->
-        pendingMarkdownExportData = data
-        showMarkdownExportDialog = true
+        dialogState.pendingMarkdownExportData = data
+        dialogState.showMarkdownExportDialog = true
     }
     DialogActions.triggerSvgExport = { data, scale, pan ->
-        pendingSvgExportData = Triple(data, scale, pan)
-        showSvgExportDialog = true
+        dialogState.pendingSvgExportData = Triple(data, scale, pan)
+        dialogState.showSvgExportDialog = true
     }
     DialogActions.triggerSvgExportFit = { data ->
-        pendingSvgExportFitData = data
-        showSvgExportFitDialog = true
+        dialogState.pendingSvgExportFitData = data
+        dialogState.showSvgExportFitDialog = true
     }
     DialogActions.triggerAiTextImport = { callback ->
-        pendingAiTextImportCallback = callback
-        showAiTextImportDialog = true
+        dialogState.pendingAiTextImportCallback = callback
+        dialogState.showAiTextImportDialog = true
     }
 
     Surface(color = MaterialTheme.colorScheme.background) {
@@ -546,62 +488,7 @@ fun MainScreen() {
                 )
         ) {
             // Top toolbar
-            if (!PlatformEnv.isDesktop) {
-                var showMenu by remember { mutableStateOf(false) }
-                var showImportMenu by remember { mutableStateOf(false) }
-                var shouldExit by remember { mutableStateOf(false) }
-                androidx.compose.material3.TopAppBar(
-                    title = { Text("Family Tree Editor") },
-                    actions = {
-                        androidx.compose.material3.IconButton(onClick = { showMenu = true }) {
-                            androidx.compose.material3.Icon(
-                                imageVector = androidx.compose.material.icons.Icons.Filled.MoreVert,
-                                contentDescription = "More"
-                            )
-                        }
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("New") }, onClick = { showMenu = false; AppActions.newProject() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Open") }, onClick = { showMenu = false; AppActions.openPed() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Save") }, onClick = { showMenu = false; AppActions.savePed() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import...") }, onClick = { showMenu = false; showImportMenu = true })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Import AI Text") }, onClick = { showMenu = false; AppActions.importAiText() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Voice Input 🎤") }, onClick = { showMenu = false; AppActions.voiceInput() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export GEDCOM") }, onClick = { showMenu = false; AppActions.exportGedcom() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export Markdown Tree") }, onClick = { showMenu = false; AppActions.exportMarkdownTree() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; AppActions.manageSources() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showMenu = false; AppActions.showAiSettings() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("Exit") }, onClick = { showMenu = false; shouldExit = true })
-                        }
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = showImportMenu,
-                            onDismissRequest = { showImportMenu = false }
-                        ) {
-                            androidx.compose.material3.DropdownMenuItem(text = { Text(".rel") }, onClick = { showImportMenu = false; AppActions.importRel() })
-                            androidx.compose.material3.DropdownMenuItem(text = { Text("GEDCOM") }, onClick = { showImportMenu = false; AppActions.importGedcom() })
-                        }
-                    }
-                )
-                if (shouldExit) {
-                    ExitAppAction(onExit = { AppActions.exit() })
-                }
-            } else {
-                // Desktop: Simple toolbar with title and zoom (menu is in native MenuBar)
-                Row(
-                    Modifier.fillMaxWidth().padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Family Tree Editor", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.weight(1f))
-                    Text("${(scale * 100).toInt()}%", modifier = Modifier.width(56.dp), textAlign = TextAlign.Center)
-                }
-            }
+            MainTopAppBar(scale = scale)
 
             // Node-level offsets to support dragging individual nodes (JavaFX-like)
             // Initialize from ProjectLayout coordinates if available (for REL format)
@@ -646,192 +533,24 @@ fun MainScreen() {
                     leftPanelWidth = leftPanelWidthPx
                 )
             ) {
-                // Left panel: Individuals/Families tabs (like legacy JavaFX)
-                Box(
-                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                    contentAlignment = Alignment.TopStart
-                ) {
-                Column(Modifier.fillMaxSize()) {
-                    var leftTab by remember { mutableStateOf(0) }
-                    androidx.compose.material3.TabRow(selectedTabIndex = leftTab) {
-                        androidx.compose.material3.Tab(
-                            selected = leftTab == 0,
-                            onClick = { leftTab = 0 },
-                            text = { Text("Individuals") }
-                        )
-                        androidx.compose.material3.Tab(
-                            selected = leftTab == 1,
-                            onClick = { leftTab = 1 },
-                            text = { Text("Families") }
-                        )
-                    }
-                    when (leftTab) {
-                        0 -> {
-                            println("[DEBUG_LOG] MainScreen: Rendering individuals list with ${project.individuals.size} items")
-                            Column(Modifier.fillMaxSize().padding(12.dp)) {
-                                // Search field for individuals
-                                OutlinedTextField(
-                                    value = individualsSearchQuery,
-                                    onValueChange = { individualsSearchQuery = it },
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    placeholder = { Text("Filter by name or tag...") },
-                                    singleLine = true
-                                )
-                                
-                                // Filter individuals based on search query
-                                val filteredIndividuals = remember(individualsSearchQuery, project.individuals) {
-                                    if (individualsSearchQuery.isBlank()) {
-                                        project.individuals
-                                    } else {
-                                        searchService.findIndividualsByName(individualsSearchQuery)
-                                    }
-                                }
-                                
-                                LazyColumn(Modifier.weight(1f)) {
-                                    items(filteredIndividuals) { ind ->
-                                        val isSelected = selectedIds.contains(ind.id)
-                                        val bg = if (isSelected) Color(0x201976D2) else Color.Unspecified
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .background(bg)
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        selectedFamilyId = null
-                                                        selectedIds = setOf(ind.id)
-                                                        centerOn(ind, nodeOffsets)
-                                                    },
-                                                    onDoubleClick = { editPersonId = ind.id }
-                                                )
-                                                .padding(vertical = 4.dp, horizontal = 6.dp)
-                                        ) {
-                                            Text(
-                                                "• ${ind.displayName}",
-                                                color = if (isSelected) Color(0xFF0D47A1) else Color.Unspecified
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        1 -> {
-                            Column(Modifier.fillMaxSize().padding(12.dp)) {
-                                // Helper to format spouse name as "LastName F." (JavaFX style)
-                                fun formatSpouseName(indId: IndividualId?): String {
-                                    if (indId == null) return ""
-                                    val ind = project.individuals.find { it.id == indId } ?: return indId.value
-                                    
-                                    // Extract first and last name
-                                    val lastName = ind.lastName?.trim() ?: ""
-                                    val firstName = ind.firstName?.trim() ?: ""
-                                    
-                                    // Format as "LastName F." (JavaFX style)
-                                    val sb = StringBuilder()
-                                    if (lastName.isNotEmpty()) sb.append(lastName)
-                                    if (firstName.isNotEmpty()) {
-                                        if (sb.isNotEmpty()) sb.append(' ')
-                                        sb.append(firstName.first().uppercaseChar()).append('.')
-                                    }
-                                    val result = sb.toString()
-                                    return if (result.isBlank()) indId.value else result
-                                }
-                                
-                                // Search field for families
-                                OutlinedTextField(
-                                    value = familiesSearchQuery,
-                                    onValueChange = { familiesSearchQuery = it },
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                                    placeholder = { Text("Filter by name or tag...") },
-                                    singleLine = true
-                                )
-                                
-                                // Filter families based on search query
-                                val filteredFamilies = remember(familiesSearchQuery, project.families, project.individuals) {
-                                    if (familiesSearchQuery.isBlank()) {
-                                        project.families
-                                    } else {
-                                        searchService.findFamiliesBySpouseName(familiesSearchQuery)
-                                    }
-                                }
-                                
-                                // Column headers (JavaFX style)
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp, horizontal = 6.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = "Husband",
-                                        modifier = Modifier.weight(1f),
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                    Text(
-                                        text = "Wife",
-                                        modifier = Modifier.weight(1f),
-                                        fontSize = 12.sp,
-                                        color = Color.Gray
-                                    )
-                                    Text(
-                                        text = "Child",
-                                        modifier = Modifier.width(40.dp),
-                                        fontSize = 12.sp,
-                                        color = Color.Gray,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                
-                                LazyColumn(Modifier.weight(1f)) {
-                                    items(filteredFamilies) { fam ->
-                                        val husbandName = formatSpouseName(fam.husbandId)
-                                        val wifeName = formatSpouseName(fam.wifeId)
-                                        val childrenCount = fam.childrenIds.size.toString()
-                                        
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .combinedClickable(
-                                                    onClick = {
-                                                        // Select the family and highlight all family members
-                                                        selectedFamilyId = fam.id
-                                                        val familyMemberIds = mutableSetOf<IndividualId>()
-                                                        fam.husbandId?.let { familyMemberIds.add(it) }
-                                                        fam.wifeId?.let { familyMemberIds.add(it) }
-                                                        familyMemberIds.addAll(fam.childrenIds)
-                                                        selectedIds = familyMemberIds
-                                                        // Center canvas on average position of all family members
-                                                        centerOnFamilyMembersImmediate(familyMemberIds, nodeOffsets)
-                                                    },
-                                                    onDoubleClick = { editFamilyId = fam.id }
-                                                )
-                                                .padding(vertical = 4.dp, horizontal = 6.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Text(
-                                                text = husbandName,
-                                                modifier = Modifier.weight(1f),
-                                                fontSize = 13.sp
-                                            )
-                                            Text(
-                                                text = wifeName,
-                                                modifier = Modifier.weight(1f),
-                                                fontSize = 13.sp
-                                            )
-                                            Text(
-                                                text = childrenCount,
-                                                modifier = Modifier.width(40.dp),
-                                                fontSize = 13.sp,
-                                                textAlign = TextAlign.Center
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                }
+                LeftSidebar(
+                    project = project,
+                    searchService = searchService,
+                    selectedIds = selectedIds,
+                    onSelectIndividual = { ind ->
+                        selectedFamilyId = null
+                        selectedIds = setOf(ind.id)
+                        centerOn(ind, nodeOffsets)
+                    },
+                    onSelectFamily = { famId, familyMemberIds ->
+                        selectedFamilyId = famId
+                        selectedIds = familyMemberIds
+                        centerOnFamilyMembersImmediate(familyMemberIds, nodeOffsets)
+                    },
+                    onEditIndividual = { id -> dialogState.editPersonId = id },
+                    onEditFamily = { id -> dialogState.editFamilyId = id },
+                    modifier = Modifier.width(260.dp)
+                )
 
                 // Center canvas with panning/zoom
                 Box(
@@ -844,7 +563,7 @@ fun MainScreen() {
                         data = project,
                         selectedIds = selectedIds,
                         onSelect = { id -> selectedIds = if (id != null) setOf(id) else emptySet() },
-                        onEditPerson = { id -> editPersonId = id },
+                        onEditPerson = { id -> dialogState.editPersonId = id },
                         onCenterOn = { id ->
                             project.individuals.find { it.id == id }?.let { centerOn(it, nodeOffsets) }
                         },
@@ -885,7 +604,7 @@ fun MainScreen() {
                                 individuals = project.individuals + newIndividual
                             )
                             selectedIds = setOf(newIndividual.id)
-                            editPersonId = newIndividual.id
+                            dialogState.editPersonId = newIndividual.id
                         },
                         onDeletePerson = { idToDelete ->
                             // Remove individual and related data
@@ -905,786 +624,34 @@ fun MainScreen() {
                 }
 
                 // Right inspector (scrollable)
-                Box(
-                    modifier = Modifier.width(260.dp).fillMaxHeight().background(Color(0x0D000000)),
-                    contentAlignment = Alignment.TopStart
-                ) {
-                // Show properties for selected family or individual
-                val selectedFamily = selectedFamilyId?.let { id -> project.families.find { it.id == id } }
-                if (selectedFamily != null) {
-                    // Show family properties
-                    PropertiesInspector(
-                        family = selectedFamily,
-                        project = project,
-                        onUpdateFamily = { updated ->
-                            val idx = project.families.indexOfFirst { it.id == updated.id }
-                            if (idx >= 0) {
-                                project = project.copy(
-                                    families = project.families.toMutableList().also { it[idx] = updated }
-                                )
-                            }
-                        }
-                    )
-                } else {
-                    // Show individual properties
-                    val selected = selectedIds.firstOrNull()?.let { id -> project.individuals.find { it.id == id } }
-                    if (selected == null) {
-                        Column(Modifier.padding(12.dp).fillMaxWidth()) {
-                            Text("Properties\nSelect a person or family…")
-                        }
-                    } else {
-                        PropertiesInspector(
-                            individual = selected,
-                            project = project,
-                            onUpdateIndividual = { updated ->
-                                val idx = project.individuals.indexOfFirst { it.id == updated.id }
-                                if (idx >= 0) {
-                                    project = project.copy(
-                                        individuals = project.individuals.toMutableList().also { it[idx] = updated }
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-                }
+                RightSidebar(
+                    project = project,
+                    selectedIds = selectedIds,
+                    selectedFamilyId = selectedFamilyId,
+                    onUpdateProject = { project = it },
+                    modifier = Modifier.width(260.dp)
+                )
             }
         }
-    }
-    // Person editor dialog
-    run {
-        val person = project.individuals.find { it.id == editPersonId }
-        if (person != null) {
-            PersonEditorDialog(
-                person = person,
-                onSave = { updated ->
-                    val idx = project.individuals.indexOfFirst { it.id == updated.id }
-                    if (idx >= 0) {
-                        project = project.copy(
-                            individuals = project.individuals.toMutableList().also { it[idx] = updated }
-                        )
-                    }
-                    editPersonId = null
-                },
-                onDismiss = { editPersonId = null }
-            )
-        }
-    }
-    // Family editor dialog
-    run {
-        val fam = project.families.find { it.id == editFamilyId }
-        if (fam != null) {
-            FamilyEditorDialog(
-                family = fam,
-                allIndividuals = project.individuals,
-                onSave = { updated ->
-                    val idx = project.families.indexOfFirst { it.id == updated.id }
-                    if (idx >= 0) {
-                        project = project.copy(
-                            families = project.families.toMutableList().also { it[idx] = updated }
-                        )
-                    }
-                    editFamilyId = null
-                },
-                onDismiss = { editFamilyId = null }
-            )
-        }
-    }
-    
-    // Sources manager dialog
-    if (showSourcesDialog) {
-        SourcesManagerDialog(
-            project = project,
-            onDismiss = { showSourcesDialog = false },
-            onUpdateProject = { updatedProject ->
-                project = updatedProject
-            }
-        )
     }
 
-    // About dialog
-    if (showAboutDialog) {
-        AboutDialog(onDismiss = { showAboutDialog = false })
-    }
-    
-    // AI Settings dialog
-    if (showAiSettingsDialog) {
-        val storage = remember { com.family.tree.core.ai.AiSettingsStorage() }
-        val savedConfig = remember { storage.loadConfig() }
-        
-        AiConfigDialog(
-            initialConfig = savedConfig,
-            onDismiss = { showAiSettingsDialog = false },
-            onConfirm = { config ->
-                storage.saveConfig(config)
-                showAiSettingsDialog = false
-            }
-        )
-    }
-    
-    // AI Import Progress dialog
-    if (showAiImportProgress) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { /* Cannot dismiss during import */ }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(400.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Text(
-                        text = "AI Import",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(64.dp),
-                        strokeWidth = 6.dp
-                    )
-                    
-                    Text(
-                        text = aiImportProgressMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
-    
-    // .rel Import Progress dialog
-    if (showRelImportProgress) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { /* Cannot dismiss during import */ }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(400.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Text(
-                        text = ".rel Import",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(64.dp),
-                        strokeWidth = 6.dp
-                    )
-                    
-                    Text(
-                        text = relImportProgressMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
-    
-    // .rel Import Error dialog
-    if (showRelImportError) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = {
-                showRelImportError = false
-                relImportErrorMessage = ""
-            }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(500.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = ".rel Import Error",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    Text(
-                        text = relImportErrorMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                showRelImportError = false
-                                relImportErrorMessage = ""
-                            }
-                        ) {
-                            Text("OK")
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // AI Import Info dialog (for errors/warnings like PDF detection)
-    if (showAiImportInfoDialog) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = {
-                showAiImportInfoDialog = false
-                showAiTextImportDialog = false
-                pendingAiTextImportCallback?.invoke(null)
-                pendingAiTextImportCallback = null
-            }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(500.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "Information",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    Text(
-                        text = aiImportInfoMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        // Show "Open Settings" button if it's a permission error
-                        if (isPermissionError) {
-                            androidx.compose.material3.TextButton(
-                                onClick = {
-                                    // Open app settings on Android
-                                    val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
-                                    voiceRecorder.openAppSettings()
-                                    showAiImportInfoDialog = false
-                                    showAiTextImportDialog = false
-                                    pendingAiTextImportCallback?.invoke(null)
-                                    pendingAiTextImportCallback = null
-                                    isPermissionError = false
-                                }
-                            ) {
-                                Text("Open Settings")
-                            }
-                        }
-                        
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                showAiImportInfoDialog = false
-                                showAiTextImportDialog = false
-                                pendingAiTextImportCallback?.invoke(null)
-                                pendingAiTextImportCallback = null
-                                isPermissionError = false
-                            }
-                        ) {
-                            Text("OK")
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Voice input dialog
-    if (showVoiceInputDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                voiceInputProcessor.cancelRecording()
-                isVoiceRecording = false
-                showVoiceInputDialog = false
-                voiceInputStatus = ""
-            },
-            modifier = Modifier.widthIn(min = 400.dp),
-            title = { Text("Voice Input") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    if (isVoiceRecording) {
-                        androidx.compose.material3.CircularProgressIndicator()
-                    }
-                    Text(
-                        text = voiceInputStatus,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            },
-            confirmButton = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Stop Recording button (shown only during recording)
-                    if (isVoiceRecording && voiceInputStatus == "Speak...") {
-                        Button(
-                            onClick = {
-                                println("[DEBUG_LOG] MainScreen: User clicked 'Stop Recording' button")
-                                voiceInputProcessor.stopRecording()
-                                isVoiceRecording = false
-                                voiceInputStatus = "Processing recording..."
-                            }
-                        ) {
-                            Text("Stop Recording")
-                        }
-                    }
-                    // Кнопка "Отмена" (всегда показывается)
-                    Button(
-                        onClick = {
-                            println("[DEBUG_LOG] MainScreen: User clicked 'Cancel' button")
-                            voiceInputProcessor.cancelRecording()
-                            isVoiceRecording = false
-                            showVoiceInputDialog = false
-                            voiceInputStatus = ""
-                        }
-                    ) {
-                        Text("Cancel")
-                    }
-                }
-            }
-        )
-    }
-
-    // Platform file dialogs (for Android and future cross-platform support)
-    // Effect to apply loaded project data to main state
-    LaunchedEffect(loadedProjectTemp) {
-        val loaded = loadedProjectTemp
-        if (loaded != null) {
-            println("[DEBUG_LOG] MainScreen LaunchedEffect: Applying loaded project with ${loaded.data.individuals.size} individuals")
-            project = loaded.data
-            projectLayout = loaded.layout
-            selectedIds = emptySet()
-            // Apply viewport from layout if present; otherwise fit to content
-            val layout = loaded.layout
-            if (layout != null && (layout.zoom != 1.0 || layout.viewOriginX != 0.0 || layout.viewOriginY != 0.0)) {
-                scale = layout.zoom.toFloat()
-                pan = Offset(layout.viewOriginX.toFloat(), layout.viewOriginY.toFloat())
-            } else {
-                fitToView()
-            }
-            println("[DEBUG_LOG] MainScreen LaunchedEffect: Applied project state - project.individuals=${project.individuals.size}")
-            loadedProjectTemp = null  // Clear after applying
-        }
-    }
-    
-    PlatformFileDialogs(
-        showOpen = showOpenDialog,
-        onDismissOpen = {
-            showOpenDialog = false
-            pendingOpenCallback = null
-        },
-        onOpenResult = { bytes ->
-            println("[DEBUG_LOG] MainScreen.onOpenResult: received bytes=${bytes?.size ?: 0} bytes")
-            val callback = pendingOpenCallback
-            println("[DEBUG_LOG] MainScreen.onOpenResult: callback=$callback")
-            if (bytes != null) {
-                // Show progress dialog
-                showRelImportProgress = true
-                relImportProgressMessage = "Opening file..."
-                
-                // Import in background to avoid blocking UI on Android TV
-                scope.launch {
-                    try {
-                        val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                            runCatching {
-                                // Try RelRepository first (for .ped ZIP format with JSON)
-                                RelRepository().read(bytes)
-                            }.recoverCatching {
-                                // Fallback to RelImporter for legacy .rel binary TLV format
-                                println("[DEBUG_LOG] MainScreen.onOpenResult: RelRepository failed, trying RelImporter for legacy .rel format")
-                                RelImporter().importFromBytes(bytes, onProgress = { progress ->
-                                    // Update progress message on main thread
-                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                                        relImportProgressMessage = progress
-                                    }
-                                })
-                            }.getOrNull()
-                        }
-                        println("[DEBUG_LOG] MainScreen.onOpenResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
-                        
-                        // Hide progress dialog
-                        showRelImportProgress = false
-                        
-                        // Instead of invoking callback directly, store in temp state to trigger LaunchedEffect
-                        if (loaded != null) {
-                            loadedProjectTemp = loaded
-                        }
-                        callback?.invoke(loaded)
-                        println("[DEBUG_LOG] MainScreen.onOpenResult: callback invoked")
-                        
-                        // Reset dialog state
-                        showOpenDialog = false
-                        pendingOpenCallback = null
-                    } catch (e: Exception) {
-                        println("[DEBUG_LOG] MainScreen.onOpenResult: ERROR opening file - ${e.message}")
-                        e.printStackTrace()
-                        
-                        // Hide progress dialog
-                        showRelImportProgress = false
-                        
-                        callback?.invoke(null)
-                        
-                        // Reset dialog state
-                        showOpenDialog = false
-                        pendingOpenCallback = null
-                    }
-                }
-            } else {
-                println("[DEBUG_LOG] MainScreen.onOpenResult: bytes is null, invoking callback with null")
-                callback?.invoke(null)
-                showOpenDialog = false
-                pendingOpenCallback = null
-            }
-        },
-        showSave = showSaveDialog,
-        onDismissSave = {
-            showSaveDialog = false
-            pendingSaveData = null
-        },
-        bytesToSave = {
-            val data = pendingSaveData ?: project
-            RelRepository().write(data, projectLayout, null)
-        },
-        // .rel import
-        showRelImport = showRelImportDialog,
-        onDismissRelImport = {
-            showRelImportDialog = false
-            pendingRelImportCallback = null
-        },
-        onRelImportResult = { bytes ->
-            println("[DEBUG_LOG] MainScreen.onRelImportResult: received bytes=${bytes?.size ?: 0} bytes")
-            val callback = pendingRelImportCallback
-            if (bytes != null) {
-                // Show progress dialog
-                showRelImportProgress = true
-                relImportProgressMessage = "Preparing to import..."
-                
-                // Import in background to avoid blocking UI on Android TV
-                scope.launch {
-                    try {
-                        // Give UI time to render the progress dialog
-                        delay(100)
-                        
-                        relImportProgressMessage = "Importing .rel file..."
-                        
-                        val loaded = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                            runCatching {
-                                // Use RelImporter for legacy .rel binary TLV format
-                                println("[DEBUG_LOG] MainScreen.onRelImportResult: Using RelImporter for .rel format")
-                                RelImporter().importFromBytes(bytes, onProgress = { progress ->
-                                    // Update progress message on main thread
-                                    scope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                                        relImportProgressMessage = progress
-                                    }
-                                })
-                            }.getOrNull()
-                        }
-                        println("[DEBUG_LOG] MainScreen.onRelImportResult: loaded=$loaded, data has ${loaded?.data?.individuals?.size ?: 0} individuals")
-                        
-                        // Hide progress dialog
-                        showRelImportProgress = false
-                        
-                        if (loaded != null) {
-                            loadedProjectTemp = loaded
-                        }
-                        callback?.invoke(loaded)
-                        
-                        // Reset dialog state
-                        showRelImportDialog = false
-                        pendingRelImportCallback = null
-                    } catch (e: Exception) {
-                        println("[DEBUG_LOG] MainScreen.onRelImportResult: ERROR importing .rel - ${e.message}")
-                        e.printStackTrace()
-                        
-                        // Hide progress dialog
-                        showRelImportProgress = false
-                        
-                        // Show error dialog with detailed message
-                        relImportErrorMessage = e.message ?: "Unknown error occurred while importing .rel file"
-                        showRelImportError = true
-                        
-                        callback?.invoke(null)
-                        
-                        // Reset dialog state
-                        showRelImportDialog = false
-                        pendingRelImportCallback = null
-                    }
-                }
-            } else {
-                println("[DEBUG_LOG] MainScreen.onRelImportResult: bytes is null")
-                callback?.invoke(null)
-                showRelImportDialog = false
-                pendingRelImportCallback = null
-            }
-        },
-        // GEDCOM import
-        showGedcomImport = showGedcomImportDialog,
-        onDismissGedcomImport = {
-            showGedcomImportDialog = false
-            pendingGedcomImportCallback = null
-        },
-        onGedcomImportResult = { bytes ->
-            val callback = pendingGedcomImportCallback
-            if (bytes != null) {
-                val content = bytes.decodeToString()
-                val imported = runCatching {
-                    com.family.tree.core.gedcom.GedcomImporter().importFromString(content)
-                }.getOrNull()
-                callback?.invoke(imported)
-            } else {
-                callback?.invoke(null)
-            }
-            showGedcomImportDialog = false
-            pendingGedcomImportCallback = null
-        },
-        // GEDCOM export
-        showGedcomExport = showGedcomExportDialog,
-        onDismissGedcomExport = {
-            showGedcomExportDialog = false
-            pendingGedcomExportData = null
-        },
-        gedcomBytesToSave = {
-            val data = pendingGedcomExportData ?: project
-            val exporter = com.family.tree.core.gedcom.GedcomExporter()
-            val content = exporter.exportToString(data)
-            content.encodeToByteArray()
-        },
-        // Markdown Tree export
-        showMarkdownExport = showMarkdownExportDialog,
-        onDismissMarkdownExport = {
-            showMarkdownExportDialog = false
-            pendingMarkdownExportData = null
-        },
-        markdownBytesToSave = {
-            val data = pendingMarkdownExportData ?: project
-            val exporter = com.family.tree.core.export.MarkdownTreeExporter()
-            val content = exporter.exportToString(data)
-            content.encodeToByteArray()
-        },
-        // SVG export (current view)
-        showSvgExport = showSvgExportDialog,
-        onDismissSvgExport = {
-            showSvgExportDialog = false
-            pendingSvgExportData = null
-        },
-        svgBytesToSave = {
-            // TODO: Implement SVG exporter for KMP
-            val (data, exportScale, exportPan) = pendingSvgExportData ?: Triple(project, scale, pan)
-            "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
-        },
-        // SVG export (fit to content)
-        showSvgExportFit = showSvgExportFitDialog,
-        onDismissSvgExportFit = {
-            showSvgExportFitDialog = false
-            pendingSvgExportFitData = null
-        },
-        svgFitBytesToSave = {
-            // TODO: Implement SVG exporter for KMP
-            val data = pendingSvgExportFitData ?: project
-            "<!-- SVG export not yet implemented for Android/iOS -->".encodeToByteArray()
-        },
-        // AI text import
-        showAiTextImport = showAiTextImportDialog,
-        onDismissAiTextImport = {
-            showAiTextImportDialog = false
-            pendingAiTextImportCallback = null
-        },
-        onAiTextImportResult = { bytes ->
-            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: received bytes=${bytes?.size ?: 0} bytes")
-            val callback = pendingAiTextImportCallback
-            if (bytes != null) {
-                // Check if file is PDF (starts with %PDF-)
-                val isPdf = bytes.size >= 5 && 
-                           bytes[0] == '%'.code.toByte() &&
-                           bytes[1] == 'P'.code.toByte() &&
-                           bytes[2] == 'D'.code.toByte() &&
-                           bytes[3] == 'F'.code.toByte() &&
-                           bytes[4] == '-'.code.toByte()
-                
-                if (isPdf) {
-                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected PDF format, extracting text")
-                    
-                    // Show progress dialog
-                    showAiImportProgress = true
-                    aiImportProgressMessage = "Extracting text from PDF..."
-                    
-                    // Extract text from PDF in background
-                    scope.launch {
-                        try {
-                            val pdfExtractor = com.family.tree.core.platform.PdfTextExtractor(platformContext)
-                            val extractedText = pdfExtractor.extractText(bytes)
-                            
-                            if (extractedText.isNullOrBlank()) {
-                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: PDF text extraction failed or returned empty text")
-                                
-                                // Show error dialog
-                                showAiImportProgress = false
-                                aiImportInfoMessage = """
-                                    Failed to extract text from PDF file.
-                                    
-                                    Possible reasons:
-                                    - PDF contains only images (scanned document)
-                                    - PDF is copy-protected
-                                    - PDF is corrupted or has an unsupported format
-                                    
-                                    Please try:
-                                    1. Open docs.google.com in your browser
-                                    2. File → Download → Plain Text (.txt)
-                                    3. Import the downloaded .txt file
-                                """.trimIndent()
-                                showAiImportInfoDialog = true
-                            } else {
-                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Successfully extracted ${extractedText.length} chars from PDF")
-                                
-                                // Process extracted text
-                                aiImportProgressMessage = "Processing text..."
-                                
-                                // Load saved AI settings
-                                val storage = com.family.tree.core.ai.AiSettingsStorage()
-                                val config = storage.loadConfig()
-                                
-                                // Determine file type and process
-                                val importer = com.family.tree.core.ai.AiTextImporter(config)
-                                val imported = if (extractedText.trimStart().startsWith("{") || extractedText.trimStart().startsWith("[")) {
-                                    // JSON format - parse directly
-                                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format in PDF")
-                                    aiImportProgressMessage = "Processing JSON..."
-                                    importer.importFromAiResult(extractedText)
-                                } else {
-                                    // Plain text - call AI
-                                    println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text in PDF, calling AI...")
-                                    aiImportProgressMessage = "Sending request to AI (${config.model})..."
-                                    importer.importFromText(extractedText)
-                                }
-                                
-                                aiImportProgressMessage = "Creating family tree..."
-                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
-                                
-                                // Hide progress dialog
-                                showAiImportProgress = false
-                                
-                                loadedProjectTemp = imported
-                                callback?.invoke(imported)
-                                
-                                // Reset dialog state
-                                showAiTextImportDialog = false
-                                pendingAiTextImportCallback = null
-                            }
-                        } catch (e: Exception) {
-                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: ERROR extracting/processing PDF - ${e.message}")
-                            e.printStackTrace()
-                            
-                            // Hide progress dialog and show error
-                            showAiImportProgress = false
-                            aiImportInfoMessage = """
-                                Ошибка при обработке PDF файла: ${e.message ?: "Неизвестная ошибка"}
-                                
-                                Пожалуйста, попробуйте:
-                                1. Откройте docs.google.com в браузере
-                                2. Файл → Скачать → Обычный текст (.txt)
-                                3. Импортируйте полученный .txt файл
-                            """.trimIndent()
-                            showAiImportInfoDialog = true
-                        }
-                    }
-                } else {
-                    // Show progress dialog
-                    showAiImportProgress = true
-                    aiImportProgressMessage = "Reading file..."
-                    
-                    // Process in background
-                    scope.launch {
-                        try {
-                            val content = bytes.decodeToString()
-                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Read ${content.length} chars")
-                            
-                            // Load saved AI settings
-                            val storage = com.family.tree.core.ai.AiSettingsStorage()
-                            val config = storage.loadConfig()
-                            
-                            // Determine file type and process
-                            val importer = com.family.tree.core.ai.AiTextImporter(config)
-                            val imported = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
-                                // JSON format - parse directly
-                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format")
-                                aiImportProgressMessage = "Processing JSON..."
-                                importer.importFromAiResult(content)
-                            } else {
-                                // Plain text - call AI
-                                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text, calling AI...")
-                                aiImportProgressMessage = "Sending request to AI (${config.model})..."
-                                importer.importFromText(content)
-                            }
-                            
-                            aiImportProgressMessage = "Creating family tree..."
-                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
-                            
-                            // Hide progress dialog
-                            showAiImportProgress = false
-                            
-                            loadedProjectTemp = imported
-                            callback?.invoke(imported)
-                        } catch (e: Exception) {
-                            println("[DEBUG_LOG] MainScreen.onAiTextImportResult: ERROR - ${e.message}")
-                            e.printStackTrace()
-                            
-                            // Hide progress dialog
-                            showAiImportProgress = false
-                            
-                            callback?.invoke(null)
-                        }
-                    }
-                    // Reset only after processing text/JSON file
-                    showAiTextImportDialog = false
-                    pendingAiTextImportCallback = null
-                }
-            } else {
-                println("[DEBUG_LOG] MainScreen.onAiTextImportResult: bytes is null")
-                callback?.invoke(null)
-                showAiTextImportDialog = false
-                pendingAiTextImportCallback = null
-            }
-        }
+    // All Dialogs extracted
+    com.family.tree.ui.components.dialogs.MainScreenDialogs(
+        state = dialogState,
+        project = project,
+        onUpdateProject = { project = it },
+        loadedProjectTemp = loadedProjectTemp,
+        setLoadedProjectTemp = { loadedProjectTemp = it },
+        onUpdateProjectLayout = { projectLayout = it },
+        onUpdateScale = { scale = it },
+        onUpdatePan = { pan = it },
+        onClearSelection = { selectedIds = emptySet() },
+        fitToView = { fitToView() },
+        platformContext = platformContext,
+        scope = scope,
+        scale = scale,
+        pan = pan,
+        voiceInputProcessor = voiceInputProcessor
     )
+
 }
