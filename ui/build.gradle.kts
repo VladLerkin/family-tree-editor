@@ -52,6 +52,14 @@ kotlin {
             implementation(compose.materialIconsExtended)
             @Suppress("DEPRECATION")
             implementation(compose.animation)
+            implementation(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.lifecycle.viewmodel.compose)
+            implementation(libs.voyager.navigator)
+            implementation(libs.voyager.screenmodel)
+            implementation(libs.voyager.transitions)
+            implementation(libs.voyager.koin)
         }
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)

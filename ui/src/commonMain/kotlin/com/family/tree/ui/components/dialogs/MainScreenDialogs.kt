@@ -21,6 +21,9 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun MainScreenDialogs(
+    activeDialog: AppDialog?,
+    onOpenDialog: (AppDialog) -> Unit,
+    onCloseDialog: () -> Unit,
     state: MainScreenDialogState,
     project: ProjectData,
     onUpdateProject: (ProjectData) -> Unit,
@@ -38,340 +41,189 @@ fun MainScreenDialogs(
     voiceInputProcessor: VoiceInputProcessor
 ) {
 
-
-    // Person editor dialog
-    run {
-        val person = project.individuals.find { it.id == state.editPersonId }
-        if (person != null) {
-            PersonEditorDialog(
-                person = person,
-                onSave = { updated ->
-                    val idx = project.individuals.indexOfFirst { it.id == updated.id }
-                    if (idx >= 0) {
-                        onUpdateProject(project.copy(
-                            individuals = project.individuals.toMutableList().also { it[idx] = updated }
-                        ))
-                    }
-                    state.editPersonId = null
-                },
-                onDismiss = { state.editPersonId = null }
-            )
-        }
-    }
-    // Family editor dialog
-    run {
-        val fam = project.families.find { it.id == state.editFamilyId }
-        if (fam != null) {
-            FamilyEditorDialog(
-                family = fam,
-                allIndividuals = project.individuals,
-                onSave = { updated ->
-                    val idx = project.families.indexOfFirst { it.id == updated.id }
-                    if (idx >= 0) {
-                        onUpdateProject(project.copy(
-                            families = project.families.toMutableList().also { it[idx] = updated }
-                        ))
-                    }
-                    state.editFamilyId = null
-                },
-                onDismiss = { state.editFamilyId = null }
-            )
-        }
-    }
-    
-    // Sources manager dialog
-    if (state.showSourcesDialog) {
-        SourcesManagerDialog(
-            project = project,
-            onDismiss = { state.showSourcesDialog = false },
-            onUpdateProject = { updatedProject ->
-                onUpdateProject(updatedProject)
+    when (val dialog = activeDialog) {
+        is AppDialog.EditPerson -> {
+            val person = project.individuals.find { it.id == dialog.id }
+            if (person != null) {
+                PersonEditorDialog(
+                    person = person,
+                    onSave = { updated ->
+                        val idx = project.individuals.indexOfFirst { it.id == updated.id }
+                        if (idx >= 0) {
+                            onUpdateProject(project.copy(
+                                individuals = project.individuals.toMutableList().also { it[idx] = updated }
+                            ))
+                        }
+                        onCloseDialog()
+                    },
+                    onDismiss = onCloseDialog
+                )
+            } else {
+                onCloseDialog()
             }
-        )
-    }
-
-    // About dialog
-    if (state.showAboutDialog) {
-        AboutDialog(onDismiss = { state.showAboutDialog = false })
-    }
-    
-    // AI Settings dialog
-    if (state.showAiSettingsDialog) {
-        val storage = remember { com.family.tree.core.ai.AiSettingsStorage() }
-        val savedConfig = remember { storage.loadConfig() }
+        }
         
-        AiConfigDialog(
-            initialConfig = savedConfig,
-            onDismiss = { state.showAiSettingsDialog = false },
-            onConfirm = { config ->
-                storage.saveConfig(config)
-                state.showAiSettingsDialog = false
-            }
-        )
-    }
-    
-    // AI Import Progress dialog
-    if (state.showAiImportProgress) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { /* Cannot dismiss during import */ }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(400.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Text(
-                        text = "AI Import",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(64.dp),
-                        strokeWidth = 6.dp
-                    )
-                    
-                    Text(
-                        text = state.aiImportProgressMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
-    
-    // .rel Import Progress dialog
-    if (state.showRelImportProgress) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = { /* Cannot dismiss during import */ }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(400.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(32.dp)
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    Text(
-                        text = ".rel Import",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(64.dp),
-                        strokeWidth = 6.dp
-                    )
-                    
-                    Text(
-                        text = state.relImportProgressMessage,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-    }
-    
-    // .rel Import Error dialog
-    if (state.showRelImportError) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = {
-                state.showRelImportError = false
-                state.relImportErrorMessage = ""
-            }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(500.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = ".rel Import Error",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    Text(
-                        text = state.relImportErrorMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
-                    ) {
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                state.showRelImportError = false
-                                state.relImportErrorMessage = ""
-                            }
-                        ) {
-                            Text("OK")
+        is AppDialog.EditFamily -> {
+            val fam = project.families.find { it.id == dialog.id }
+            if (fam != null) {
+                FamilyEditorDialog(
+                    family = fam,
+                    allIndividuals = project.individuals,
+                    onSave = { updated ->
+                        val idx = project.families.indexOfFirst { it.id == updated.id }
+                        if (idx >= 0) {
+                            onUpdateProject(project.copy(
+                                families = project.families.toMutableList().also { it[idx] = updated }
+                            ))
                         }
+                        onCloseDialog()
+                    },
+                    onDismiss = onCloseDialog
+                )
+            } else {
+                onCloseDialog()
+            }
+        }
+        
+        is AppDialog.SourcesManager -> {
+            SourcesManagerDialog(
+                project = project,
+                onDismiss = onCloseDialog,
+                onUpdateProject = { updatedProject ->
+                    onUpdateProject(updatedProject)
+                }
+            )
+        }
+        
+        is AppDialog.About -> {
+            AboutDialog(onDismiss = onCloseDialog)
+        }
+        
+        is AppDialog.AiSettings -> {
+            val storage = remember { com.family.tree.core.ai.AiSettingsStorage() }
+            val savedConfig = remember { storage.loadConfig() }
+            
+            AiConfigDialog(
+                initialConfig = savedConfig,
+                onDismiss = onCloseDialog,
+                onConfirm = { config ->
+                    storage.saveConfig(config)
+                    onCloseDialog()
+                }
+            )
+        }
+        
+        is AppDialog.AiProgress -> {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { /* Cannot dismiss during import */ }
+            ) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.width(400.dp).wrapContentHeight(),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 6.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        Text("AI Progress", style = MaterialTheme.typography.headlineSmall)
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(64.dp), strokeWidth = 6.dp
+                        )
+                        Text(
+                            text = dialog.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
         }
-    }
-    
-    // AI Import Info dialog (for errors/warnings like PDF detection)
-    if (state.showAiImportInfoDialog) {
-        androidx.compose.ui.window.Dialog(
-            onDismissRequest = {
-                state.showAiImportInfoDialog = false
-                state.showAiTextImportDialog = false
-                state.pendingAiTextImportCallback?.invoke(null)
-                state.pendingAiTextImportCallback = null
-            }
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .width(500.dp)
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                tonalElevation = 6.dp
-            ) {
-                Column(
-                    modifier = Modifier
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+        
+        is AppDialog.AiInfo -> {
+            androidx.compose.ui.window.Dialog(onDismissRequest = onCloseDialog) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.width(500.dp).wrapContentHeight(),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = 6.dp
                 ) {
-                    Text(
-                        text = "Information",
-                        style = MaterialTheme.typography.headlineSmall
-                    )
-                    
-                    Text(
-                        text = state.aiImportInfoMessage,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                    Column(
+                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        // Show "Open Settings" button if it's a permission error
-                        if (state.isPermissionError) {
-                            androidx.compose.material3.TextButton(
-                                onClick = {
-                                    // Open app settings on Android
-                                    val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
-                                    voiceRecorder.openAppSettings()
-                                    state.showAiImportInfoDialog = false
-                                    state.showAiTextImportDialog = false
-                                    state.pendingAiTextImportCallback?.invoke(null)
-                                    state.pendingAiTextImportCallback = null
-                                    state.isPermissionError = false
+                        Text("Information", style = MaterialTheme.typography.headlineSmall)
+                        Text(dialog.message, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth())
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                        ) {
+                            if (dialog.isPermissionError) {
+                                androidx.compose.material3.TextButton(
+                                    onClick = {
+                                        val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
+                                        voiceRecorder.openAppSettings()
+                                        onCloseDialog()
+                                    }
+                                ) {
+                                    Text("Open Settings")
                                 }
-                            ) {
-                                Text("Open Settings")
                             }
-                        }
-                        
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                state.showAiImportInfoDialog = false
-                                state.showAiTextImportDialog = false
-                                state.pendingAiTextImportCallback?.invoke(null)
-                                state.pendingAiTextImportCallback = null
-                                state.isPermissionError = false
+                            androidx.compose.material3.TextButton(onClick = onCloseDialog) {
+                                Text("OK")
                             }
-                        ) {
-                            Text("OK")
                         }
                     }
                 }
             }
         }
-    }
-    
-    // Voice input dialog
-    if (state.showVoiceInputDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                voiceInputProcessor.cancelRecording()
-                state.isVoiceRecording = false
-                state.showVoiceInputDialog = false
-                state.voiceInputStatus = ""
-            },
-            modifier = Modifier.widthIn(min = 400.dp),
-            title = { Text("Voice Input") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    if (state.isVoiceRecording) {
-                        androidx.compose.material3.CircularProgressIndicator()
+        
+        is AppDialog.VoiceInput -> {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = {
+                    voiceInputProcessor.cancelRecording()
+                    onCloseDialog()
+                },
+                modifier = Modifier.widthIn(min = 400.dp),
+                title = { Text("Voice Input") },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        if (voiceInputProcessor.isRecording()) {
+                            androidx.compose.material3.CircularProgressIndicator()
+                            Text("Speak...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                        } else {
+                            Text("Processing...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                        }
                     }
-                    Text(
-                        text = state.voiceInputStatus,
-                        style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
-            },
-            confirmButton = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Stop Recording button (shown only during recording)
-                    if (state.isVoiceRecording && state.voiceInputStatus == "Speak...") {
+                },
+                confirmButton = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (voiceInputProcessor.isRecording()) {
+                            Button(onClick = { voiceInputProcessor.stopRecording() }) {
+                                Text("Stop Recording")
+                            }
+                        }
                         Button(
                             onClick = {
-                                println("[DEBUG_LOG] MainScreen: User clicked 'Stop Recording' button")
-                                voiceInputProcessor.stopRecording()
-                                state.isVoiceRecording = false
-                                state.voiceInputStatus = "Processing recording..."
+                                voiceInputProcessor.cancelRecording()
+                                onCloseDialog()
                             }
                         ) {
-                            Text("Stop Recording")
+                            Text("Cancel")
                         }
-                    }
-                    // Кнопка "Отмена" (всегда показывается)
-                    Button(
-                        onClick = {
-                            println("[DEBUG_LOG] MainScreen: User clicked 'Cancel' button")
-                            voiceInputProcessor.cancelRecording()
-                            state.isVoiceRecording = false
-                            state.showVoiceInputDialog = false
-                            state.voiceInputStatus = ""
-                        }
-                    ) {
-                        Text("Cancel")
                     }
                 }
-            }
-        )
+            )
+        }
+        
+        else -> {
+            // Ignore FileProgress and FileError for now as they are handled below
+        }
     }
 
     // Platform file dialogs (for Android and future cross-platform support)
@@ -634,8 +486,7 @@ fun MainScreenDialogs(
                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected PDF format, extracting text")
                     
                     // Show progress dialog
-                    state.showAiImportProgress = true
-                    state.aiImportProgressMessage = "Extracting text from PDF..."
+                    onOpenDialog(AppDialog.AiProgress("Extracting text from PDF..."))
                     
                     // Extract text from PDF in background
                     scope.launch {
@@ -647,8 +498,9 @@ fun MainScreenDialogs(
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: PDF text extraction failed or returned empty text")
                                 
                                 // Show error dialog
-                                state.showAiImportProgress = false
-                                state.aiImportInfoMessage = """
+                                onCloseDialog()
+                                onOpenDialog(AppDialog.AiInfo(
+                                    message = """
                                     Failed to extract text from PDF file.
                                     
                                     Possible reasons:
@@ -660,13 +512,13 @@ fun MainScreenDialogs(
                                     1. Open docs.google.com in your browser
                                     2. File → Download → Plain Text (.txt)
                                     3. Import the downloaded .txt file
-                                """.trimIndent()
-                                state.showAiImportInfoDialog = true
+                                    """.trimIndent()
+                                ))
                             } else {
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Successfully extracted ${extractedText.length} chars from PDF")
                                 
                                 // Process extracted text
-                                state.aiImportProgressMessage = "Processing text..."
+                                onOpenDialog(AppDialog.AiProgress("Processing text..."))
                                 
                                 // Load saved AI settings
                                 val storage = com.family.tree.core.ai.AiSettingsStorage()
@@ -677,20 +529,20 @@ fun MainScreenDialogs(
                                 val imported = if (extractedText.trimStart().startsWith("{") || extractedText.trimStart().startsWith("[")) {
                                     // JSON format - parse directly
                                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format in PDF")
-                                    state.aiImportProgressMessage = "Processing JSON..."
+                                    onOpenDialog(AppDialog.AiProgress("Processing JSON..."))
                                     importer.importFromAiResult(extractedText)
                                 } else {
                                     // Plain text - call AI
                                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text in PDF, calling AI...")
-                                    state.aiImportProgressMessage = "Sending request to AI (${config.model})..."
+                                    onOpenDialog(AppDialog.AiProgress("Sending request to AI (${config.model})..."))
                                     importer.importFromText(extractedText)
                                 }
                                 
-                                state.aiImportProgressMessage = "Creating family tree..."
+                                onOpenDialog(AppDialog.AiProgress("Creating family tree..."))
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
                                 
                                 // Hide progress dialog
-                                state.showAiImportProgress = false
+                                onCloseDialog()
                                 
                                 setLoadedProjectTemp(imported)
                                 callback?.invoke(imported)
@@ -704,22 +556,22 @@ fun MainScreenDialogs(
                             e.printStackTrace()
                             
                             // Hide progress dialog and show error
-                            state.showAiImportProgress = false
-                            state.aiImportInfoMessage = """
+                            onCloseDialog()
+                            onOpenDialog(AppDialog.AiInfo(
+                                message = """
                                 Ошибка при обработке PDF файла: ${e.message ?: "Неизвестная ошибка"}
                                 
                                 Пожалуйста, попробуйте:
                                 1. Откройте docs.google.com в браузере
                                 2. Файл → Скачать → Обычный текст (.txt)
                                 3. Импортируйте полученный .txt файл
-                            """.trimIndent()
-                            state.showAiImportInfoDialog = true
+                                """.trimIndent()
+                            ))
                         }
                     }
                 } else {
                     // Show progress dialog
-                    state.showAiImportProgress = true
-                    state.aiImportProgressMessage = "Reading file..."
+                    onOpenDialog(AppDialog.AiProgress("Reading file..."))
                     
                     // Process in background
                     scope.launch {
@@ -736,20 +588,20 @@ fun MainScreenDialogs(
                             val imported = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
                                 // JSON format - parse directly
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format")
-                                state.aiImportProgressMessage = "Processing JSON..."
+                                onOpenDialog(AppDialog.AiProgress("Processing JSON..."))
                                 importer.importFromAiResult(content)
                             } else {
                                 // Plain text - call AI
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected plain text, calling AI...")
-                                state.aiImportProgressMessage = "Sending request to AI (${config.model})..."
+                                onOpenDialog(AppDialog.AiProgress("Sending request to AI (${config.model})..."))
                                 importer.importFromText(content)
                             }
                             
-                            state.aiImportProgressMessage = "Creating family tree..."
+                            onOpenDialog(AppDialog.AiProgress("Creating family tree..."))
                             println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Success - ${imported.data.individuals.size} individuals, ${imported.data.families.size} families")
                             
                             // Hide progress dialog
-                            state.showAiImportProgress = false
+                            onCloseDialog()
                             
                             setLoadedProjectTemp(imported)
                             callback?.invoke(imported)
@@ -758,7 +610,7 @@ fun MainScreenDialogs(
                             e.printStackTrace()
                             
                             // Hide progress dialog
-                            state.showAiImportProgress = false
+                            onCloseDialog()
                             
                             callback?.invoke(null)
                         }

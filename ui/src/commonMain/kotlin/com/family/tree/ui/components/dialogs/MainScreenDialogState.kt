@@ -10,17 +10,6 @@ import com.family.tree.core.model.FamilyId
 import com.family.tree.core.model.IndividualId
 
 class MainScreenDialogState {
-    // Person editor dialog state
-    var editPersonId by mutableStateOf<IndividualId?>(null)
-    // Family editor dialog state
-    var editFamilyId by mutableStateOf<FamilyId?>(null)
-    // Sources manager dialog state
-    var showSourcesDialog by mutableStateOf(false)
-    // About dialog state
-    var showAboutDialog by mutableStateOf(false)
-    // AI Settings dialog state
-    var showAiSettingsDialog by mutableStateOf(false)
-
     // File dialog state for Android/platform file pickers
     var showOpenDialog by mutableStateOf(false)
     var showSaveDialog by mutableStateOf(false)
@@ -59,17 +48,4 @@ class MainScreenDialogState {
     var showAiTextImportDialog by mutableStateOf(false)
     var pendingAiTextImportCallback by mutableStateOf<((LoadedProject?) -> Unit)?>(null)
     
-    // AI import progress state
-    var showAiImportProgress by mutableStateOf(false)
-    var aiImportProgressMessage by mutableStateOf("")
-    
-    // AI import info dialog state
-    var showAiImportInfoDialog by mutableStateOf(false)
-    var aiImportInfoMessage by mutableStateOf("")
-    var isPermissionError by mutableStateOf(false)
-    
-    // Voice input state
-    var isVoiceRecording by mutableStateOf(false)
-    var voiceInputStatus by mutableStateOf("")
-    var showVoiceInputDialog by mutableStateOf(false)
 }
