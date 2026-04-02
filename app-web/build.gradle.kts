@@ -1,4 +1,3 @@
-import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -22,9 +21,13 @@ kotlin {
         val wasmJsMain by getting {
             dependencies {
                 implementation(project(":ui"))
+                @Suppress("DEPRECATION")
                 implementation(compose.runtime)
+                @Suppress("DEPRECATION")
                 implementation(compose.foundation)
+                @Suppress("DEPRECATION")
                 implementation(compose.ui)
+                @Suppress("DEPRECATION")
                 implementation(compose.material3)
             }
         }

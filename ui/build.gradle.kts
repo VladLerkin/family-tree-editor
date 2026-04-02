@@ -1,4 +1,4 @@
-import org.jetbrains.compose.*
+import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -11,6 +11,7 @@ plugins {
 kotlin {
 
     androidLibrary {
+        @Suppress("DEPRECATION")
         namespace = "com.family.tree.ui"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -39,17 +40,21 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(project(":core"))
+            @Suppress("DEPRECATION")
             implementation(compose.runtime)
+            @Suppress("DEPRECATION")
             implementation(compose.foundation)
+            @Suppress("DEPRECATION")
             implementation(compose.ui)
+            @Suppress("DEPRECATION")
             implementation(compose.material3)
+            @Suppress("DEPRECATION")
             implementation(compose.materialIconsExtended)
+            @Suppress("DEPRECATION")
             implementation(compose.animation)
         }
-        val androidMain by getting {
-            dependencies {
-                implementation(libs.androidx.activity.compose)
-            }
+        androidMain.dependencies {
+            implementation(libs.androidx.activity.compose)
         }
         val desktopMain by getting {
             dependencies {
