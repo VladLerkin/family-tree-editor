@@ -1,32 +1,32 @@
 #!/bin/bash
 
 # release_app.sh
-# Automates the release process:
-# 1. Bumps app.version (PATCH) and app.versionCode in gradle.properties
+# Automates the release process for Version Catalog:
+# 1. Bumps app-version (PATCH) and app-versionCode in gradle/libs.versions.toml
 # 2. Commits the change
 # 3. Tags the release
 # 4. Pushes to origin (main + tags)
 
 set -e
 
-PROPERTIES_FILE="gradle.properties"
+TOML_FILE="gradle/libs.versions.toml"
 
-if [ ! -f "$PROPERTIES_FILE" ]; then
-    echo "Error: $PROPERTIES_FILE not found!"
+if [ ! -f "$TOML_FILE" ]; then
+    echo "Error: $TOML_FILE not found!"
     exit 1
 fi
 
-# Function to get property value
-get_property() {
-    grep "^$1=" "$PROPERTIES_FILE" | cut -d'=' -f2
+# Function to get property value from TOML (stripping quotes)
+get_toml_version() {
+    grep "^$1 =" "$TOML_FILE" | cut -d'=' -f2 | xfamily-tree-editor/tr -d ' "'
 }
 
 # 1. Read current versions
-CURRENT_VERSION=$(get_property "app.version")
-CURRENT_CODE=$(get_property "app.versionCode")
+CURRENT_VERSION=$(get_toml_version "app-version")
+CURRENT_CODE=$(get_toml_version "app-versionCode")
 
 if [ -z "$CURRENT_VERSION" ] || [ -z "$CURRENT_CODE" ]; then
-    echo "Error: Could not read app.version or app.versionCode from $PROPERTIES_FILE"
+    echo "Error: Could not read app-version or app-versionCode from $TOML_FILE"
     exit 1
 fi
 
@@ -43,14 +43,16 @@ NEW_CODE=$((CURRENT_CODE + 1))
 echo "New Version: $NEW_VERSION"
 echo "New Version Code: $NEW_CODE"
 
-# 3. Update gradle.properties (MacOS compatible sed)
-sed -i '' "s/^app.version=.*/app.version=$NEW_VERSION/" "$PROPERTIES_FILE"
-sed -i '' "s/^app.versionCode=.*/app.versionCode=$NEW_CODE/" "$PROPERTIES_FILE"
+# 3. Update TOML (MacOS compatible sed)
+# For version string (with quotes)
+sed -i '' "s/^app-version = .*/app-version = \"$NEW_VERSION\"/" "$TOML_FILE"
+# For version code (without quotes)
+sed -i '' "s/^app-versionCode = .*/app-versionCode = \"$NEW_CODE\"/" "$TOML_FILE"
 
-echo "Updated $PROPERTIES_FILE"
+echo "Updated $TOML_FILE"
 
 # 4. Git operations
-git add "$PROPERTIES_FILE"
+git add "$TOML_FILE"
 COMMIT_MSG="Release v$NEW_VERSION"
 git commit -m "$COMMIT_MSG"
 

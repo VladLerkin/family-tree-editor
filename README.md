@@ -59,21 +59,27 @@ Get the latest version for your platform:
 ## 🏗️ Architecture
 
 ```
-├── core/          # Shared domain models & serialization
-├── ui/            # Shared Compose UI components
-├── app-desktop/   # Desktop application
-├── app-android/   # Android application
-└── app-ios/       # iOS application
+├── core/                   # Shared domain models & serialization
+├── ui/                     # Shared Compose UI components
+├── app-desktop/            # Desktop application
+├── app-android/            # Android application
+├── app-ios/                # iOS application
+└── gradle/
+    └── libs.versions.toml  # Centralized Dependency Management (Version Catalog)
 ```
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Dependencies
+
+The project uses **Gradle Version Catalog** for centralized dependency management. All versions are defined in `gradle/libs.versions.toml`.
 
 | Component | Version |
 |-----------|---------|
 | Kotlin | 2.3.20 |
 | Compose Multiplatform | 1.10.3 |
+| Android Compose BOM | 2026.03.01 |
 | Gradle | 9.4.1 |
 | Android Gradle Plugin | 9.1.0 |
+| Ktor | 3.4.2 |
 | JDK | 25 |
 | Android Target SDK | 36 |
 

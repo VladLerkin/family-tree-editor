@@ -1,19 +1,18 @@
 plugins {
-    id("com.android.application")
-
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "com.family.tree.android"
-    compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "com.family.tree.android"
-        minSdk = (project.findProperty("android.minSdk") as String).toInt()
-        targetSdk = (project.findProperty("android.targetSdk") as String).toInt()
-        versionCode = (project.findProperty("app.versionCode") as String).toInt()
-        versionName = project.version.toString()
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
+        versionCode = libs.versions.app.versionCode.get().toInt()
+        versionName = libs.versions.app.version.get()
         
         // Support multiple architectures
         ndk {
@@ -50,11 +49,9 @@ android {
     }
     
     buildFeatures { compose = true }
-    composeOptions {
-        kotlinCompilerExtensionVersion = (project.findProperty("compose.version") as String)
-    }
+
     // Align Java toolchain for Android to 25
-    val javaVer = (project.findProperty("java.version") as String).toInt()
+    val javaVer = libs.versions.java.get().toInt()
     compileOptions {
         sourceCompatibility = JavaVersion.toVersion(javaVer)
         targetCompatibility = JavaVersion.toVersion(javaVer)
@@ -72,16 +69,16 @@ android {
 
 // Align Kotlin JVM toolchain for Android to 25
 kotlin {
-    jvmToolchain((project.findProperty("java.version") as String).toInt())
+    jvmToolchain(libs.versions.java.get().toInt())
 }
 
 dependencies {
     implementation(project(":core"))
     implementation(project(":ui"))
-    implementation(platform("androidx.compose:compose-bom:2024.12.01"))
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    debugImplementation("androidx.compose.ui:ui-tooling")
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    debugImplementation(libs.androidx.compose.ui.tooling)
 }

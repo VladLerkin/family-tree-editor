@@ -2,23 +2,23 @@ import org.jetbrains.compose.*
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
-    kotlin("multiplatform")
-    id("org.jetbrains.compose")
-    id("com.android.kotlin.multiplatform.library")
-    id("org.jetbrains.kotlin.plugin.compose")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.compose)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.kotlin.compose)
 }
 
 kotlin {
 
     androidLibrary {
         namespace = "com.family.tree.ui"
-        compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
-        minSdk = (project.findProperty("android.minSdk") as String).toInt()
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
         
         // Java compatibility
         with(java) {
              toolchain {
-                 languageVersion.set(JavaLanguageVersion.of((project.findProperty("java.version") as String).toInt()))
+                 languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
              }
         }
     }
@@ -48,7 +48,7 @@ kotlin {
         }
         val androidMain by getting {
             dependencies {
-                implementation("androidx.activity:activity-compose:1.12.1")
+                implementation(libs.androidx.activity.compose)
             }
         }
         val desktopMain by getting {
@@ -58,5 +58,5 @@ kotlin {
         }
     }
     // Align Kotlin JVM toolchain in this module to 25 (Android & desktop target compilation)
-    jvmToolchain((project.findProperty("java.version") as String).toInt())
+    jvmToolchain(libs.versions.java.get().toInt())
 }

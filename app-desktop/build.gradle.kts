@@ -3,13 +3,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm")
-    id("org.jetbrains.compose")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
-
-repositories {
-    google()
-    mavenCentral()
+    alias(libs.plugins.compose)
+    alias(libs.plugins.kotlin.compose)
 }
 
 dependencies {
@@ -18,7 +13,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain((project.findProperty("java.version") as String).toInt())
+    jvmToolchain(libs.versions.java.get().toInt())
     sourceSets {
         val main by getting {
             kotlin.srcDirs("src/jvmMain/kotlin")
@@ -34,7 +29,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "FamilyTreeEditor"
-            packageVersion = project.version.toString()
+            packageVersion = libs.versions.app.version.get().toString()
             
             description = "Family Tree Editor Application"
             copyright = "© 2026 Family Tree. All rights reserved."

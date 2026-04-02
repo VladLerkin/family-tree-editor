@@ -1,26 +1,21 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import org.jetbrains.kotlin.gradle.dsl.KotlinMultiplatformExtension
 
 plugins {
-    kotlin("multiplatform")
-    id("com.android.kotlin.multiplatform.library")
-    id("org.jetbrains.kotlin.plugin.serialization")
+    alias(libs.plugins.kotlin.multiplatform)
+    alias(libs.plugins.android.kotlin.multiplatform.library)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
-    val ktorVersion = project.findProperty("ktor.version") as String
-    val serializationVersion = project.findProperty("serialization.version") as String
-
-
     androidLibrary {
         namespace = "com.family.tree.core"
-        compileSdk = (project.findProperty("android.compileSdk") as String).toInt()
-        minSdk = (project.findProperty("android.minSdk") as String).toInt()
+        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
         
         // Java compatibility
         with(java) {
              toolchain {
-                 languageVersion.set(JavaLanguageVersion.of((project.findProperty("java.version") as String).toInt()))
+                 languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
              }
         }
     }
@@ -68,33 +63,33 @@ kotlin {
         commonMain {
             kotlin.srcDir(generateBuildConfig.map { it.outputs.files.asPath })
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:$serializationVersion")
-                implementation("io.ktor:ktor-client-core:$ktorVersion")
+                implementation(libs.kotlinx.serialization.json)
+                implementation(libs.ktor.client.core)
             }
         }
         
         androidMain.dependencies {
-            implementation("io.ktor:ktor-client-okhttp:$ktorVersion")
-            implementation("androidx.security:security-crypto:1.1.0")
-            implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+            implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.security.crypto)
+            implementation(libs.pdfbox.android)
         }
         
         val desktopMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-cio:$ktorVersion")
+                implementation(libs.ktor.client.cio)
             }
         }
         
         iosMain.dependencies {
-            implementation("io.ktor:ktor-client-darwin:$ktorVersion")
+            implementation(libs.ktor.client.darwin)
         }
         
         val wasmJsMain by getting {
             dependencies {
-                implementation("io.ktor:ktor-client-js:$ktorVersion")
+                implementation(libs.ktor.client.js)
             }
         }
     }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 25
-    jvmToolchain((project.findProperty("java.version") as String).toInt())
+    jvmToolchain(libs.versions.java.get().toInt())
 }
