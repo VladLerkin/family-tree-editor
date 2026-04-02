@@ -18,7 +18,7 @@ fi
 
 # Function to get property value from TOML (stripping quotes)
 get_toml_version() {
-    grep "^$1 =" "$TOML_FILE" | cut -d'=' -f2 | xfamily-tree-editor/tr -d ' "'
+    grep "^$1 =" "$TOML_FILE" | cut -d'=' -f2 | tr -d ' "'
 }
 
 # 1. Read current versions

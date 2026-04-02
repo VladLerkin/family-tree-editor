@@ -1,10 +1,15 @@
 plugins {
-    // Root project keeps minimal configuration; real plugins applied in subprojects
+    // Root project
 }
+
+// Надежный способ получения версии из каталога
+val catalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val appVersion = catalog.findVersion("app-version").get().requiredVersion
 
 allprojects {
-    version = "1.4.16"
+    version = appVersion
 }
 
-subprojects {
-}
+// tasks.register<Delete>("clean") {
+//     delete(rootProject.layout.buildDirectory)
+// }
