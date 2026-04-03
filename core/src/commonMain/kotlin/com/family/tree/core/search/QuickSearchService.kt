@@ -38,8 +38,8 @@ class QuickSearchService(private val data: ProjectData) {
         combined.addAll(substringMatches)
 
         combined.sortWith(
-            compareBy<Individual> { it.lastName?.lowercase() }
-                .thenBy { it.firstName?.lowercase() }
+            compareBy<Individual> { it.lastName.lowercase() }
+                .thenBy { it.firstName.lowercase() }
         )
         return combined
     }
@@ -69,8 +69,8 @@ class QuickSearchService(private val data: ProjectData) {
 
     private fun tokensFor(i: Individual): List<String> {
         val tokens: MutableList<String> = mutableListOf()
-        if (i.firstName != null) tokens.add(normalize(i.firstName!!))
-        if (i.lastName != null) tokens.add(normalize(i.lastName!!))
+        tokens.add(normalize(i.firstName))
+        tokens.add(normalize(i.lastName))
         return tokens
     }
 

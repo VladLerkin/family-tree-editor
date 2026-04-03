@@ -32,7 +32,7 @@ actual class RelRepository {
                 println("[DEBUG_LOG] RelRepository.wasmJs.read: Parsing data.json (${content.length} chars)...")
                 try {
                     data = json.decodeFromString<ProjectData>(content)
-                    println("[DEBUG_LOG] RelRepository.wasmJs.read: data.json parsed - individuals=${data?.individuals?.size}, families=${data?.families?.size}")
+                    println("[DEBUG_LOG] RelRepository.wasmJs.read: data.json parsed - individuals=${data.individuals.size}, families=${data.families.size}")
                 } catch (e: Exception) {
                     println("[DEBUG_LOG] RelRepository.wasmJs.read: ERROR parsing data.json: ${e.message}")
                     e.printStackTrace()
@@ -240,6 +240,7 @@ actual class RelRepository {
  * External function to call pako.inflateRaw from JavaScript.
  * Takes a string representation of bytes and returns decompressed string.
  */
+@OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
 @JsFun("""
 (bytesStr) => {
     const bytes = bytesStr.split(',').map(s => parseInt(s) & 0xFF);

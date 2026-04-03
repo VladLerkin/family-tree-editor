@@ -138,7 +138,7 @@ class BasicPersonMatcher : PersonMatcher {
         
         // Сравнение года рождения
         if ("birthDate" in config.matchingFields && localPerson.birthYear != null && externalPerson.birthDate?.year != null) {
-            val yearDiff = kotlin.math.abs(localPerson.birthYear!! - externalPerson.birthDate!!.year!!)
+            val yearDiff = kotlin.math.abs(localPerson.birthYear - externalPerson.birthDate.year)
             val similarity = when {
                 yearDiff == 0 -> 1.0
                 yearDiff <= 2 -> 0.8
@@ -149,7 +149,7 @@ class BasicPersonMatcher : PersonMatcher {
             matchedFields.add(MatchedField(
                 "birthYear",
                 localPerson.birthYear.toString(),
-                externalPerson.birthDate?.year.toString(),
+                externalPerson.birthDate.year.toString(),
                 similarity
             ))
             
@@ -157,7 +157,7 @@ class BasicPersonMatcher : PersonMatcher {
                 conflicts.add(FieldConflict(
                     "birthYear",
                     localPerson.birthYear.toString(),
-                    externalPerson.birthDate?.year.toString(),
+                    externalPerson.birthDate.year.toString(),
                     ConflictSeverity.MAJOR
                 ))
             }
@@ -168,7 +168,7 @@ class BasicPersonMatcher : PersonMatcher {
         
         // Сравнение года смерти
         if ("deathDate" in config.matchingFields && localPerson.deathYear != null && externalPerson.deathDate?.year != null) {
-            val yearDiff = kotlin.math.abs(localPerson.deathYear!! - externalPerson.deathDate!!.year!!)
+            val yearDiff = kotlin.math.abs(localPerson.deathYear - externalPerson.deathDate.year)
             val similarity = when {
                 yearDiff == 0 -> 1.0
                 yearDiff <= 2 -> 0.8
@@ -179,7 +179,7 @@ class BasicPersonMatcher : PersonMatcher {
             matchedFields.add(MatchedField(
                 "deathYear",
                 localPerson.deathYear.toString(),
-                externalPerson.deathDate?.year.toString(),
+                externalPerson.deathDate.year.toString(),
                 similarity
             ))
             

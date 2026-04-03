@@ -144,10 +144,10 @@ class GedcomExporter {
             val type = event.type
             if (type.isNotBlank()) {
                 appendLine(sb, "1 $type")
-                if (event.date?.isNotBlank() == true) {
+                if (event.date.isNotBlank()) {
                     appendLine(sb, "2 DATE ${event.date}")
                 }
-                if (event.place?.isNotBlank() == true) {
+                if (event.place.isNotBlank()) {
                     appendLine(sb, "2 PLAC ${event.place}")
                 }
                 

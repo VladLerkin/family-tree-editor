@@ -535,12 +535,13 @@ class RelImporter {
         // Memory optimization: use lazy evaluation, only create blockForName if needed
         var blockForName: String? = null
         fun getCleanedBlock(): String {
-            if (blockForName == null) {
-                var cleaned = objePatternForName.replace(block, " ")
-                cleaned = notePatternForName.replace(cleaned, " ")
-                blockForName = cleaned
-            }
-            return blockForName!!
+            val current = blockForName
+            if (current != null) return current
+            
+            var cleaned = objePatternForName.replace(block, " ")
+            cleaned = notePatternForName.replace(cleaned, " ")
+            blockForName = cleaned
+            return cleaned
         }
 
         // NAME - try multiple patterns for binary .rel format
