@@ -25,31 +25,40 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
-      - name: Setup Release Keystore
+      - name: Setup and Build Android Release
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          # Use secrets if available, otherwise use dummy defaults
+          # But if KEYSTORE_BASE64 is missing, we MUST use dummy passwords regardless
+          SEC_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          SEC_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          SEC_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "Decoding Keystore from GitHub Secrets..."
-            echo "$KEYSTORE_BASE64" | base64 -d > app-android/release.keystore
-          else
-            echo "No KEYSTORE_BASE64 secret found. Generating a dummy Keystore for testing..."
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No KEYSTORE_BASE64 found. Using DUMMY mode."
+            export RELEASE_STORE_PASSWORD="android123"
+            export RELEASE_KEY_ALIAS="release"
+            export RELEASE_KEY_PASSWORD="android123"
+            
+            echo "Generating dummy Keystore..."
             keytool -genkey -v -keystore app-android/release.keystore \
-              -alias release \
+              -alias "$RELEASE_KEY_ALIAS" \
               -keyalg RSA \
               -keysize 2048 \
               -validity 10000 \
-              -storepass android123 \
-              -keypass android123 \
+              -storepass "$RELEASE_STORE_PASSWORD" \
+              -keypass "$RELEASE_KEY_PASSWORD" \
               -dname "CN=Dummy, OU=Dummy, O=Dummy, L=Dummy, ST=Dummy, C=US"
+          else
+            echo "KEYSTORE_BASE64 found. Using SECRETS mode."
+            echo "$KEYSTORE_BASE64" | base64 -d > app-android/release.keystore
+            export RELEASE_STORE_PASSWORD="$SEC_STORE_PASSWORD"
+            export RELEASE_KEY_ALIAS="$SEC_KEY_ALIAS"
+            export RELEASE_KEY_PASSWORD="$SEC_KEY_PASSWORD"
           fi
-      
-      - name: Build Android Release APK
-        env:
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || 'android123' }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || 'release' }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || 'android123' }}
-        run: ./gradlew :app-android:assembleRelease
+          
+          echo "Starting Gradle build..."
+          ./gradlew :app-android:assembleRelease
       
       - name: Verify APK Signature
         run: |
