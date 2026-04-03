@@ -44,6 +44,7 @@ fun LeftSidebar(
     ) {
         Column(Modifier.fillMaxSize()) {
             var leftTab by remember { mutableStateOf(0) }
+            @Suppress("DEPRECATION")
             TabRow(selectedTabIndex = leftTab) {
                 Tab(
                     selected = leftTab == 0,

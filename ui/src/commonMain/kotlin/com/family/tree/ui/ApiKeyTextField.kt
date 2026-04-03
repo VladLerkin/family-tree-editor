@@ -67,6 +67,7 @@ fun ApiKeyTextField(
     supportingText: String,
     modifier: Modifier = Modifier
 ) {
+    @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     
     DisableSelection {

@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogWindow
 import androidx.compose.ui.window.DialogState
 import com.family.tree.core.BuildConfig
 import java.awt.Desktop
@@ -20,7 +20,7 @@ private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor
 
 @Composable
 actual fun AboutDialog(onDismiss: () -> Unit) {
-    Dialog(
+    DialogWindow(
         onCloseRequest = onDismiss,
         state = DialogState(width = 450.dp, height = 300.dp),
         title = "About $APP_NAME",

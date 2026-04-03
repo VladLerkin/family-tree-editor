@@ -231,7 +231,7 @@ private fun RangeBlock(rangeType: String, setType: (String) -> Unit, left: Exact
                 value = rangeType,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.menuAnchor().width(160.dp),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(160.dp),
                 label = { Text("Range type") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu) }
             )
@@ -265,7 +265,7 @@ private fun ApproxBlock(approxType: String, setType: (String) -> Unit, exact: Ex
                 value = approxType,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.menuAnchor().width(160.dp),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(160.dp),
                 label = { Text("Approx type") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu) }
             )
@@ -318,7 +318,7 @@ private fun CalendarRow(state: ExactState) {
                 value = state.cal.title,
                 onValueChange = {},
                 readOnly = true,
-                modifier = Modifier.menuAnchor().width(220.dp),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(220.dp),
                 label = { Text("Calendar") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = menu) }
             )
@@ -371,7 +371,7 @@ private fun DayMonthYearRow(state: ExactState) {
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Day") },
-                modifier = Modifier.menuAnchor().width(90.dp),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(90.dp),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = dayMenu) }
             )
             ExposedDropdownMenu(expanded = dayMenu, onDismissRequest = { dayMenu = false }) {
@@ -389,7 +389,7 @@ private fun DayMonthYearRow(state: ExactState) {
                 onValueChange = {},
                 readOnly = true,
                 label = { Text("Month") },
-                modifier = Modifier.menuAnchor().width(120.dp),
+                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(120.dp),
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = monthMenu) }
             )
             ExposedDropdownMenu(expanded = monthMenu, onDismissRequest = { monthMenu = false }) {

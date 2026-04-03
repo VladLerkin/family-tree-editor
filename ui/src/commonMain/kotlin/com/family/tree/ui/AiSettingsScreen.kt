@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,6 +34,7 @@ class AiSettingsScreen : Screen {
         
         var selectedPresetIndex by remember { mutableStateOf(initialPresetIndex) }
         var provider by remember { mutableStateOf(initialConfig.provider) }
+        @Suppress("DEPRECATION")
         var apiKey by remember { mutableStateOf(initialConfig.apiKey) }
         var model by remember { mutableStateOf(initialConfig.model) }
         var baseUrl by remember { mutableStateOf(initialConfig.baseUrl) }
@@ -41,6 +42,7 @@ class AiSettingsScreen : Screen {
         var maxTokens by remember { mutableStateOf(initialConfig.maxTokens.toString()) }
         var language by remember { mutableStateOf(initialConfig.language) }
         var transcriptionProvider by remember { mutableStateOf(initialConfig.transcriptionProvider) }
+        @Suppress("DEPRECATION")
         var googleApiKey by remember { mutableStateOf(initialConfig.googleApiKey) }
         
         var openAiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
@@ -54,11 +56,12 @@ class AiSettingsScreen : Screen {
                     title = { Text("AI Settings") },
                     navigationIcon = {
                         IconButton(onClick = { navigator.pop() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                         }
                     },
                     actions = {
                         IconButton(onClick = {
+                            @Suppress("DEPRECATION")
                             val config = AiConfig(
                                 provider = provider,
                                 apiKey = apiKey,

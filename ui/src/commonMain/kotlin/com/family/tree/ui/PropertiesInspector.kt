@@ -429,9 +429,9 @@ private fun EventItem(
     ) {
         // Event summary
         val parts = listOfNotNull(
-            event.type?.takeIf { it.isNotBlank() },
-            event.date?.takeIf { it.isNotBlank() },
-            event.place?.takeIf { it.isNotBlank() }
+            event.type.takeIf { it.isNotBlank() },
+            event.date.takeIf { it.isNotBlank() },
+            event.place.takeIf { it.isNotBlank() }
         )
         Text(
             text = if (parts.isNotEmpty()) parts.joinToString(" — ") else "(empty event)",
@@ -445,7 +445,7 @@ private fun EventItem(
             Spacer(Modifier.height(8.dp))
             
             // Type field with predefined GEDCOM types (dropdown only)
-            var typeText by remember(event.id) { mutableStateOf(event.type ?: "") }
+            var typeText by remember(event.id) { mutableStateOf(event.type) }
             var typeMenuExpanded by remember(event.id) { mutableStateOf(false) }
 
             ExposedDropdownMenuBox(
@@ -458,7 +458,7 @@ private fun EventItem(
                     readOnly = true,
                     label = { Text("Type") },
                     modifier = Modifier
-                        .menuAnchor()
+                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                         .fillMaxWidth(),
                     singleLine = true,
                     trailingIcon = {
@@ -980,7 +980,7 @@ private fun MediaSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "• ${attachment.fileName ?: attachment.relativePath ?: "(media)"}",
+                    text = "• ${attachment.fileName.ifEmpty { attachment.relativePath.ifEmpty { "(media)" } }}",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f),
                     maxLines = 1,

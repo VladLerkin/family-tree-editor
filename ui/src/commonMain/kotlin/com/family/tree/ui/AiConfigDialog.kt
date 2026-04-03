@@ -43,6 +43,7 @@ fun AiConfigDialog(
     
     var selectedPresetIndex by remember { mutableStateOf(initialPresetIndex) }
     var provider by remember { mutableStateOf(initialConfig.provider) }
+    @Suppress("DEPRECATION")
     var apiKey by remember { mutableStateOf(initialConfig.apiKey) }  // Deprecated, for backward compatibility
     var model by remember { mutableStateOf(initialConfig.model) }
     var baseUrl by remember { mutableStateOf(initialConfig.baseUrl) }
@@ -50,6 +51,7 @@ fun AiConfigDialog(
     var maxTokens by remember { mutableStateOf(initialConfig.maxTokens.toString()) }
     var language by remember { mutableStateOf(initialConfig.language) }
     var transcriptionProvider by remember { mutableStateOf(initialConfig.transcriptionProvider) }
+    @Suppress("DEPRECATION")
     var googleApiKey by remember { mutableStateOf(initialConfig.googleApiKey) }  // Deprecated
     
     // New separate API keys for each provider group
@@ -118,9 +120,10 @@ fun AiConfigDialog(
                     }
                 }
                 
-                Divider(modifier = Modifier.padding(vertical = 16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                 
                 // API Keys for provider groups - copy blocked, paste only
+                @Suppress("DEPRECATION")
                 val clipboardManager = LocalClipboardManager.current
                 
                 // Show API key field depending on the selected provider
@@ -364,6 +367,7 @@ fun AiConfigDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
+                            @Suppress("DEPRECATION")
                             val config = AiConfig(
                                 provider = provider,
                                 apiKey = apiKey,  // Deprecated, but kept for backward compatibility
@@ -382,9 +386,10 @@ fun AiConfigDialog(
                                 yandexFolderId = yandexFolderId
                             )
                             onConfirm(config)
-                        }
+                        },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text("Continue")
+                        Text("Confirm")
                     }
                 }
             }
