@@ -1,4 +1,4 @@
-import org.jetbrains.compose.ExperimentalComposeLibrary
+
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 plugins {
@@ -10,7 +10,7 @@ plugins {
 
 kotlin {
 
-    androidLibrary {
+    android {
         @Suppress("DEPRECATION")
         namespace = "com.family.tree.ui"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -72,8 +72,10 @@ kotlin {
     }
     targets.all {
         compilations.all {
-            compilerOptions.configure {
-                freeCompilerArgs.add("-Xexpect-actual-classes")
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
             }
         }
     }

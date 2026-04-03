@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package com.family.tree.core.ai
 
 import android.content.Context
@@ -9,7 +10,6 @@ import androidx.security.crypto.MasterKey
  * Android implementation using EncryptedSharedPreferences for secure API key storage.
  * Note: Requires context to be set before use via setContext().
  */
-@Suppress("DEPRECATION")
 actual class AiSettingsStorage {
     private val prefs: SharedPreferences by lazy {
         val context = requireNotNull(appContext) { 
