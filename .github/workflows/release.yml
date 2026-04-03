@@ -28,43 +28,49 @@ jobs:
       - name: Setup and Build Android Release
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          # Use secrets if available, otherwise use dummy defaults
-          # But if KEYSTORE_BASE64 is missing, we MUST use dummy passwords regardless
-          SEC_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          SEC_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          SEC_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "No KEYSTORE_BASE64 found. Using DUMMY mode."
+            echo "::warning::No KEYSTORE_BASE64 found. Using DUMMY mode for testing."
             export RELEASE_STORE_PASSWORD="android123"
             export RELEASE_KEY_ALIAS="release"
             export RELEASE_KEY_PASSWORD="android123"
             
-            echo "Generating dummy Keystore..."
             keytool -genkey -v -keystore app-android/release.keystore \
               -alias "$RELEASE_KEY_ALIAS" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
+              -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass "$RELEASE_STORE_PASSWORD" \
               -keypass "$RELEASE_KEY_PASSWORD" \
               -dname "CN=Dummy, OU=Dummy, O=Dummy, L=Dummy, ST=Dummy, C=US"
           else
-            echo "KEYSTORE_BASE64 found. Using SECRETS mode."
-            echo "$KEYSTORE_BASE64" | base64 -d > app-android/release.keystore
-            export RELEASE_STORE_PASSWORD="$SEC_STORE_PASSWORD"
-            export RELEASE_KEY_ALIAS="$SEC_KEY_ALIAS"
-            export RELEASE_KEY_PASSWORD="$SEC_KEY_PASSWORD"
+            echo "KEYSTORE_BASE64 found. Decoding..."
+            # Use printf to avoid adding a newline, and -di to be more robust
+            printf '%s' "$KEYSTORE_BASE64" | base64 -di > app-android/release.keystore
+            
+            echo "Checking environment variables (presence only)..."
+            if [ -z "$RELEASE_STORE_PASSWORD" ]; then echo "::error::RELEASE_STORE_PASSWORD is MISSING!"; fi
+            if [ -z "$RELEASE_KEY_ALIAS" ]; then echo "::error::RELEASE_KEY_ALIAS is MISSING!"; fi
+            if [ -z "$RELEASE_KEY_PASSWORD" ]; then echo "::error::RELEASE_KEY_PASSWORD is MISSING!"; fi
+            
+            # Verify keystore file size
+            echo "Keystore file size: $(stat -c%s app-android/release.keystore) bytes"
           fi
           
-          echo "Starting Gradle build..."
           ./gradlew :app-android:assembleRelease
       
       - name: Verify APK Signature
         run: |
-          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner.jar" | sort -r | head -n 1)
-          echo "Using apksigner: $APKSIGNER"
-          java -jar "$APKSIGNER" verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
+          APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner" | sort -r | head -n 1)
+          if [ -z "$APKSIGNER" ]; then
+            APKSIGNER=$(find $ANDROID_HOME/build-tools -name "apksigner.jar" | sort -r | head -n 1)
+            echo "Using apksigner jar: $APKSIGNER"
+            java -jar "$APKSIGNER" verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
+          else
+            echo "Using apksigner tool: $APKSIGNER"
+            "$APKSIGNER" verify --print-certs app-android/build/outputs/apk/release/app-android-release.apk
+          fi
       
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
