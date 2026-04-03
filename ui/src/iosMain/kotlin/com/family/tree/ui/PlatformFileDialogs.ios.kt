@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 package com.family.tree.ui
 
 import androidx.compose.runtime.Composable
@@ -15,10 +16,17 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
 import platform.UIKit.UIDocumentPickerMode
+import platform.UIKit.UIWindow
+import platform.UniformTypeIdentifiers.UTType
+import platform.UniformTypeIdentifiers.UTTypeContent
+import platform.UniformTypeIdentifiers.UTTypeData
+import platform.UniformTypeIdentifiers.UTTypeItem
+import platform.UniformTypeIdentifiers.UTTypePlainText
+import platform.UniformTypeIdentifiers.UTTypeJSON
+import platform.UniformTypeIdentifiers.UTTypeSVG
 import platform.darwin.NSObject
 import platform.posix.memcpy
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable
 actual fun PlatformFileDialogs(
     showOpen: Boolean,
@@ -93,14 +101,14 @@ actual fun PlatformFileDialogs(
         
         LaunchedEffect(Unit) {
             println("[DEBUG_LOG] PlatformFileDialogs.ios: LaunchedEffect for open dialog")
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             println("[DEBUG_LOG] PlatformFileDialogs.ios: rootViewController = $rootViewController")
             if (rootViewController != null) {
                 // Allow all file types for .ped (ZIP with JSON), JSON, and other formats
-                val documentTypes = listOf("public.item")
                 val picker = UIDocumentPickerViewController(
-                    documentTypes = documentTypes,
-                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                    forOpeningContentTypes = listOf(UTTypeItem),
+                    asCopy = true
                 )
                 
                 picker.setDelegate(delegate)
@@ -139,7 +147,8 @@ actual fun PlatformFileDialogs(
         
         LaunchedEffect(Unit) {
             println("[DEBUG_LOG] PlatformFileDialogs.ios: LaunchedEffect for save dialog")
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             println("[DEBUG_LOG] PlatformFileDialogs.ios: Save rootViewController = $rootViewController")
             if (rootViewController != null) {
                 val bytes = bytesToSave()
@@ -162,8 +171,8 @@ actual fun PlatformFileDialogs(
                 
                 if (success) {
                     val picker = UIDocumentPickerViewController(
-                        uRL = tempFileUrl,
-                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
                     
                     picker.setDelegate(delegate)
@@ -219,13 +228,13 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 // Allow all file types for .rel files
-                val documentTypes = listOf("public.item")
                 val picker = UIDocumentPickerViewController(
-                    documentTypes = documentTypes,
-                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                    forOpeningContentTypes = listOf(UTTypeItem),
+                    asCopy = true
                 )
                 picker.setDelegate(delegate)
                 rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -259,12 +268,12 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
-                val documentTypes = listOf("public.data", "public.plain-text")
                 val picker = UIDocumentPickerViewController(
-                    documentTypes = documentTypes,
-                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                    forOpeningContentTypes = listOf(UTTypeData, UTTypePlainText),
+                    asCopy = true
                 )
                 picker.setDelegate(delegate)
                 rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -308,13 +317,13 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 // Allow text and JSON files for AI import
-                val documentTypes = listOf("public.plain-text", "public.json", "public.data")
                 val picker = UIDocumentPickerViewController(
-                    documentTypes = documentTypes,
-                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
+                    forOpeningContentTypes = listOf(UTTypePlainText, UTTypeJSON, UTTypeData),
+                    asCopy = true
                 )
                 picker.setDelegate(delegate)
                 rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -343,7 +352,8 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 val bytes = markdownBytesToSave()
                 val data = byteArrayToNSData(bytes)
@@ -360,8 +370,8 @@ actual fun PlatformFileDialogs(
                 
                 if (success) {
                     val picker = UIDocumentPickerViewController(
-                        uRL = tempFileUrl,
-                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
                     picker.setDelegate(delegate)
                     rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -392,7 +402,8 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 val bytes = gedcomBytesToSave()
                 val data = byteArrayToNSData(bytes)
@@ -409,8 +420,8 @@ actual fun PlatformFileDialogs(
                 
                 if (success) {
                     val picker = UIDocumentPickerViewController(
-                        uRL = tempFileUrl,
-                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
                     picker.setDelegate(delegate)
                     rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -441,7 +452,8 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 val bytes = svgBytesToSave()
                 val data = byteArrayToNSData(bytes)
@@ -458,8 +470,8 @@ actual fun PlatformFileDialogs(
                 
                 if (success) {
                     val picker = UIDocumentPickerViewController(
-                        uRL = tempFileUrl,
-                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
                     picker.setDelegate(delegate)
                     rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -490,7 +502,8 @@ actual fun PlatformFileDialogs(
         }
         
         LaunchedEffect(Unit) {
-            val rootViewController = UIApplication.sharedApplication.keyWindow?.rootViewController
+            val window = UIApplication.sharedApplication.windows.mapNotNull { it as? UIWindow }.firstOrNull { it.isKeyWindow() }
+            val rootViewController = window?.rootViewController
             if (rootViewController != null) {
                 val bytes = svgFitBytesToSave()
                 val data = byteArrayToNSData(bytes)
@@ -507,8 +520,8 @@ actual fun PlatformFileDialogs(
                 
                 if (success) {
                     val picker = UIDocumentPickerViewController(
-                        uRL = tempFileUrl,
-                        inMode = UIDocumentPickerMode.UIDocumentPickerModeExportToService
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
                     picker.setDelegate(delegate)
                     rootViewController.presentViewController(picker, animated = true, completion = null)
@@ -522,7 +535,6 @@ actual fun PlatformFileDialogs(
     }
 }
 
-@OptIn(ExperimentalForeignApi::class)
 private fun nsDataToByteArray(data: NSData): ByteArray {
     val size = data.length.toInt()
     val bytes = ByteArray(size)
@@ -534,7 +546,6 @@ private fun nsDataToByteArray(data: NSData): ByteArray {
     return bytes
 }
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private fun byteArrayToNSData(bytes: ByteArray): NSData {
     return bytes.usePinned { pinned ->
         NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())

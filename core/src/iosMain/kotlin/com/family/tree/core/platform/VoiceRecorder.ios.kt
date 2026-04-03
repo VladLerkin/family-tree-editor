@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.cinterop.BetaInteropApi::class)
+@file:OptIn(kotlinx.cinterop.BetaInteropApi::class, kotlinx.cinterop.ExperimentalForeignApi::class)
 package com.family.tree.core.platform
 
 import kotlinx.cinterop.*
@@ -8,7 +8,6 @@ import platform.UIKit.UIApplication
 import platform.darwin.NSObject
 import platform.posix.memcpy
 
-@OptIn(ExperimentalForeignApi::class)
 actual class VoiceRecorder actual constructor(context: Any?) {
     
     private var recording = false
