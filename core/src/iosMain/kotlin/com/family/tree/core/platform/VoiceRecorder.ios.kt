@@ -1,3 +1,4 @@
+@file:OptIn(kotlinx.cinterop.BetaInteropApi::class)
 package com.family.tree.core.platform
 
 import kotlinx.cinterop.*

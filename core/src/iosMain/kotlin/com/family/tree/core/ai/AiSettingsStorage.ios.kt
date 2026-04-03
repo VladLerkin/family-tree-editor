@@ -15,6 +15,7 @@ import kotlinx.cinterop.*
 actual class AiSettingsStorage {
     private val defaults = NSUserDefaults.standardUserDefaults
     
+    @Suppress("DEPRECATION")
     actual fun saveConfig(config: AiConfig) {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig called")
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=${config.provider}, apiKey=${if (config.apiKey.isBlank()) "empty" else "present (${config.apiKey.length} chars)"}")
@@ -71,6 +72,7 @@ actual class AiSettingsStorage {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig completed")
     }
     
+    @Suppress("DEPRECATION")
     actual fun loadConfig(): AiConfig {
         // Load API key from Keychain (deprecated)
         val apiKey = loadFromKeychain(KEYCHAIN_KEY_API_KEY) ?: ""

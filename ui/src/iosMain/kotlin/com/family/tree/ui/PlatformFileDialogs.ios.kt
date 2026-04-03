@@ -534,7 +534,7 @@ private fun nsDataToByteArray(data: NSData): ByteArray {
     return bytes
 }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private fun byteArrayToNSData(bytes: ByteArray): NSData {
     return bytes.usePinned { pinned ->
         NSData.create(bytes = pinned.addressOf(0), length = bytes.size.toULong())
