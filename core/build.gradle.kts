@@ -91,6 +91,13 @@ kotlin {
             }
         }
     }
+    targets.all {
+        compilations.all {
+            compilerOptions.configure {
+                freeCompilerArgs.add("-Xexpect-actual-classes")
+            }
+        }
+    }
     // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 25
     jvmToolchain(libs.versions.java.get().toInt())
 }

@@ -424,9 +424,9 @@ Return ONLY the JSON object, no explanations.
         }
         
         // Determine gender of spouses for correct husband/wife assignment
-        val husband = if (spouse1Id != null && individuals.getOrNull(familyGroup.spouse1!!)?.gender == Gender.MALE) {
+        val husband = if (spouse1Id != null && individuals.getOrNull(familyGroup.spouse1)?.gender == Gender.MALE) {
             spouse1Id
-        } else if (spouse2Id != null && individuals.getOrNull(familyGroup.spouse2!!)?.gender == Gender.MALE) {
+        } else if (spouse2Id != null && individuals.getOrNull(familyGroup.spouse2)?.gender == Gender.MALE) {
             spouse2Id
         } else {
             spouse1Id  // Default to first spouse

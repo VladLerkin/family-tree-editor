@@ -47,8 +47,9 @@ class CustomClient : AiClient {
             val response = client.post(url) {
                 contentType(ContentType.Application.Json)
                 // API key может быть необязательным для локальных сервисов
-                if (config.apiKey.isNotBlank()) {
-                    header("Authorization", "Bearer ${config.apiKey}")
+                val apiKey = config.getApiKeyForProvider()
+                if (apiKey.isNotBlank()) {
+                    header("Authorization", "Bearer $apiKey")
                 }
                 setBody(requestBody.toString())
             }

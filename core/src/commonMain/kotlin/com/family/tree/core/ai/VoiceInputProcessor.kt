@@ -74,7 +74,7 @@ class VoiceInputProcessor(
                     try {
                         // Load actual AI config from settings
                         val aiConfig = settingsStorage.loadConfig()
-                        println("[DEBUG_LOG] VoiceInputProcessor: Loaded AI config - provider=${aiConfig.getProvider()}, model=${aiConfig.model}, apiKey=${if (aiConfig.apiKey.isBlank()) "empty" else "present"}")
+                        println("[DEBUG_LOG] VoiceInputProcessor: Loaded AI config - provider=${aiConfig.getProvider()}, model=${aiConfig.model}, apiKey=${if (aiConfig.getApiKeyForProvider().isBlank()) "empty" else "present"}")
                         
                         // Create clients with actual config
                         val transcriptionClient = TranscriptionClientFactory.createClient(aiConfig)

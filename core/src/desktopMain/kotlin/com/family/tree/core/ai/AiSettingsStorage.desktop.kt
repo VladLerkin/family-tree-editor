@@ -9,6 +9,7 @@ import java.util.Base64
 /**
  * Desktop implementation using Java Preferences API with AES encryption for API key.
  */
+@Suppress("DEPRECATION")
 actual class AiSettingsStorage {
     private val prefs: Preferences = Preferences.userNodeForPackage(AiSettingsStorage::class.java)
     

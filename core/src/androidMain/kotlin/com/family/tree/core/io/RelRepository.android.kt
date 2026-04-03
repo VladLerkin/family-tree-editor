@@ -48,7 +48,7 @@ actual class RelRepository {
                                 RelFormat.DATA_JSON -> {
                                     println("[DEBUG_LOG] RelRepository.read: Parsing data.json...")
                                     data = json.decodeFromString<ProjectData>(content.decodeToString())
-                                    println("[DEBUG_LOG] RelRepository.read: data.json parsed - individuals=${data?.individuals?.size}, families=${data?.families?.size}")
+                                    println("[DEBUG_LOG] RelRepository.read: data.json parsed - individuals=${data.individuals.size}, families=${data.families.size}")
                                 }
                                 RelFormat.LAYOUT_JSON -> {
                                     println("[DEBUG_LOG] RelRepository.read: Parsing layout.json...")

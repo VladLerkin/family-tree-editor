@@ -63,6 +63,7 @@ data class AiConfig(
      * Gets the actual API key for the current provider.
      * First checks provider-specific keys, then falls back to old fields.
      */
+    @Suppress("DEPRECATION")
     fun getApiKeyForProvider(): String {
         return when (getProvider()) {
             AiProvider.OPENAI -> openaiApiKey.ifBlank { apiKey }
@@ -75,6 +76,7 @@ data class AiConfig(
     /**
      * Gets the actual API key for the transcription provider.
      */
+    @Suppress("DEPRECATION")
     fun getApiKeyForTranscription(): String {
         return when (getTranscriptionProvider()) {
             TranscriptionProvider.OPENAI_WHISPER -> openaiApiKey.ifBlank { apiKey }

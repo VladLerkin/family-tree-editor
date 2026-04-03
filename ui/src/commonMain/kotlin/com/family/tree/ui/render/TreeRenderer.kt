@@ -101,11 +101,11 @@ private fun formatDates(birthDate: String?, deathDate: String?, firstName: Strin
 
     return if (hasBirth && hasDeath) {
         // Both dates: show as "birthDate - deathDate"
-        birthDate!!.trim() + " - " + deathDate!!.trim()
+        birthDate.trim() + " - " + deathDate.trim()
     } else if (hasBirth) {
         // Only birth date
         val prefix = if (isCyrillicText) "род.:" else "b.:"
-        prefix + birthDate!!.trim()
+        prefix + birthDate.trim()
     } else {
         // Only death date
         val prefix = if (isCyrillicText) "ум.:" else "d.:"

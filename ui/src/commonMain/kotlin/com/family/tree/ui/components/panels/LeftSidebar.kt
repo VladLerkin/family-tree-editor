@@ -103,8 +103,8 @@ fun LeftSidebar(
                         fun formatSpouseName(indId: IndividualId?): String {
                             if (indId == null) return ""
                             val ind = project.individuals.find { it.id == indId } ?: return indId.value
-                            val lastName = ind.lastName?.trim() ?: ""
-                            val firstName = ind.firstName?.trim() ?: ""
+                            val lastName = ind.lastName.trim()
+                            val firstName = ind.firstName.trim()
                             val sb = StringBuilder()
                             if (lastName.isNotEmpty()) sb.append(lastName)
                             if (firstName.isNotEmpty()) {
