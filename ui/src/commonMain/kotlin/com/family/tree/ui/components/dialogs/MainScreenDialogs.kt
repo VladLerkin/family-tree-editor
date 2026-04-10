@@ -117,7 +117,7 @@ fun MainScreenDialogs(
             androidx.compose.ui.window.Dialog(
                 onDismissRequest = { /* Cannot dismiss during import */ }
             ) {
-                androidx.compose.material3.Surface(
+                Surface(
                     modifier = Modifier.width(400.dp).wrapContentHeight(),
                     shape = MaterialTheme.shapes.large,
                     tonalElevation = 6.dp
@@ -128,7 +128,7 @@ fun MainScreenDialogs(
                         verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
                         Text("AI Progress", style = MaterialTheme.typography.headlineSmall)
-                        androidx.compose.material3.CircularProgressIndicator(
+                        CircularProgressIndicator(
                             modifier = Modifier.size(64.dp), strokeWidth = 6.dp
                         )
                         Text(
@@ -144,7 +144,7 @@ fun MainScreenDialogs(
         
         is AppDialog.AiInfo -> {
             androidx.compose.ui.window.Dialog(onDismissRequest = onCloseDialog) {
-                androidx.compose.material3.Surface(
+                Surface(
                     modifier = Modifier.width(500.dp).wrapContentHeight(),
                     shape = MaterialTheme.shapes.large,
                     tonalElevation = 6.dp
@@ -160,7 +160,7 @@ fun MainScreenDialogs(
                             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                         ) {
                             if (dialog.isPermissionError) {
-                                androidx.compose.material3.TextButton(
+                                TextButton(
                                     onClick = {
                                         val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
                                         voiceRecorder.openAppSettings()
@@ -170,7 +170,7 @@ fun MainScreenDialogs(
                                     Text("Open Settings")
                                 }
                             }
-                            androidx.compose.material3.TextButton(onClick = onCloseDialog) {
+                            TextButton(onClick = onCloseDialog) {
                                 Text("OK")
                             }
                         }
@@ -180,7 +180,7 @@ fun MainScreenDialogs(
         }
         
         is AppDialog.VoiceInput -> {
-            androidx.compose.material3.AlertDialog(
+            AlertDialog(
                 onDismissRequest = {
                     voiceInputProcessor.cancelRecording()
                     onCloseDialog()
@@ -194,7 +194,7 @@ fun MainScreenDialogs(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         if (voiceInputProcessor.isRecording()) {
-                            androidx.compose.material3.CircularProgressIndicator()
+                            CircularProgressIndicator()
                             Text("Speak...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                         } else {
                             Text("Processing...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)

@@ -39,10 +39,6 @@ sealed interface AppDialog {
     // AI Progress and Info
     data class AiProgress(val message: String) : AppDialog
     data class AiInfo(val message: String, val isPermissionError: Boolean = false) : AppDialog
-    
-    // File I/O dialogs
-    data class FileProgress(val title: String, val message: String) : AppDialog
-    data class FileError(val title: String, val message: String) : AppDialog
 }
 
 class MainViewModel : ViewModel() {

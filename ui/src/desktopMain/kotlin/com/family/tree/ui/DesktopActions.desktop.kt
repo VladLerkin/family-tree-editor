@@ -2,8 +2,17 @@ package com.family.tree.ui
 
 import com.family.tree.core.ProjectData
 import com.family.tree.core.ProjectMetadata
+import com.family.tree.core.ai.AiSettingsStorage
+import com.family.tree.core.ai.AiTextImporter
+import com.family.tree.core.export.MarkdownTreeExporter
+import com.family.tree.core.gedcom.GedcomExporter
+import com.family.tree.core.gedcom.GedcomImporter
+import com.family.tree.core.io.LoadedProject
+import com.family.tree.core.io.RelImporter
 import com.family.tree.core.io.RelRepository
+import com.family.tree.core.layout.ProjectLayout
 import com.family.tree.core.layout.SimpleTreeLayout
+import com.family.tree.core.model.IndividualId
 import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
@@ -14,7 +23,7 @@ import androidx.compose.ui.geometry.Offset
 actual object DesktopActions {
     private val relRepo = RelRepository()
 
-    actual fun openPed(onLoaded: (com.family.tree.core.io.LoadedProject?) -> Unit) {
+    actual fun openPed(onLoaded: (LoadedProject?) -> Unit) {
         println("[DEBUG_LOG] openPed: Dialog opening...")
         val fd = FileDialog(null as Frame?, "Open Project", FileDialog.LOAD)
         fd.file = "*.ped"
@@ -61,7 +70,7 @@ actual object DesktopActions {
         }
     }
 
-    actual fun savePedWithLayout(data: ProjectData, layout: com.family.tree.core.layout.ProjectLayout): Boolean {
+    actual fun savePedWithLayout(data: ProjectData, layout: ProjectLayout): Boolean {
         val fd = FileDialog(null as Frame?, "Save Project", FileDialog.SAVE)
         fd.file = "*.ped"
         fd.isVisible = true
@@ -79,7 +88,7 @@ actual object DesktopActions {
         }
     }
 
-    actual fun importRel(onLoaded: (com.family.tree.core.io.LoadedProject?) -> Unit) {
+    actual fun importRel(onLoaded: (LoadedProject?) -> Unit) {
         println("[DEBUG_LOG] importRel: Dialog opening...")
         val fd = FileDialog(null as Frame?, "Import .rel", FileDialog.LOAD)
         fd.file = "*.rel"
@@ -108,7 +117,7 @@ actual object DesktopActions {
                 println("[DEBUG_LOG] importRel: Binary 'Relatives' format detected - using RelImporter")
                 
                 // Use RelImporter to parse the binary .rel file
-                val importer = com.family.tree.core.io.RelImporter()
+                val importer = RelImporter()
                 val loaded = importer.importFromBytes(bytes)
                 println("[DEBUG_LOG] importRel: Successfully imported - individuals=${loaded.data.individuals.size}, families=${loaded.data.families.size}")
                 onLoaded(loaded)
@@ -162,7 +171,7 @@ actual object DesktopActions {
             val content = selected.readText(StandardCharsets.UTF_8)
             println("[DEBUG_LOG] importGedcom: Read ${content.length} chars from file")
             
-            val importer = com.family.tree.core.gedcom.GedcomImporter()
+            val importer = GedcomImporter()
             val data = importer.importFromString(content)
             println("[DEBUG_LOG] importGedcom: Successfully imported - individuals=${data.individuals.size}, families=${data.families.size}")
             onLoaded(data)
@@ -182,7 +191,7 @@ actual object DesktopActions {
         }
     }
 
-    actual fun importAiText(onLoaded: (com.family.tree.core.io.LoadedProject?) -> Unit, onProgress: (String) -> Unit) {
+    actual fun importAiText(onLoaded: (LoadedProject?) -> Unit, onProgress: (String) -> Unit) {
         println("[DEBUG_LOG] importAiText: Dialog opening...")
         val fd = FileDialog(null as Frame?, "Import AI Text", FileDialog.LOAD)
         fd.file = "*.txt"
@@ -199,7 +208,7 @@ actual object DesktopActions {
         println("[DEBUG_LOG] importAiText: Selected file: ${selected.absolutePath}, exists=${selected.exists()}")
         
         // Загружаем сохранённые настройки AI
-        val storage = com.family.tree.core.ai.AiSettingsStorage()
+        val storage = AiSettingsStorage()
         val config = storage.loadConfig()
         
         // Запускаем AI импорт в отдельном потоке
@@ -210,7 +219,7 @@ actual object DesktopActions {
                 println("[DEBUG_LOG] importAiText: Read ${content.length} chars, processing with ${config.provider}/${config.model}")
                 
                 // Определяем тип файла и обрабатываем
-                val importer = com.family.tree.core.ai.AiTextImporter(config)
+                val importer = AiTextImporter(config)
                 val loaded = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
                     // JSON format - parse directly
                     println("[DEBUG_LOG] importAiText: Detected JSON format")
@@ -254,7 +263,7 @@ actual object DesktopActions {
         val file = fd.file ?: return false
         val out = File(dir, if (file.endsWith(".ged")) file else "$file.ged")
         return try {
-            val exporter = com.family.tree.core.gedcom.GedcomExporter()
+            val exporter = GedcomExporter()
             val content = exporter.exportToString(data)
             out.writeText(content, StandardCharsets.UTF_8)
             println("[DEBUG_LOG] exportGedcom: Successfully exported to ${out.absolutePath}")
@@ -281,7 +290,7 @@ actual object DesktopActions {
         val file = fd.file ?: return false
         val out = File(dir, if (file.endsWith(".md", ignoreCase = true)) file else "$file.md")
         return try {
-            val exporter = com.family.tree.core.export.MarkdownTreeExporter()
+            val exporter = MarkdownTreeExporter()
             val content = exporter.exportToString(data)
             out.writeText(content, StandardCharsets.UTF_8)
             println("[DEBUG_LOG] exportMarkdownTree: Successfully exported to ${out.absolutePath}")
@@ -442,7 +451,7 @@ actual object DesktopActions {
             val centerX get() = x + w / 2f
             val centerY get() = y + h / 2f
         }
-        fun rectForId(id: com.family.tree.core.model.IndividualId): RectF? {
+        fun rectForId(id: IndividualId): RectF? {
             val p = positions[id] ?: return null
             return RectF(p.x, p.y, nodeW, nodeH)
         }

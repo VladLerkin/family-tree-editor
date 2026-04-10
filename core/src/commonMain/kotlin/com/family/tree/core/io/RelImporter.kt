@@ -3,7 +3,6 @@ package com.family.tree.core.io
 import com.family.tree.core.ProjectData
 import com.family.tree.core.layout.ProjectLayout
 import com.family.tree.core.model.*
-import kotlin.random.Random
 
 /**
  * Heuristic importer for binary .rel files produced by "Relatives/Родословная".

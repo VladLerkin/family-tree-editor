@@ -2,20 +2,22 @@ package com.family.tree.ui.render
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -23,30 +25,35 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.draw.clipToBounds
 import com.family.tree.core.ProjectData
 import com.family.tree.core.layout.SimpleTreeLayout
+import com.family.tree.core.model.Gender
+import com.family.tree.core.model.Individual
 import com.family.tree.core.model.IndividualId
 import com.family.tree.ui.PlatformEnv
 import kotlin.math.max
@@ -69,7 +76,7 @@ private fun isCyrillic(text: String?): Boolean {
 /**
  * Extracts event date from individual's events by type (e.g., "BIRT", "DEAT").
  */
-private fun extractEventDate(ind: com.family.tree.core.model.Individual?, type: String?): String? {
+private fun extractEventDate(ind: Individual?, type: String?): String? {
     if (ind == null || type == null) return null
     val t = type.trim().uppercase()
     for (ev in ind.events) {
@@ -113,7 +120,7 @@ private fun formatDates(birthDate: String?, deathDate: String?, firstName: Strin
     }
 }
 
-@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun TreeRenderer(
     data: ProjectData,
@@ -223,19 +230,19 @@ fun TreeRenderer(
                 lineHeight = lineHeightSp
             )
             val rFirst = measurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(first),
+                text = AnnotatedString(first),
                 style = nameStyle,
                 softWrap = false
             )
             // Always measure last name (even if empty) to reserve space
             val rLast = measurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(if (last.isNotBlank()) last else " "),
+                text = AnnotatedString(if (last.isNotBlank()) last else " "),
                 style = lastStyle,
                 softWrap = false
             )
             // Always measure dates (even if empty) to reserve space
             val rDate = measurer.measure(
-                text = androidx.compose.ui.text.AnnotatedString(if (!dateText.isNullOrEmpty()) dateText else " "),
+                text = AnnotatedString(if (!dateText.isNullOrEmpty()) dateText else " "),
                 style = dateStyle,
                 softWrap = false
             )
@@ -756,13 +763,13 @@ fun TreeRenderer(
             // Nodes (on top of edges) - only render visible nodes
             // Use key() to stabilize node composition and avoid unnecessary recompositions
             visibleIndividuals.forEach { ind ->
-                androidx.compose.runtime.key(ind.id) {
+                key(ind.id) {
                     val r = rectFor(ind.id) ?: return@forEach
                     val leftDp = with(density) { r.x.toDp() }
                     val topDp = with(density) { r.y.toDp() }
                     val wDp = with(density) { r.w.toDp() }
                     val hDp = with(density) { r.h.toDp() }
-                    var showNodeMenu by androidx.compose.runtime.remember(ind.id) { androidx.compose.runtime.mutableStateOf(false) }
+                    var showNodeMenu by remember(ind.id) { mutableStateOf(false) }
                     
                     // Extract birth and death dates from events
                     val birthDate = extractEventDate(ind, "BIRT")
@@ -820,7 +827,7 @@ fun TreeRenderer(
 private fun NodeCard(
     firstName: String,
     lastName: String,
-    gender: com.family.tree.core.model.Gender?,
+    gender: Gender?,
     birthDate: String?,
     deathDate: String?,
     x: Dp,
@@ -842,8 +849,8 @@ private fun NodeCard(
     
     // Gender-based background colors matching the screenshot
     val backgroundColor = when (gender) {
-        com.family.tree.core.model.Gender.MALE -> Color(0xFFD0D0FF)      // Light blue/lavender for males
-        com.family.tree.core.model.Gender.FEMALE -> Color(0xFFFFFFC0)    // Light yellow for females
+        Gender.MALE -> Color(0xFFD0D0FF)      // Light blue/lavender for males
+        Gender.FEMALE -> Color(0xFFFFFFC0)    // Light yellow for females
         else -> Color(0xFFFAFAFA)                                         // Default light gray for unknown
     }
     
@@ -871,7 +878,7 @@ private fun NodeCard(
             drawRoundRect(
                 color = borderColor,
                 style = Stroke(width = borderWidth),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f, 8f)
+                cornerRadius = CornerRadius(8f, 8f)
             )
         }
         
@@ -908,7 +915,7 @@ private fun NodeCard(
             
             // Line spacing proportional to font size
             val effLineHeightSp = effFsSp * lhFactor
-            androidx.compose.foundation.layout.Column(
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
@@ -930,7 +937,7 @@ private fun NodeCard(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
                 // Second line: last name (space always reserved)
-                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+                Spacer(Modifier.height(lineGapDp))
                 Text(
                     text = last.ifEmpty { "" },
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
@@ -944,7 +951,7 @@ private fun NodeCard(
                 )
                 // Third line: dates (space always reserved)
                 val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
-                androidx.compose.foundation.layout.Spacer(Modifier.height(lineGapDp))
+                Spacer(Modifier.height(lineGapDp))
                 Text(
                     text = dateText,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),

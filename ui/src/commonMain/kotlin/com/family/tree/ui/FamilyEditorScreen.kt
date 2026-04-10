@@ -91,7 +91,7 @@ data class FamilyEditorScreen(val familyId: FamilyId) : Screen {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Husband selector
-                androidx.compose.foundation.layout.Box {
+                Box {
                     val currentHText = husbandId?.let { individualsById[it]?.displayName ?: it.value } ?: "—"
                     OutlinedTextField(
                         value = currentHText,
@@ -108,7 +108,7 @@ data class FamilyEditorScreen(val familyId: FamilyId) : Screen {
                     }
                 }
                 // Wife selector
-                androidx.compose.foundation.layout.Box {
+                Box {
                     val currentWText = wifeId?.let { individualsById[it]?.displayName ?: it.value } ?: "—"
                     OutlinedTextField(
                         value = currentWText,

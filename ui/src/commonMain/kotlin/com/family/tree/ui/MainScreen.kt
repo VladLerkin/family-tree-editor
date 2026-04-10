@@ -4,72 +4,56 @@
 )
 package com.family.tree.ui
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.family.tree.core.ProjectData
 import com.family.tree.core.io.LoadedProject
-import com.family.tree.core.io.RelRepository
-import com.family.tree.core.io.RelImporter
-import com.family.tree.core.layout.SimpleTreeLayout
 import com.family.tree.core.model.Individual
 import com.family.tree.core.model.IndividualId
-import com.family.tree.core.model.FamilyId
-import com.family.tree.core.sample.SampleData
-import com.family.tree.core.platform.FileGateway
 import com.family.tree.core.search.QuickSearchService
+import com.family.tree.ui.components.MainTopAppBar
+import com.family.tree.ui.components.dialogs.MainScreenDialogState
+import com.family.tree.ui.components.dialogs.MainScreenDialogs
+import com.family.tree.ui.components.panels.LeftSidebar
+import com.family.tree.ui.components.panels.RightSidebar
 import com.family.tree.ui.render.TreeRenderer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
-import com.family.tree.ui.components.panels.RightSidebar
-import com.family.tree.ui.components.dialogs.MainScreenDialogState
-import com.family.tree.ui.components.dialogs.MainScreenDialogs
-import com.family.tree.ui.components.MainTopAppBar
-
-import com.family.tree.ui.components.panels.LeftSidebar
-@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun MainScreen() {
     // Get platform context (Android Context or null on other platforms)
     val platformContext = rememberPlatformContext()
     
-    val viewModel = org.koin.compose.koinInject<MainViewModel>()
+    val viewModel = koinInject<MainViewModel>()
     val state by viewModel.state.collectAsState()
     
     val project = state.project
@@ -94,19 +78,17 @@ fun MainScreen() {
 
     fun clampScale(s: Float) = s.coerceIn(0.25f, 4f)
 
-    suspend fun setScaleImmediate(value: Float) { scale = clampScale(value) }
     fun setScaleAnimated(value: Float) { scale = clampScale(value) }
 
     fun fitToView() {
-        val positions = cachedPositions
-        if (positions.isEmpty() || canvasSize.width == 0 || canvasSize.height == 0) {
+        if (cachedPositions.isEmpty() || canvasSize.width == 0 || canvasSize.height == 0) {
             scale = 1f
             // animate to zero pan
             pan = Offset.Zero
             return
         }
-        val xs = positions.values.map { it.x }
-        val ys = positions.values.map { it.y }
+        val xs = cachedPositions.values.map { it.x }
+        val ys = cachedPositions.values.map { it.y }
         val minX = xs.minOrNull() ?: 0f
         val maxX = xs.maxOrNull() ?: 0f
         val minY = ys.minOrNull() ?: 0f
@@ -219,7 +201,7 @@ fun MainScreen() {
         if (shouldAutoFit && cachedPositions.isNotEmpty() && canvasSize != IntSize.Zero) {
             println("[DEBUG_LOG] MainScreen: Conditions met, calling fitToView()")
             // Add a small delay to ensure canvas is fully initialized
-            kotlinx.coroutines.delay(50)
+            delay(50)
             println("[DEBUG_LOG] MainScreen: After delay, calling fitToView() with ${cachedPositions.size} positions, canvasSize=$canvasSize")
             fitToView()
             viewModel.markAutoFitConsumed()
@@ -229,7 +211,7 @@ fun MainScreen() {
         }
     }
 
-        val dialogState = remember { com.family.tree.ui.components.dialogs.MainScreenDialogState() }
+        val dialogState = remember { MainScreenDialogState() }
 
 // Store loaded project temporarily to ensure state update happens in composition scope
     var loadedProjectTemp by remember { mutableStateOf<LoadedProject?>(null) }
@@ -245,7 +227,6 @@ fun MainScreen() {
     
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
-    var isSpacePressed by remember { mutableStateOf(false) }
 
     // Auto-focus only on desktop to avoid keyboard popup on mobile
     LaunchedEffect(Unit) { 
@@ -303,7 +284,7 @@ fun MainScreen() {
             println("[DEBUG_LOG] MainScreen.importGedcom callback: data=$data")
             if (data != null) {
                 println("[DEBUG_LOG] MainScreen.importGedcom: Received data with ${data.individuals.size} individuals, ${data.families.size} families")
-                viewModel.loadProject(com.family.tree.core.io.LoadedProject(data, null, null), autoFit = true)
+                viewModel.loadProject(LoadedProject(data, null, null), autoFit = true)
                 println("[DEBUG_LOG] MainScreen.importGedcom: Updated project state")
             } else {
                 println("[DEBUG_LOG] MainScreen.importGedcom: data is null (user cancelled or error)")
@@ -564,7 +545,7 @@ fun MainScreen() {
     }
 
     // All Dialogs extracted
-    com.family.tree.ui.components.dialogs.MainScreenDialogs(
+    MainScreenDialogs(
         activeDialog = state.activeDialog,
         onOpenDialog = { viewModel.openDialog(it) },
         onCloseDialog = { viewModel.closeDialog() },
@@ -572,7 +553,10 @@ fun MainScreen() {
         project = project,
         onUpdateProject = { viewModel.updateProjectInfo(it) },
         loadedProjectTemp = loadedProjectTemp,
-        setLoadedProjectTemp = { loadedProjectTemp = it },
+        setLoadedProjectTemp = { projectData ->
+            println("[DEBUG_LOG] MainScreen: setting loadedProjectTemp to $projectData")
+            loadedProjectTemp = projectData
+        },
         onUpdateProjectLayout = { /* Handled in loadProject */ },
         onUpdateScale = { scale = it },
         onUpdatePan = { pan = it },

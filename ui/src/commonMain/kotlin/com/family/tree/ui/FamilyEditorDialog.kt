@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.draw.alpha
 import com.family.tree.core.model.Family
 import com.family.tree.core.model.FamilyId
 import com.family.tree.core.model.Individual
@@ -57,7 +56,7 @@ fun FamilyEditorDialog(
         text = {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Husband selector (optional)
-                androidx.compose.foundation.layout.Box {
+                Box {
                     val currentHText = husbandId?.let { individualsById[it]?.displayName ?: it.value } ?: "—"
                     OutlinedTextField(
                         value = currentHText,
@@ -78,7 +77,7 @@ fun FamilyEditorDialog(
                     }
                 }
                 // Wife selector (optional)
-                androidx.compose.foundation.layout.Box {
+                Box {
                     val currentWText = wifeId?.let { individualsById[it]?.displayName ?: it.value } ?: "—"
                     OutlinedTextField(
                         value = currentWText,
@@ -116,7 +115,7 @@ fun FamilyEditorDialog(
                             }.filter { (id, _) -> id != husbandId && id != wifeId && id !in selectedChildren }
                             items(filtered) { (id, label) ->
                                 val selected = (selectedAvailableId == id)
-                                val bg = if (selected) androidx.compose.ui.graphics.Color(0x201976D2) else androidx.compose.ui.graphics.Color.Unspecified
+                                val bg = if (selected) Color(0x201976D2) else Color.Unspecified
                                 Row(
                                     Modifier.fillMaxWidth().clickable { selectedAvailableId = id }.then(Modifier),
                                 ) {

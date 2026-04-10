@@ -1,7 +1,6 @@
 package com.family.tree.core.ai
 
 import io.ktor.client.request.*
-import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**

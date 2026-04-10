@@ -15,15 +15,11 @@ import platform.Foundation.create
 import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
-import platform.UIKit.UIDocumentPickerMode
 import platform.UIKit.UIWindow
-import platform.UniformTypeIdentifiers.UTType
-import platform.UniformTypeIdentifiers.UTTypeContent
 import platform.UniformTypeIdentifiers.UTTypeData
 import platform.UniformTypeIdentifiers.UTTypeItem
 import platform.UniformTypeIdentifiers.UTTypePlainText
 import platform.UniformTypeIdentifiers.UTTypeJSON
-import platform.UniformTypeIdentifiers.UTTypeSVG
 import platform.darwin.NSObject
 import platform.posix.memcpy
 

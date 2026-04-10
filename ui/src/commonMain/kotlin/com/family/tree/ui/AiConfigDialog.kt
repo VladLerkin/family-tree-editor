@@ -122,10 +122,6 @@ fun AiConfigDialog(
                 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
                 
-                // API Keys for provider groups - copy blocked, paste only
-                @Suppress("DEPRECATION")
-                val clipboardManager = LocalClipboardManager.current
-                
                 // Show API key field depending on the selected provider
                 when (provider) {
                     "OPENAI" -> {

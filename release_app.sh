@@ -52,7 +52,7 @@ sed -i '' "s/^app-versionCode = .*/app-versionCode = \"$NEW_CODE\"/" "$TOML_FILE
 echo "Updated $TOML_FILE"
 
 # 4. Git operations
-git add "$TOML_FILE"
+git add .
 COMMIT_MSG="Release v$NEW_VERSION"
 git commit -m "$COMMIT_MSG"
 

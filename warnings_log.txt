@@ -1,0 +1,711 @@
+Initialized native services in: /Users/vlad/.gradle/native
+Initialized jansi services in: /Users/vlad/.gradle/native
+Found daemon DaemonInfo{pid=2092, address=[be39eadb-4c26-4e58-a5d7-83e6cf9cc4f0 port:49580, addresses:[/127.0.0.1]], state=Idle, lastBusy=1775221435682, context=DefaultDaemonContext[uid=64a01de6-867e-4dea-8c2f-0dab1ca2c86d,javaHome=/Users/vlad/.antigravity/extensions/redhat.java-1.53.0-darwin-arm64/jre/21.0.10-macosx-aarch64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=/Users/vlad/.gradle/daemon,pid=2092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx3g,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]} however its context does not match the desired criteria.
+JVM is incompatible.
+Wanted: DaemonRequestContext{jvmCriteria=/Users/vlad/.sdkman/candidates/java/25.0.1-tem (no Daemon JVM specified, using current Java home), daemonOpts=[-Xmx3g, -Dfile.encoding=UTF-8, -Duser.country=US, -Duser.language=en, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=64a01de6-867e-4dea-8c2f-0dab1ca2c86d,javaHome=/Users/vlad/.antigravity/extensions/redhat.java-1.53.0-darwin-arm64/jre/21.0.10-macosx-aarch64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=/Users/vlad/.gradle/daemon,pid=2092,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-Xmx3g,-Dfile.encoding=UTF-8,-Duser.country=US,-Duser.language=en,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 17550). The daemon log file: /Users/vlad/.gradle/daemon/9.4.1/daemon-17550.out.log
+Starting 18th build in daemon [uptime: 1 hrs 7 mins 44.745 secs, performance: 100%, GC rate: 0.00/s, heap usage: 0% of 3 GiB]
+Using 12 worker leases.
+Operational build model parameters: {cachingModelBuilding=false, configurationCache=false, configurationCacheDisabledReason=null, configurationCacheParallelLoad=false, configurationCacheParallelStore=false, configureOnDemand=false, invalidateCoupledProjects=false, isolatedProjects=false, modelAsProjectDependency=false, modelBuilding=false, parallelModelBuilding=false, parallelProjectConfiguration=false, parallelProjectExecution=true, resilientModelBuilding=false}
+Now considering [/Users/vlad/IdeaProjects/family-tree-editor] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.3.20', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.3.20', apply: false]
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.3.20', apply: false]
+Resolved plugin [id: 'org.jetbrains.compose', version: '1.10.3', apply: false]
+Resolved plugin [id: 'com.android.application', version: '9.1.0', apply: false]
+Resolved plugin [id: 'com.android.library', version: '9.1.0', apply: false]
+Resolved plugin [id: 'com.android.kotlin.multiplatform.library', version: '9.1.0', apply: false]
+Resolved plugin [id: 'org.gradle.toolchains.foojay-resolver-convention', version: '1.0.0']
+Settings evaluated using settings file '/Users/vlad/IdeaProjects/family-tree-editor/settings.gradle.kts'.
+Using local directory build cache for the root build (location = /Users/vlad/.gradle/caches/build-cache-1, remove unused entries = after 7 days).
+Projects loaded. Root project using build file '/Users/vlad/IdeaProjects/family-tree-editor/build.gradle.kts'.
+Included projects: [root project 'family-tree-kmp', project ':app-android', project ':app-desktop', project ':app-ios', project ':app-web', project ':core', project ':ui']
+
+> Configure project :
+Evaluating root project 'family-tree-kmp' using build file '/Users/vlad/IdeaProjects/family-tree-editor/build.gradle.kts'.
+
+> Configure project :app-android
+Evaluating project ':app-android' using build file '/Users/vlad/IdeaProjects/family-tree-editor/app-android/build.gradle.kts'.
+Resolved plugin [id: 'com.android.application', version: '9.1.0']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.3.20']
+Build 2e52490e-8a71-4a2f-a014-33c5e670d76a is started
+Using default execution profile
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+Detected Android Gradle Plugin compose compiler configuration
+
+> Configure project :app-desktop
+Evaluating project ':app-desktop' using build file '/Users/vlad/IdeaProjects/family-tree-editor/app-desktop/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.jvm']
+Resolved plugin [id: 'org.jetbrains.compose', version: '1.10.3']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.3.20']
+Using Kotlin Gradle Plugin gradle813 variant
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Configure java-only compose resources
+Configure compose resources generation
+Configure Res object generation for main
+Configure resource accessors generation for main
+Configure resource accessors generation for test
+Configure actual resource collectors generation for main
+Configure main resources for '' target
+Configure test resources for '' target
+Check that new 'org.jetbrains.kotlin.plugin.compose' was applied
+Configure resource accessors generation for dev
+kotlin scripting plugin: created the scripting discovery configuration: devKotlinScriptDef
+Configure dev resources for '' target
+
+> Configure project :app-ios
+Evaluating project ':app-ios' using build file '/Users/vlad/IdeaProjects/family-tree-editor/app-ios/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform']
+Resolved plugin [id: 'org.jetbrains.compose']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose']
+Using Kotlin Gradle Plugin gradle813 variant
+Configure multi-module compose resources
+Configure compose resources generation
+Configure Res object generation for commonMain
+Configure resource accessors generation for commonMain
+Configure resource accessors generation for commonTest
+Configure expect resource collectors generation for commonMain
+Configure resource accessors generation for iosX64Main
+Configure resource accessors generation for iosX64Test
+Configure actual resource collectors generation for iosX64Main
+Configure main resources for 'iosX64' target
+Configure KMP component publication for 'iosX64'
+Collect resolved main resources for 'iosX64'
+Configure test resources for 'iosX64' target
+Configure resource accessors generation for iosArm64Main
+Configure resource accessors generation for iosArm64Test
+Configure actual resource collectors generation for iosArm64Main
+Configure main resources for 'iosArm64' target
+Configure KMP component publication for 'iosArm64'
+Collect resolved main resources for 'iosArm64'
+Configure test resources for 'iosArm64' target
+Configure resource accessors generation for iosSimulatorArm64Main
+Configure resource accessors generation for iosSimulatorArm64Test
+Configure actual resource collectors generation for iosSimulatorArm64Main
+Configure main resources for 'iosSimulatorArm64' target
+Configure KMP component publication for 'iosSimulatorArm64'
+Collect resolved main resources for 'iosSimulatorArm64'
+Configure test resources for 'iosSimulatorArm64' target
+Check that new 'org.jetbrains.kotlin.plugin.compose' was applied
+Configure resource accessors generation for nativeMain
+Configure resource accessors generation for appleMain
+Configure resource accessors generation for iosMain
+Configure resource accessors generation for nativeTest
+Configure resource accessors generation for appleTest
+Configure resource accessors generation for iosTest
+
+> Configure project :app-web
+Evaluating project ':app-web' using build file '/Users/vlad/IdeaProjects/family-tree-editor/app-web/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform']
+Resolved plugin [id: 'org.jetbrains.compose']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose']
+Using Kotlin Gradle Plugin gradle813 variant
+Configure multi-module compose resources
+Configure compose resources generation
+Configure Res object generation for commonMain
+Configure resource accessors generation for commonMain
+Configure resource accessors generation for commonTest
+Configure expect resource collectors generation for commonMain
+Configure resource accessors generation for wasmJsMain
+Configure resource accessors generation for wasmJsTest
+Configure actual resource collectors generation for wasmJsMain
+Configure main resources for 'wasmJs' target
+Configure KMP component publication for 'wasmJs'
+Collect resolved main resources for 'wasmJs'
+Configure test resources for 'wasmJs' target
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+Check that new 'org.jetbrains.kotlin.plugin.compose' was applied
+Configure resource accessors generation for webMain
+Configure resource accessors generation for webTest
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/app-web/src/webMain/kotlin', not found
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/app-web/src/webTest/kotlin', not found
+
+> Configure project :core
+Evaluating project ':core' using build file '/Users/vlad/IdeaProjects/family-tree-editor/core/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.3.20']
+Resolved plugin [id: 'com.android.kotlin.multiplatform.library', version: '9.1.0']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.serialization', version: '2.3.20']
+Using Kotlin Gradle Plugin gradle813 variant
+Created androidJvm target
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+Created compile task: compileAndroidMain
+Using default execution profile
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+compileSdkVersion=android-36
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/core/src/webMain/kotlin', not found
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/core/src/webTest/kotlin', not found
+
+> Configure project :ui
+Evaluating project ':ui' using build file '/Users/vlad/IdeaProjects/family-tree-editor/ui/build.gradle.kts'.
+Resolved plugin [id: 'org.jetbrains.kotlin.multiplatform', version: '2.3.20']
+Resolved plugin [id: 'org.jetbrains.compose', version: '1.10.3']
+Resolved plugin [id: 'com.android.kotlin.multiplatform.library', version: '9.1.0']
+Resolved plugin [id: 'org.jetbrains.kotlin.plugin.compose', version: '2.3.20']
+Using Kotlin Gradle Plugin gradle813 variant
+Configure multi-module compose resources
+Configure compose resources generation
+Configure Res object generation for commonMain
+Configure resource accessors generation for commonMain
+Configure resource accessors generation for commonTest
+Configure expect resource collectors generation for commonMain
+Created androidJvm target
+Configure resource accessors generation for androidMain
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+Created compile task: compileAndroidMain
+Configure actual resource collectors generation for androidMain
+Using default execution profile
+Configure compose resources with KotlinMultiplatformAndroidComponentsExtension
+Configure resource accessors generation for desktopMain
+kotlin scripting plugin: created the scripting discovery configuration: kotlinScriptDef
+Configure resource accessors generation for desktopTest
+kotlin scripting plugin: created the scripting discovery configuration: testKotlinScriptDef
+Configure actual resource collectors generation for desktopMain
+Configure main resources for 'desktop' target
+Configure test resources for 'desktop' target
+Configure resource accessors generation for iosX64Main
+Configure resource accessors generation for iosX64Test
+Configure actual resource collectors generation for iosX64Main
+Configure main resources for 'iosX64' target
+Configure KMP component publication for 'iosX64'
+Collect resolved main resources for 'iosX64'
+Configure test resources for 'iosX64' target
+Configure resource accessors generation for iosArm64Main
+Configure resource accessors generation for iosArm64Test
+Configure actual resource collectors generation for iosArm64Main
+Configure main resources for 'iosArm64' target
+Configure KMP component publication for 'iosArm64'
+Collect resolved main resources for 'iosArm64'
+Configure test resources for 'iosArm64' target
+Configure resource accessors generation for iosSimulatorArm64Main
+Configure resource accessors generation for iosSimulatorArm64Test
+Configure actual resource collectors generation for iosSimulatorArm64Main
+Configure main resources for 'iosSimulatorArm64' target
+Configure KMP component publication for 'iosSimulatorArm64'
+Collect resolved main resources for 'iosSimulatorArm64'
+Configure test resources for 'iosSimulatorArm64' target
+Configure resource accessors generation for wasmJsMain
+Configure resource accessors generation for wasmJsTest
+Configure actual resource collectors generation for wasmJsMain
+Configure main resources for 'wasmJs' target
+Configure KMP component publication for 'wasmJs'
+Collect resolved main resources for 'wasmJs'
+Configure test resources for 'wasmJs' target
+[KOTLIN] Storing cached files in /Users/vlad/.gradle
+Check that new 'org.jetbrains.kotlin.plugin.compose' was applied
+Configure resource accessors generation for desktopDev
+kotlin scripting plugin: created the scripting discovery configuration: devKotlinScriptDef
+Configure dev resources for 'desktop' target
+compileSdkVersion=android-36
+Configure androidMain resources for 'android' target
+Configure resource accessors generation for nativeMain
+Configure resource accessors generation for appleMain
+Configure resource accessors generation for iosMain
+Configure resource accessors generation for nativeTest
+Configure resource accessors generation for appleTest
+Configure resource accessors generation for iosTest
+Configure resource accessors generation for webMain
+Configure resource accessors generation for webTest
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/src/webMain/kotlin', not found
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/src/webTest/kotlin', not found
+All projects evaluated.
+Task name matched 'clean'
+Task path ':core:compileKotlinIosArm64' matched project ':core'
+Task name matched 'compileKotlinIosArm64'
+Task path ':ui:compileKotlinIosArm64' matched project ':ui'
+Task name matched 'compileKotlinIosArm64'
+Selected primary task 'clean' from project :
+Selected primary task 'compileKotlinIosArm64' from project :core
+Selected primary task 'compileKotlinIosArm64' from project :ui
+Tasks to be executed: [task ':clean', task ':app-android:clean', task ':app-desktop:clean', task ':app-ios:cleanIosSimulatorArm64Test', task ':app-ios:cleanIosX64Test', task ':app-ios:cleanAllTests', task ':app-ios:clean', task ':app-web:cleanWasmJsBrowserTest', task ':app-web:cleanAllTests', task ':app-web:clean', task ':core:cleanDesktopTest', task ':core:cleanIosSimulatorArm64Test', task ':core:cleanIosX64Test', task ':core:cleanWasmJsBrowserTest', task ':core:cleanAllTests', task ':core:clean', task ':ui:cleanDesktopTest', task ':ui:cleanIosSimulatorArm64Test', task ':ui:cleanIosX64Test', task ':ui:cleanWasmJsBrowserTest', task ':ui:cleanAllTests', task ':ui:clean', task ':core:kmpPartiallyResolvedDependenciesChecker', task ':core:checkKotlinGradlePluginConfigurationErrors', task ':core:downloadKotlinNativeDistribution', task ':core:generateBuildConfig', task ':core:compileKotlinIosArm64', task ':core:exportCrossCompilationMetadataForIosArm64ApiElements', task ':ui:kmpPartiallyResolvedDependenciesChecker', task ':ui:checkKotlinGradlePluginConfigurationErrors', task ':ui:downloadKotlinNativeDistribution', task ':ui:convertXmlValueResourcesForAppleMain', task ':ui:copyNonXmlValueResourcesForAppleMain', task ':ui:prepareComposeResourcesTaskForAppleMain', task ':ui:generateResourceAccessorsForAppleMain', task ':ui:convertXmlValueResourcesForCommonMain', task ':ui:copyNonXmlValueResourcesForCommonMain', task ':ui:prepareComposeResourcesTaskForCommonMain', task ':ui:generateResourceAccessorsForCommonMain', task ':ui:convertXmlValueResourcesForIosArm64Main', task ':ui:copyNonXmlValueResourcesForIosArm64Main', task ':ui:prepareComposeResourcesTaskForIosArm64Main', task ':ui:generateResourceAccessorsForIosArm64Main', task ':ui:convertXmlValueResourcesForIosMain', task ':ui:copyNonXmlValueResourcesForIosMain', task ':ui:prepareComposeResourcesTaskForIosMain', task ':ui:generateResourceAccessorsForIosMain', task ':ui:convertXmlValueResourcesForNativeMain', task ':ui:copyNonXmlValueResourcesForNativeMain', task ':ui:prepareComposeResourcesTaskForNativeMain', task ':ui:generateResourceAccessorsForNativeMain', task ':ui:generateActualResourceCollectorsForIosArm64Main', task ':ui:generateComposeResClass', task ':ui:generateExpectResourceCollectorsForCommonMain', task ':ui:compileKotlinIosArm64']
+Tasks that were excluded: []
+Resolve mutations for :clean (Thread[#1127,Execution worker,5,main]) started.
+Resolve mutations for :app-android:clean (Thread[#1129,Execution worker Thread 3,5,main]) started.
+:clean (Thread[#1127,Execution worker,5,main]) started.
+Resolve mutations for :app-desktop:clean (Thread[#1128,Execution worker Thread 2,5,main]) started.
+:app-android:clean (Thread[#1129,Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app-ios:cleanIosSimulatorArm64Test (Thread[#1131,Execution worker Thread 5,5,main]) started.
+Resolve mutations for :app-web:cleanWasmJsBrowserTest (Thread[#1132,Execution worker Thread 6,5,main]) started.
+Resolve mutations for :core:cleanDesktopTest (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:app-desktop:clean (Thread[#1128,Execution worker Thread 2,5,main]) started.
+Resolve mutations for :ui:cleanDesktopTest (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:app-ios:cleanIosSimulatorArm64Test (Thread[#1135,Execution worker Thread 9,5,main]) started.
+:app-web:cleanWasmJsBrowserTest (Thread[#1132,Execution worker Thread 6,5,main]) started.
+Starting process 'command '/usr/libexec/java_home''. Working directory: /Users/vlad/.gradle/daemon/9.4.1 Command: /usr/libexec/java_home -V
+
+> Task :app-ios:cleanIosSimulatorArm64Test UP-TO-DATE
+Caching disabled for task ':app-ios:cleanIosSimulatorArm64Test' because:
+  Deletion cannot be cached
+Task ':app-ios:cleanIosSimulatorArm64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :app-ios:cleanIosX64Test (Thread[#1135,Execution worker Thread 9,5,main]) started.
+
+> Task :app-web:cleanWasmJsBrowserTest UP-TO-DATE
+Caching disabled for task ':app-web:cleanWasmJsBrowserTest' because:
+  Deletion cannot be cached
+Task ':app-web:cleanWasmJsBrowserTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+:app-ios:cleanIosX64Test (Thread[#1135,Execution worker Thread 9,5,main]) started.
+Resolve mutations for :app-web:cleanAllTests (Thread[#1132,Execution worker Thread 6,5,main]) started.
+:app-web:cleanAllTests (Thread[#1137,Execution worker Thread 11,5,main]) started.
+
+> Task :app-web:cleanAllTests UP-TO-DATE
+Skipping task ':app-web:cleanAllTests' as it has no actions.
+Resolve mutations for :app-web:clean (Thread[#1137,Execution worker Thread 11,5,main]) started.
+:app-web:clean (Thread[#1137,Execution worker Thread 11,5,main]) started.
+
+> Task :app-ios:cleanIosX64Test UP-TO-DATE
+Caching disabled for task ':app-ios:cleanIosX64Test' because:
+  Deletion cannot be cached
+Task ':app-ios:cleanIosX64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :app-ios:cleanAllTests (Thread[#1135,Execution worker Thread 9,5,main]) started.
+:app-ios:cleanAllTests (Thread[#1131,Execution worker Thread 5,5,main]) started.
+
+> Task :app-ios:cleanAllTests UP-TO-DATE
+Skipping task ':app-ios:cleanAllTests' as it has no actions.
+Resolve mutations for :app-ios:clean (Thread[#1131,Execution worker Thread 5,5,main]) started.
+:app-ios:clean (Thread[#1131,Execution worker Thread 5,5,main]) started.
+Successfully started process 'command '/usr/libexec/java_home''
+
+> Task :app-desktop:clean
+Caching disabled for task ':app-desktop:clean' because:
+  Deletion cannot be cached
+Task ':app-desktop:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Java Toolchain auto-detection failed to find local MacOS system JVMs
+:ui:cleanDesktopTest (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:core:cleanDesktopTest (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :ui:cleanDesktopTest UP-TO-DATE
+Caching disabled for task ':ui:cleanDesktopTest' because:
+  Deletion cannot be cached
+Task ':ui:cleanDesktopTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :ui:cleanIosSimulatorArm64Test (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:cleanIosSimulatorArm64Test (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :core:cleanDesktopTest UP-TO-DATE
+Caching disabled for task ':core:cleanDesktopTest' because:
+  Deletion cannot be cached
+Task ':core:cleanDesktopTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :ui:cleanIosSimulatorArm64Test UP-TO-DATE
+Caching disabled for task ':ui:cleanIosSimulatorArm64Test' because:
+  Deletion cannot be cached
+Task ':ui:cleanIosSimulatorArm64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :core:cleanIosSimulatorArm64Test (Thread[#1130,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :ui:cleanIosX64Test (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:core:cleanIosSimulatorArm64Test (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:ui:cleanIosX64Test (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:cleanIosX64Test UP-TO-DATE
+Caching disabled for task ':ui:cleanIosX64Test' because:
+  Deletion cannot be cached
+Task ':ui:cleanIosX64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :ui:cleanWasmJsBrowserTest (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :core:cleanIosSimulatorArm64Test UP-TO-DATE
+Caching disabled for task ':core:cleanIosSimulatorArm64Test' because:
+  Deletion cannot be cached
+Task ':core:cleanIosSimulatorArm64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :core:cleanIosX64Test (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:ui:cleanWasmJsBrowserTest (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:core:cleanIosX64Test (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:cleanIosX64Test UP-TO-DATE
+Caching disabled for task ':core:cleanIosX64Test' because:
+  Deletion cannot be cached
+Task ':core:cleanIosX64Test' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :ui:cleanWasmJsBrowserTest UP-TO-DATE
+Caching disabled for task ':ui:cleanWasmJsBrowserTest' because:
+  Deletion cannot be cached
+Task ':ui:cleanWasmJsBrowserTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :ui:cleanAllTests (Thread[#1133,Execution worker Thread 7,5,main]) started.
+Resolve mutations for :core:cleanWasmJsBrowserTest (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:ui:cleanAllTests (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:core:cleanWasmJsBrowserTest (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :ui:cleanAllTests UP-TO-DATE
+Skipping task ':ui:cleanAllTests' as it has no actions.
+Resolve mutations for :ui:clean (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:clean (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :core:cleanWasmJsBrowserTest UP-TO-DATE
+Caching disabled for task ':core:cleanWasmJsBrowserTest' because:
+  Deletion cannot be cached
+Task ':core:cleanWasmJsBrowserTest' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :core:cleanAllTests (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:cleanAllTests (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:cleanAllTests UP-TO-DATE
+Skipping task ':core:cleanAllTests' as it has no actions.
+Resolve mutations for :core:clean (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:clean (Thread[#1130,Execution worker Thread 4,5,main]) started.
+destroyer locations for task group 0 (Thread[#1128,Execution worker Thread 2,5,main]) started.
+destroyer locations for task group 1 (Thread[#1128,Execution worker Thread 2,5,main]) started.
+
+> Task :app-web:clean
+Caching disabled for task ':app-web:clean' because:
+  Deletion cannot be cached
+Task ':app-web:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :clean
+Caching disabled for task ':clean' because:
+  Deletion cannot be cached
+Task ':clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Detected overflow for /Users/vlad/IdeaProjects/family-tree-editor
+Overflow detected (type: OPERATING_SYSTEM) for watched path '/Users/vlad/IdeaProjects/family-tree-editor', invalidating
+Not watching anything anymore
+
+> Task :app-ios:clean
+Caching disabled for task ':app-ios:clean' because:
+  Deletion cannot be cached
+Task ':app-ios:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :app-android:clean
+Caching disabled for task ':app-android:clean' because:
+  Deletion cannot be cached
+Task ':app-android:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+
+> Task :core:clean
+Caching disabled for task ':core:clean' because:
+  Deletion cannot be cached
+Task ':core:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :core:kmpPartiallyResolvedDependenciesChecker (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:kmpPartiallyResolvedDependenciesChecker (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :ui:clean
+Caching disabled for task ':ui:clean' because:
+  Deletion cannot be cached
+Task ':ui:clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :ui:kmpPartiallyResolvedDependenciesChecker (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:kmpPartiallyResolvedDependenciesChecker (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :core:kmpPartiallyResolvedDependenciesChecker
+Custom actions are attached to task ':core:kmpPartiallyResolvedDependenciesChecker'.
+Caching disabled for task ':core:kmpPartiallyResolvedDependenciesChecker' because:
+  This task is not intended for execution
+Task ':core:kmpPartiallyResolvedDependenciesChecker' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Execution stopped by some action with message: null
+Resolve mutations for :core:checkKotlinGradlePluginConfigurationErrors (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:checkKotlinGradlePluginConfigurationErrors (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':core:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :core:downloadKotlinNativeDistribution (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:downloadKotlinNativeDistribution (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:downloadKotlinNativeDistribution
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Caching disabled for task ':core:downloadKotlinNativeDistribution' because:
+  Task output contains file with kotlin native location, this file should not be restore from the cache as it could lead to a wrong location
+Task ':core:downloadKotlinNativeDistribution' is not up-to-date because:
+  Output property 'nativeDirectoryLocation' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/konan.txt has been removed.
+Resolve mutations for :core:generateBuildConfig (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:generateBuildConfig (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:generateBuildConfig
+Custom actions are attached to task ':core:generateBuildConfig'.
+Caching disabled for task ':core:generateBuildConfig' because:
+  Gradle would require more information to cache this task
+Task ':core:generateBuildConfig' is not up-to-date because:
+  Output property '$1' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/generated/buildConfig/commonMain/kotlin has been removed.
+  Output property '$1' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/generated/buildConfig/commonMain/kotlin/com has been removed.
+  Output property '$1' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/generated/buildConfig/commonMain/kotlin/com/family has been removed.
+  and more...
+Resolve mutations for :core:compileKotlinIosArm64 (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:compileKotlinIosArm64 (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:compileKotlinIosArm64 FROM-CACHE
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Build cache key for task ':core:compileKotlinIosArm64' is 451c61dc56974721e3c269a9e2f5f33b
+Task ':core:compileKotlinIosArm64' is not up-to-date because:
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/classes/kotlin/iosArm64/main/klib has been removed.
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/classes/kotlin/iosArm64/main/klib/core has been removed.
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/classes/kotlin/iosArm64/main/klib/core/default has been removed.
+  and more...
+Loaded cache entry for task ':core:compileKotlinIosArm64' with cache key 451c61dc56974721e3c269a9e2f5f33b
+work action resolve core (project :core) (Thread[#1130,Execution worker Thread 4,5,main]) started.
+Resolve mutations for :core:exportCrossCompilationMetadataForIosArm64ApiElements (Thread[#1130,Execution worker Thread 4,5,main]) started.
+:core:exportCrossCompilationMetadataForIosArm64ApiElements (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :core:exportCrossCompilationMetadataForIosArm64ApiElements
+Caching disabled for task ':core:exportCrossCompilationMetadataForIosArm64ApiElements' because:
+  Trivial operation
+Task ':core:exportCrossCompilationMetadataForIosArm64ApiElements' is not up-to-date because:
+  Output property 'outputFile' file /Users/vlad/IdeaProjects/family-tree-editor/core/build/kotlin/kotlin-project-shared-data/crossCompilationMetadata_iosArm64ApiElements.json has been removed.
+work action resolve crossCompilationMetadata_iosArm64ApiElements.json (project :core) (Thread[#1130,Execution worker Thread 4,5,main]) started.
+
+> Task :ui:kmpPartiallyResolvedDependenciesChecker
+Custom actions are attached to task ':ui:kmpPartiallyResolvedDependenciesChecker'.
+Caching disabled for task ':ui:kmpPartiallyResolvedDependenciesChecker' because:
+  This task is not intended for execution
+Task ':ui:kmpPartiallyResolvedDependenciesChecker' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Execution stopped by some action with message: null
+Resolve mutations for :ui:checkKotlinGradlePluginConfigurationErrors (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:checkKotlinGradlePluginConfigurationErrors (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:checkKotlinGradlePluginConfigurationErrors SKIPPED
+Skipping task ':ui:checkKotlinGradlePluginConfigurationErrors' as task onlyIf 'errorDiagnostics are present' is false.
+Resolve mutations for :ui:downloadKotlinNativeDistribution (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:downloadKotlinNativeDistribution (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:downloadKotlinNativeDistribution
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Caching disabled for task ':ui:downloadKotlinNativeDistribution' because:
+  Task output contains file with kotlin native location, this file should not be restore from the cache as it could lead to a wrong location
+Task ':ui:downloadKotlinNativeDistribution' is not up-to-date because:
+  Output property 'nativeDirectoryLocation' file /Users/vlad/IdeaProjects/family-tree-editor/ui/build/konan.txt has been removed.
+Resolve mutations for :ui:convertXmlValueResourcesForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:convertXmlValueResourcesForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:convertXmlValueResourcesForAppleMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/appleMain/composeResources', not found
+Skipping task ':ui:convertXmlValueResourcesForAppleMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:copyNonXmlValueResourcesForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:copyNonXmlValueResourcesForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:copyNonXmlValueResourcesForAppleMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/appleMain/composeResources', not found
+Skipping task ':ui:copyNonXmlValueResourcesForAppleMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:prepareComposeResourcesTaskForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:prepareComposeResourcesTaskForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:prepareComposeResourcesTaskForAppleMain NO-SOURCE
+Skipping task ':ui:prepareComposeResourcesTaskForAppleMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:generateResourceAccessorsForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:generateResourceAccessorsForAppleMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:generateResourceAccessorsForAppleMain SKIPPED
+Skipping task ':ui:generateResourceAccessorsForAppleMain' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:convertXmlValueResourcesForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:convertXmlValueResourcesForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:convertXmlValueResourcesForCommonMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources', not found
+Skipping task ':ui:convertXmlValueResourcesForCommonMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:copyNonXmlValueResourcesForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:copyNonXmlValueResourcesForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:copyNonXmlValueResourcesForCommonMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/commonMain/composeResources', not found
+Skipping task ':ui:copyNonXmlValueResourcesForCommonMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:prepareComposeResourcesTaskForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:prepareComposeResourcesTaskForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:prepareComposeResourcesTaskForCommonMain NO-SOURCE
+Skipping task ':ui:prepareComposeResourcesTaskForCommonMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:generateResourceAccessorsForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:generateResourceAccessorsForCommonMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:generateResourceAccessorsForCommonMain SKIPPED
+Skipping task ':ui:generateResourceAccessorsForCommonMain' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:convertXmlValueResourcesForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:convertXmlValueResourcesForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:convertXmlValueResourcesForIosArm64Main NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/iosArm64Main/composeResources', not found
+Skipping task ':ui:convertXmlValueResourcesForIosArm64Main' as it has no source files and no previous output files.
+Resolve mutations for :ui:copyNonXmlValueResourcesForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:copyNonXmlValueResourcesForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:copyNonXmlValueResourcesForIosArm64Main NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/iosArm64Main/composeResources', not found
+Skipping task ':ui:copyNonXmlValueResourcesForIosArm64Main' as it has no source files and no previous output files.
+Resolve mutations for :ui:prepareComposeResourcesTaskForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:prepareComposeResourcesTaskForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:prepareComposeResourcesTaskForIosArm64Main NO-SOURCE
+Skipping task ':ui:prepareComposeResourcesTaskForIosArm64Main' as it has no source files and no previous output files.
+Resolve mutations for :ui:generateResourceAccessorsForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:generateResourceAccessorsForIosArm64Main (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:generateResourceAccessorsForIosArm64Main SKIPPED
+Skipping task ':ui:generateResourceAccessorsForIosArm64Main' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:convertXmlValueResourcesForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:convertXmlValueResourcesForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:convertXmlValueResourcesForIosMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/iosMain/composeResources', not found
+Skipping task ':ui:convertXmlValueResourcesForIosMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:copyNonXmlValueResourcesForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:copyNonXmlValueResourcesForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:copyNonXmlValueResourcesForIosMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/iosMain/composeResources', not found
+Skipping task ':ui:copyNonXmlValueResourcesForIosMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:prepareComposeResourcesTaskForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:prepareComposeResourcesTaskForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:prepareComposeResourcesTaskForIosMain NO-SOURCE
+Skipping task ':ui:prepareComposeResourcesTaskForIosMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:generateResourceAccessorsForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:generateResourceAccessorsForIosMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:generateResourceAccessorsForIosMain SKIPPED
+Skipping task ':ui:generateResourceAccessorsForIosMain' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:convertXmlValueResourcesForNativeMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:convertXmlValueResourcesForNativeMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:convertXmlValueResourcesForNativeMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/nativeMain/composeResources', not found
+Skipping task ':ui:convertXmlValueResourcesForNativeMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:copyNonXmlValueResourcesForNativeMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+:ui:copyNonXmlValueResourcesForNativeMain (Thread[#1133,Execution worker Thread 7,5,main]) started.
+
+> Task :ui:copyNonXmlValueResourcesForNativeMain NO-SOURCE
+file or directory '/Users/vlad/IdeaProjects/family-tree-editor/ui/build/generated/compose/resourceGenerator/preparedResources/nativeMain/composeResources', not found
+Skipping task ':ui:copyNonXmlValueResourcesForNativeMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:prepareComposeResourcesTaskForNativeMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:prepareComposeResourcesTaskForNativeMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:prepareComposeResourcesTaskForNativeMain NO-SOURCE
+Skipping task ':ui:prepareComposeResourcesTaskForNativeMain' as it has no source files and no previous output files.
+Resolve mutations for :ui:generateResourceAccessorsForNativeMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:generateResourceAccessorsForNativeMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:generateResourceAccessorsForNativeMain SKIPPED
+Skipping task ':ui:generateResourceAccessorsForNativeMain' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:generateActualResourceCollectorsForIosArm64Main (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:generateActualResourceCollectorsForIosArm64Main (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:generateActualResourceCollectorsForIosArm64Main SKIPPED
+Skipping task ':ui:generateActualResourceCollectorsForIosArm64Main' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:generateComposeResClass (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:generateComposeResClass (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:generateComposeResClass SKIPPED
+Skipping task ':ui:generateComposeResClass' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:generateExpectResourceCollectorsForCommonMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:generateExpectResourceCollectorsForCommonMain (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:generateExpectResourceCollectorsForCommonMain SKIPPED
+Skipping task ':ui:generateExpectResourceCollectorsForCommonMain' as task onlyIf 'Task satisfies onlyIf spec' is false.
+Resolve mutations for :ui:compileKotlinIosArm64 (Thread[#1136,Execution worker Thread 10,5,main]) started.
+:ui:compileKotlinIosArm64 (Thread[#1136,Execution worker Thread 10,5,main]) started.
+
+> Task :ui:compileKotlinIosArm64 FROM-CACHE
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Acquire lock: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock ...
+Kotlin Native Bundle: Lock acquired: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Kotlin Native Bundle: Lock released: /Users/vlad/.konan/kotlin-native-prebuilt-macos-aarch64-2.3.20/.lock
+Build cache key for task ':ui:compileKotlinIosArm64' is 4746b33c7e613677165792f0c1d76c0d
+Task ':ui:compileKotlinIosArm64' is not up-to-date because:
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/ui/build/classes/kotlin/iosArm64/main/klib has been removed.
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/ui/build/classes/kotlin/iosArm64/main/klib/ui has been removed.
+  Output property 'destinationDirectory' file /Users/vlad/IdeaProjects/family-tree-editor/ui/build/classes/kotlin/iosArm64/main/klib/ui/default has been removed.
+  and more...
+Loaded cache entry for task ':ui:compileKotlinIosArm64' with cache key 4746b33c7e613677165792f0c1d76c0d
+Build 2e52490e-8a71-4a2f-a014-33c5e670d76a is closed
+
+BUILD SUCCESSFUL in 1s
+26 actionable tasks: 13 executed, 2 from cache, 11 up-to-date
+Watched directory hierarchies: [/Users/vlad/IdeaProjects/family-tree-editor]
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html
