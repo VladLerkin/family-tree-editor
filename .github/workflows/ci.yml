@@ -26,6 +26,7 @@ concurrency:
 jobs:
   # Android Builds
   build-android:
+    if: "!startsWith(github.event.head_commit.message, 'Release v')"
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -87,6 +88,7 @@ jobs:
   
   # Desktop builds for Linux, macOS, and Windows
   build-desktop:
+    if: "!startsWith(github.event.head_commit.message, 'Release v')"
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -139,6 +141,7 @@ jobs:
   
   # iOS Build (Framework and Simulator App)
   build-ios:
+    if: "!startsWith(github.event.head_commit.message, 'Release v')"
     runs-on: macos-latest
     steps:
       - name: Checkout code
