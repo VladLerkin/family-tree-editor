@@ -53,7 +53,7 @@ echo "Updated $TOML_FILE"
 
 # 4. Git operations
 git add "$TOML_FILE"
-COMMIT_MSG="Release v$NEW_VERSION [skip ci]"
+COMMIT_MSG="Release v$NEW_VERSION"
 git commit -m "$COMMIT_MSG"
 
 TAG_NAME="v$NEW_VERSION"
