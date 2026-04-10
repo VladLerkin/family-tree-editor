@@ -14,9 +14,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.family.tree.core.BuildConfig
 
-private const val APP_NAME = "Family Tree Editor"
-private const val AUTHOR_EMAIL = "domfindus@gmail.com"
-private const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 /**
  * Android implementation of AboutDialog.
  * Uses Material3 AlertDialog for native Android look and feel.
@@ -27,6 +24,11 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
     
     AlertDialog(
         onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        },
         title = {
             Text(
                 text = APP_NAME,
@@ -34,67 +36,11 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
             )
         },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = "Version v${BuildConfig.APP_VERSION}",
-                    fontSize = 14.sp
-                )
-
-                Text(
-                    text = "This program is free software.",
-                    fontSize = 14.sp
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Author: ",
-                        fontSize = 14.sp
-                    )
-                    TextButton(
-                        onClick = { openEmail(context, AUTHOR_EMAIL) },
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(
-                            text = AUTHOR_EMAIL,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "The source code is available on",
-                        fontSize = 14.sp
-                    )
-                    TextButton(
-                        onClick = { openUrl(context, GITHUB_URL) },
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        Text(
-                            text = "GitHub",
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-
-                Text(
-                    text = "Please send all comments and feedback to the email above.",
-                    fontSize = 14.sp
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("OK")
-            }
+            AboutDialogContent(
+                onDismiss = onDismiss,
+                onOpenEmail = { openEmail(context, it) },
+                onOpenUrl = { openUrl(context, it) }
+            )
         }
     )
 }
