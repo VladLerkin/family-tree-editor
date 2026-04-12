@@ -65,7 +65,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.ktor.client.core)
-                implementation(libs.koin.core)
+                api(libs.koin.core)
             }
         }
         
@@ -73,6 +73,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.androidx.security.crypto)
             implementation(libs.pdfbox.android)
+            api(libs.koin.android)
         }
         
         val desktopMain by getting {

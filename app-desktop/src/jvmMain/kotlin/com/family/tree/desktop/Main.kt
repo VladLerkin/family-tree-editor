@@ -3,11 +3,18 @@ package com.family.tree.desktop
 import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import com.family.tree.core.di.initKoin
+import com.family.tree.core.di.platformModule
 import com.family.tree.ui.App
 import com.family.tree.ui.AppActions
+import com.family.tree.ui.di.uiModule
 
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication, title = "Family Tree") {
+fun main() {
+    initKoin(
+        additionalModules = listOf(uiModule, platformModule)
+    )
+    application {
+        Window(onCloseRequest = ::exitApplication, title = "Family Tree") {
         MenuBar {
             Menu("File") {
                 Item("New") { AppActions.newProject() }
@@ -51,5 +58,6 @@ fun main() = application {
             }
         }
         App()
+        }
     }
 }

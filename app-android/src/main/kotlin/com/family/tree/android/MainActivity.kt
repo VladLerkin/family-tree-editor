@@ -15,8 +15,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.family.tree.core.ai.AiSettingsStorage
+import com.family.tree.core.di.initKoin
+import com.family.tree.core.di.platformModule
 import com.family.tree.ui.App
 import com.family.tree.ui.PermissionRationaleDialog
+import com.family.tree.ui.di.uiModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.android.ext.koin.androidLogger
+import org.koin.core.context.GlobalContext
 
 class MainActivity : ComponentActivity() {
     private var showPermissionDialog by mutableStateOf(false)
@@ -33,6 +39,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize Koin if not already started (e.g. after process death)
+        if (GlobalContext.getKoinApplicationOrNull() == null) {
+            initKoin(
+                additionalModules = listOf(uiModule, platformModule),
+                appDeclaration = {
+                    androidLogger()
+                    androidContext(this@MainActivity)
+                }
+            )
+        }
         
         // Initialize AI settings storage for Android
         AiSettingsStorage.setContext(this)

@@ -11,9 +11,9 @@ import kotlinx.coroutines.launch
  */
 class VoiceInputProcessor(
     private val voiceRecorder: VoiceRecorder,
+    private val settingsStorage: AiSettingsStorage,
     private val coroutineScope: CoroutineScope
 ) {
-    private val settingsStorage = AiSettingsStorage()
     
     /**
      * Check if voice input is available

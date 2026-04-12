@@ -4,10 +4,12 @@ import com.family.tree.core.ProjectData
 import com.family.tree.core.model.Family
 import com.family.tree.core.model.Individual
 
-class QuickSearchService(private val data: ProjectData) {
+class QuickSearchService {
+    private var data: ProjectData = ProjectData(emptyList(), emptyList(), emptyList())
     private val prefixToIds: MutableMap<String, MutableSet<String>> = mutableMapOf()
 
-    init {
+    fun updateProject(newData: ProjectData) {
+        data = newData
         rebuildIndex()
     }
 

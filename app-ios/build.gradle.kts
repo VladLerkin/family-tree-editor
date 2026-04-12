@@ -20,6 +20,7 @@ kotlin {
         commonMain.dependencies {
             implementation(project(":core"))
             implementation(project(":ui"))
+            implementation(libs.koin.core)
         }
     }
 }

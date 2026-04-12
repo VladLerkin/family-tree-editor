@@ -8,8 +8,11 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(project(":ui"))
     implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.9.0")
+    implementation(libs.koin.core)
 }
 
 kotlin {

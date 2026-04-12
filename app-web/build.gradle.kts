@@ -20,6 +20,7 @@ kotlin {
     sourceSets {
         val wasmJsMain by getting {
             dependencies {
+                implementation(project(":core"))
                 implementation(project(":ui"))
                 @Suppress("DEPRECATION")
                 implementation(compose.runtime)

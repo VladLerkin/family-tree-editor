@@ -64,7 +64,7 @@ fun MainScreen() {
     val shouldAutoFit = state.shouldAutoFit
 
     // Search service and state
-    val searchService = remember(project) { QuickSearchService(project) }
+    val searchService = viewModel.searchService
 
     // Viewport state (simplified without Animatable to unblock compile)
     var scale by remember { mutableFloatStateOf(1f) }
@@ -220,10 +220,7 @@ fun MainScreen() {
     val scope = rememberCoroutineScope()
     
     // Voice input processor
-    val voiceInputProcessor = remember {
-        val voiceRecorder = com.family.tree.core.platform.VoiceRecorder(platformContext)
-        com.family.tree.core.ai.VoiceInputProcessor(voiceRecorder, scope)
-    }
+    val voiceInputProcessor = viewModel.voiceInputProcessor
     
     // Keyboard focus & modifiers
     val focusRequester = remember { FocusRequester() }
