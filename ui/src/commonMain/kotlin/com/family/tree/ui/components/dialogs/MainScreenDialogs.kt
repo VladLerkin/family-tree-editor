@@ -41,6 +41,9 @@ fun MainScreenDialogs(
     voiceInputProcessor: VoiceInputProcessor
 ) {
 
+    val aiSettingsStorage = org.koin.compose.koinInject<com.family.tree.core.ai.AiSettingsStorage>()
+    val koin = org.koin.compose.getKoin()
+
     when (val dialog = activeDialog) {
         is AppDialog.EditPerson -> {
             val person = project.individuals.find { it.id == dialog.id }
@@ -100,14 +103,13 @@ fun MainScreenDialogs(
         }
         
         is AppDialog.AiSettings -> {
-            val storage = remember { com.family.tree.core.ai.AiSettingsStorage() }
-            val savedConfig = remember { storage.loadConfig() }
+            val savedConfig = remember { aiSettingsStorage.loadConfig() }
             
             AiConfigDialog(
                 initialConfig = savedConfig,
                 onDismiss = onCloseDialog,
                 onConfirm = { config ->
-                    storage.saveConfig(config)
+                    aiSettingsStorage.saveConfig(config)
                     onCloseDialog()
                 }
             )
@@ -521,11 +523,12 @@ fun MainScreenDialogs(
                                 onOpenDialog(AppDialog.AiProgress("Processing text..."))
                                 
                                 // Load saved AI settings
-                                val storage = com.family.tree.core.ai.AiSettingsStorage()
-                                val config = storage.loadConfig()
+                                val config = aiSettingsStorage.loadConfig()
                                 
                                 // Determine file type and process
-                                val importer = com.family.tree.core.ai.AiTextImporter(config)
+                                val importer = koin.get<com.family.tree.core.ai.AiTextImporter> { 
+                                    org.koin.core.parameter.parametersOf(config) 
+                                }
                                 val imported = if (extractedText.trimStart().startsWith("{") || extractedText.trimStart().startsWith("[")) {
                                     // JSON format - parse directly
                                     println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format in PDF")
@@ -580,11 +583,12 @@ fun MainScreenDialogs(
                             println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Read ${content.length} chars")
                             
                             // Load saved AI settings
-                            val storage = com.family.tree.core.ai.AiSettingsStorage()
-                            val config = storage.loadConfig()
+                            val config = aiSettingsStorage.loadConfig()
                             
                             // Determine file type and process
-                            val importer = com.family.tree.core.ai.AiTextImporter(config)
+                            val importer = koin.get<com.family.tree.core.ai.AiTextImporter> { 
+                                    org.koin.core.parameter.parametersOf(config) 
+                                }
                             val imported = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
                                 // JSON format - parse directly
                                 println("[DEBUG_LOG] MainScreen.onAiTextImportResult: Detected JSON format")

@@ -12,9 +12,31 @@ import org.koin.core.module.Module
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.module
 
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
+import kotlinx.serialization.json.Json
+
 val coreModule = module {
     single { QuickSearchService() }
     single { AiSettingsStorage() }
+    
+    single { 
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = true
+        }
+    }
+    
+    single { 
+        HttpClient {
+            install(HttpTimeout) {
+                requestTimeoutMillis = 120_000
+                connectTimeoutMillis = 30_000
+                socketTimeoutMillis = 120_000
+            }
+        }
+    }
     
     factory { (scope: CoroutineScope) ->
         VoiceInputProcessor(
@@ -22,6 +44,12 @@ val coreModule = module {
             settingsStorage = get(),
             coroutineScope = scope
         )
+    }
+    
+    factory { (config: com.family.tree.core.ai.AiConfig?) -> 
+        com.family.tree.core.ai.AiTextImporter(
+            config ?: get<AiSettingsStorage>().loadConfig()
+        ) 
     }
 }
 

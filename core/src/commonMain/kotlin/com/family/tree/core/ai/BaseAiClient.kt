@@ -7,14 +7,15 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.Json
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 /**
  * Base class for AI clients containing common logic.
  */
-abstract class BaseAiClient : AiClient {
-    protected val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+abstract class BaseAiClient : AiClient, KoinComponent {
+    protected val json: Json by inject()
+    private val httpClient: HttpClient by inject()
 
     /**
      * Executes an HTTP POST request to the AI provider.
@@ -31,23 +32,16 @@ abstract class BaseAiClient : AiClient {
         timeoutMillis: Long = 120_000,
         configureBlock: HttpRequestBuilder.() -> Unit = {}
     ): String {
-        val client = HttpClient {
-            install(HttpTimeout) {
+        val response = httpClient.post(url) {
+            timeout {
                 requestTimeoutMillis = timeoutMillis
-                connectTimeoutMillis = 30_000
                 socketTimeoutMillis = timeoutMillis
             }
+            contentType(ContentType.Application.Json)
+            setBody(body)
+            configureBlock()
         }
-        try {
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                setBody(body)
-                configureBlock()
-            }
-            
-            return response.bodyAsText()
-        } finally {
-            client.close()
-        }
+        
+        return response.bodyAsText()
     }
 }

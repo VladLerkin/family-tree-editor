@@ -6,6 +6,9 @@ import com.family.tree.core.io.LoadedProject
 import com.family.tree.core.model.*
 import kotlinx.serialization.json.Json
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 /**
  * Importer for creating a family tree from AI-processed text.
  * 
@@ -14,13 +17,9 @@ import kotlinx.serialization.json.Json
  */
 class AiTextImporter(
     private val config: AiConfig = AiPresets.OPENAI_GPT4O_MINI
-) {
+) : KoinComponent {
     
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-        encodeDefaults = true
-    }
+    private val json: Json by inject()
     
     private val aiClient: AiClient = AiClientFactory.createClient(config)
     

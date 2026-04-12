@@ -18,13 +18,14 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 import com.family.tree.core.ai.AiSettingsStorage
+import org.koin.compose.koinInject
 
 class AiSettingsScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
-        val storage = remember { AiSettingsStorage() }
+        val storage = koinInject<AiSettingsStorage>()
         val initialConfig = remember { storage.loadConfig() }
         
         val presets = AiPresets.getAllPresets()
