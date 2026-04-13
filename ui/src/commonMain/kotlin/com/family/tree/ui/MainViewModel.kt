@@ -42,6 +42,7 @@ sealed interface AppDialog {
     // AI Progress and Info
     data class AiProgress(val message: String) : AppDialog
     data class AiInfo(val message: String, val isPermissionError: Boolean = false) : AppDialog
+    data object AutoSearch : AppDialog
 }
 
 class MainViewModel(

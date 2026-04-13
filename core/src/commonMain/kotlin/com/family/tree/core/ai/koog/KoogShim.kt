@@ -1,0 +1,121 @@
+package com.family.tree.core.ai.koog
+
+import com.family.tree.core.ai.AiClient
+import com.family.tree.core.ai.AiConfig
+import kotlin.reflect.KClass
+
+/**
+ * Koog (Kotlin Object-Oriented generation) API Shim/Wrapper
+ * This allows the application to build agentic workflows using Koog concepts.
+ */
+
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class Tool(val description: String)
+
+interface AgentModel {
+    suspend fun generateResponse(prompt: String): String
+}
+
+class KoogAgent(
+    private val name: String,
+    private val instructions: String,
+    private val tools: List<Any>,
+    private val model: AgentModel,
+    private val maxIterations: Int = 10,
+    private val onLog: (String) -> Unit = {}
+) {
+    suspend fun execute(task: String): String {
+        val history = mutableListOf<String>()
+        history.add("User Task: $task")
+        
+        val invoker = PlatformToolInvoker()
+        val toolDocs = invoker.getToolDocumentation(tools)
+
+        var iteration = 0
+        var lastAiOutput = ""
+
+        while (iteration < maxIterations) {
+            iteration++
+            onLog("Iteration $iteration: Thinking...")
+            
+            val fullPrompt = buildString {
+                appendLine("You are $name.")
+                appendLine(instructions)
+                appendLine("\n### Available Tools")
+                appendLine(toolDocs)
+                appendLine("\n### Tool Call Protocol")
+                appendLine("If you need to use a tool, output a block like this:")
+                appendLine("```tool_code")
+                appendLine("methodName(arg1=\"value\", ...)")
+                appendLine("```")
+                appendLine("I will execute it and provide the result. You can omit the class prefix. If you have the final answer, just provide it WITHOUT a tool block.")
+                
+                appendLine("\n### Conversation History")
+                history.forEach { appendLine(it) }
+                
+                if (lastAiOutput.isNotEmpty()) {
+                    appendLine("\nLast Response: $lastAiOutput")
+                }
+                appendLine("\nAssistant:")
+            }
+
+            val response = model.generateResponse(fullPrompt)
+            lastAiOutput = response
+            history.add("Assistant: $response")
+            onLog("Agent Thought: ${response.take(100)}...")
+
+            val toolCall = parseToolCall(response)
+            if (toolCall == null) {
+                // No more tool calls, we are done
+                onLog("Agent finished without further tool calls.")
+                return response
+            }
+
+            // Execute tool via platform invoker
+            onLog("Tool Call: ${toolCall.className}.${toolCall.methodName}(${toolCall.args})")
+            val result = invoker.invokeTool(tools, toolCall)
+            onLog("Tool Result: ${result.toString().take(200)}...")
+            history.add("System (Tool Result): $result")
+        }
+
+        return lastAiOutput
+    }
+
+    private fun parseToolCall(text: String): ToolCall? {
+        // More robust regex: allows optional class prefix like Class.method() or just method()
+        val regex = "(?s)```tool_code\\s+(?:([\\w\\d]+)\\.)?([\\w\\d]+)\\((.*)\\)\\s+```".toRegex()
+        val match = regex.find(text) ?: return null
+        
+        val className = match.groupValues[1] // Might be empty if no dot
+        val methodName = match.groupValues[2]
+        val argsText = match.groupValues[3]
+        
+        // Simple argument parser (comma separated key="value" or just "value")
+        val args = if (argsText.isBlank()) {
+            emptyMap()
+        } else {
+            argsText.split(",")
+                .filter { it.contains("=") }
+                .associate {
+                    val parts = it.split("=")
+                    val key = parts[0].trim()
+                    val value = parts[1].trim().removeSurrounding("\"").removeSurrounding("'")
+                    key to value
+                }
+        }
+            
+        return ToolCall(className.ifBlank { null }, methodName, args)
+    }
+
+    data class ToolCall(val className: String?, val methodName: String, val args: Map<String, String>)
+}
+
+class AiClientAgentModel(
+    private val client: AiClient,
+    private val config: AiConfig
+) : AgentModel {
+    override suspend fun generateResponse(prompt: String): String {
+        return client.sendPrompt(prompt, config)
+    }
+}

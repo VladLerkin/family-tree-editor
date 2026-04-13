@@ -34,6 +34,7 @@ object AppActions {
     // Help - backing fields
     private var _showAbout: () -> Unit = {}
     private var _showAiSettings: () -> Unit = {}
+    private var _showAutoSearch: () -> Unit = {}
     private var _exit: () -> Unit = {}
 
     // File - public setters and call methods
@@ -115,6 +116,10 @@ object AppActions {
     var showAiSettings: () -> Unit
         get() = { _showAiSettings() }
         set(value) { _showAiSettings = value }
+        
+    var showAutoSearch: () -> Unit
+        get() = { _showAutoSearch() }
+        set(value) { _showAutoSearch = value }
     
     var exit: () -> Unit
         get() = { _exit() }

@@ -365,6 +365,7 @@ fun MainScreen() {
     AppActions.manageSources = { viewModel.openDialog(AppDialog.SourcesManager) }
     AppActions.showAbout = { viewModel.openDialog(AppDialog.About) }
     AppActions.showAiSettings = { viewModel.openDialog(AppDialog.AiSettings) }
+    AppActions.showAutoSearch = { viewModel.openDialog(AppDialog.AutoSearch) }
 
     // Wire dialog actions for platform file dialogs (used by Android DesktopActions)
     DialogActions.triggerOpenDialog = { callback ->

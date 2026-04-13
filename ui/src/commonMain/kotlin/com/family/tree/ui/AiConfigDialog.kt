@@ -59,6 +59,8 @@ fun AiConfigDialog(
     var googleKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
     var yandexKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
     var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
+    var tavilyApiKey by remember { mutableStateOf(initialConfig.tavilyApiKey) }
+    var autoresearchRepoPath by remember { mutableStateOf(initialConfig.autoresearchRepoPath) }
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -176,6 +178,36 @@ fun AiConfigDialog(
                         )
                     }
                 }
+                
+                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+                // Autonomous Agent Settings
+                Text(
+                    text = "Autoresearch Genealogy Agent:",
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+
+                ApiKeyTextField(
+                    value = tavilyApiKey,
+                    onValueChange = { tavilyApiKey = it },
+                    label = "Tavily API Key (web search)",
+                    placeholder = "tvly-...",
+                    supportingText = "Required for autonomous web research agent. Get it at tavily.com",
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = autoresearchRepoPath,
+                    onValueChange = { autoresearchRepoPath = it },
+                    label = { Text("Methodology Repository Path") },
+                    placeholder = { Text("./autoresearch-genealogy") },
+                    supportingText = { Text("Absolute or relative path to the autoresearch-genealogy repository.") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = true
+                )
                 
                 // Custom URL (for Ollama and Custom)
                 if (provider == "OLLAMA" || provider == "CUSTOM") {
@@ -379,7 +411,9 @@ fun AiConfigDialog(
                                 openaiApiKey = openAiKey,
                                 googleAiApiKey = googleKey,
                                 yandexApiKey = yandexKey,
-                                yandexFolderId = yandexFolderId
+                                yandexFolderId = yandexFolderId,
+                                tavilyApiKey = tavilyApiKey,
+                                autoresearchRepoPath = autoresearchRepoPath
                             )
                             onConfirm(config)
                         },

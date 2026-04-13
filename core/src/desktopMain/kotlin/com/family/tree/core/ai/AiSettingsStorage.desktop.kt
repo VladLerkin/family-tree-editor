@@ -61,8 +61,16 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_YANDEX_API_KEY, encryptedYandexKey)
         
-        // Save Yandex Folder ID (no encryption needed, not a secret)
-        prefs.put(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
+        // Encrypt Tavily API key before saving
+        val encryptedTavilyKey = if (config.tavilyApiKey.isNotBlank()) {
+            encryptApiKey(config.tavilyApiKey)
+        } else {
+            ""
+        }
+        prefs.put(KEY_TAVILY_API_KEY, encryptedTavilyKey)
+        
+        // Save Autoresearch Repo Path (no encryption needed)
+        prefs.put(KEY_AUTORESEARCH_REPO_PATH, config.autoresearchRepoPath)
         
         prefs.flush()
     }
@@ -130,6 +138,18 @@ actual class AiSettingsStorage {
             ""
         }
         
+        // Decrypt Tavily API key on load
+        val encryptedTavilyKey = prefs.get(KEY_TAVILY_API_KEY, "")
+        val decryptedTavilyKey = if (encryptedTavilyKey.isNotBlank()) {
+            try {
+                decryptApiKey(encryptedTavilyKey)
+            } catch (e: Exception) {
+                encryptedTavilyKey
+            }
+        } else {
+            ""
+        }
+        
         return AiConfig(
             provider = prefs.get(KEY_PROVIDER, AiPresets.OPENAI_GPT4O_MINI.provider),
             apiKey = decryptedKey,
@@ -147,7 +167,9 @@ actual class AiSettingsStorage {
             googleAiApiKey = decryptedGoogleAiKey,
             yandexApiKey = decryptedYandexKey,
             // If folderId is not saved, use default value
-            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" }
+            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" },
+            tavilyApiKey = decryptedTavilyKey,
+            autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy")
         )
     }
     
@@ -168,6 +190,8 @@ actual class AiSettingsStorage {
         prefs.remove(KEY_GOOGLE_AI_API_KEY)
         prefs.remove(KEY_YANDEX_API_KEY)
         prefs.remove(KEY_YANDEX_FOLDER_ID)
+        prefs.remove(KEY_TAVILY_API_KEY)
+        prefs.remove(KEY_AUTORESEARCH_REPO_PATH)
         
         prefs.flush()
     }
@@ -229,6 +253,8 @@ actual class AiSettingsStorage {
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
         private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
         private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
+        private const val KEY_TAVILY_API_KEY = "ai_tavily_api_key"
+        private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         
         private const val ALGORITHM = "AES"
         private const val SALT = "FamilyTreeApp-AI-Key-Salt-v1"

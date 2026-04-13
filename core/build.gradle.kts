@@ -7,17 +7,10 @@ plugins {
 }
 
 kotlin {
-    android {
+    androidLibrary {
         namespace = "com.family.tree.core"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
-        
-        // Java compatibility
-        with(java) {
-             toolchain {
-                 languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
-             }
-        }
     }
 
     jvm("desktop")
@@ -66,6 +59,7 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.ktor.client.core)
                 api(libs.koin.core)
+                implementation(libs.koog.agents)
             }
         }
         
@@ -101,6 +95,6 @@ kotlin {
             }
         }
     }
-    // Align Kotlin JVM toolchain for Android/JVM compilations in this module to 25
+    // Align Kotlin JVM toolchain in this module to 25
     jvmToolchain(libs.versions.java.get().toInt())
 }

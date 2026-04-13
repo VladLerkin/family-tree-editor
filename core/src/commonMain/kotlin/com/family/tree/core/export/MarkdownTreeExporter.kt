@@ -9,7 +9,40 @@ import com.family.tree.core.model.IndividualId
 class MarkdownTreeExporter {
 
     fun exportToString(data: ProjectData): String {
+        val individualsCount = data.individuals.size
+        val familiesCount = data.families.size
+        
+        // Geographic Profile
+        val places = data.individuals.flatMap { it.events.mapNotNull { e -> e.place?.trim() }.filter { it.isNotBlank() } }
+        val topPlaces = places.groupBy { it }
+            .mapValues { it.value.size }
+            .toList()
+            .sortedByDescending { it.second }
+            .take(5)
+            .joinToString(", ") { "${it.first} (${it.second} mentions)" }
+
         val sb = StringBuilder()
+        sb.appendLine("## Family Tree Summary")
+        sb.appendLine("- Total Individuals: $individualsCount")
+        sb.appendLine("- Total Families: $familiesCount")
+        if (topPlaces.isNotEmpty()) {
+            sb.appendLine("- Geographic Scope: $topPlaces")
+            
+            val languages = mutableListOf<String>()
+            if (places.any { it.contains("Russia", ignoreCase = true) || it.contains("Россия", ignoreCase = true) || 
+                            it.contains("Ukraine", ignoreCase = true) || it.contains("Belarus", ignoreCase = true) }) {
+                languages.add("Russian/Ukrainian (Cyrillic)")
+            }
+            if (places.any { it.contains("Germany", ignoreCase = true) || it.contains("Austria", ignoreCase = true) }) {
+                languages.add("German")
+            }
+            if (languages.isNotEmpty()) {
+                sb.appendLine("- Likely Search Languages: ${languages.joinToString(", ")}")
+            }
+        }
+        sb.appendLine()
+        sb.appendLine("## Ancestry View")
+        sb.appendLine()
 
         // Find roots: individuals who do not have any children in the database
         // An individual has children if they are the husband or wife in a family that has childrenIds

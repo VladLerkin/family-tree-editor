@@ -1,8 +1,10 @@
 package com.family.tree.core.di
 
-import com.family.tree.core.ai.AiSettingsStorage
 import com.family.tree.core.ai.VoiceInputProcessor
+import com.family.tree.core.ai.AiSettingsStorage
 import com.family.tree.core.search.QuickSearchService
+import com.family.tree.core.ai.agent.AgentService
+import com.family.tree.core.export.MarkdownTreeExporter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +21,8 @@ import kotlinx.serialization.json.Json
 val coreModule = module {
     single { QuickSearchService() }
     single { AiSettingsStorage() }
+    single { MarkdownTreeExporter() }
+    single { AgentService(get(), get(), get(), get()) }
     
     single { 
         Json {

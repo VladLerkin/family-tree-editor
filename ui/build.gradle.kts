@@ -60,10 +60,16 @@ kotlin {
             implementation(libs.voyager.screenmodel)
             implementation(libs.voyager.transitions)
             implementation(libs.voyager.koin)
+            implementation("org.jetbrains.compose.components:components-resources:1.10.3")
         }
-        androidMain.dependencies {
-            implementation(libs.androidx.activity.compose)
+        
+        val androidMain by getting {
+            resources.srcDirs("src/commonMain/composeResources")
+            dependencies {
+                implementation(libs.androidx.activity.compose)
+            }
         }
+        
         val desktopMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
@@ -81,4 +87,9 @@ kotlin {
     }
     // Align Kotlin JVM toolchain in this module to 25 (Android & desktop target compilation)
     jvmToolchain(libs.versions.java.get().toInt())
+}
+
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "com.family.tree.ui"
 }

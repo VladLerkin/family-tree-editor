@@ -52,6 +52,7 @@ fun main() {
                 Item("Voice Input 🎤") { AppActions.voiceInput() }
                 Separator()
                 Item("AI Settings...") { AppActions.showAiSettings() }
+                Item("Autoresearch Agent...") { AppActions.showAutoSearch() }
             }
             Menu("Help") {
                 Item("About") { AppActions.showAbout() }

@@ -115,6 +115,15 @@ fun MainScreenDialogs(
             )
         }
         
+        is AppDialog.AutoSearch -> {
+            val agentService = koin.get<com.family.tree.core.ai.agent.AgentService>()
+            com.family.tree.ui.components.dialogs.AutoSearchDialog(
+                projectData = project,
+                agentService = agentService,
+                onDismissRequest = onCloseDialog
+            )
+        }
+        
         is AppDialog.AiProgress -> {
             androidx.compose.ui.window.Dialog(
                 onDismissRequest = { /* Cannot dismiss during import */ }

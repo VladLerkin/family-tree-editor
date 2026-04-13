@@ -49,6 +49,8 @@ actual class AiSettingsStorage {
             putString(KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
             putString(KEY_YANDEX_API_KEY, config.yandexApiKey)
             putString(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
+            putString(KEY_TAVILY_API_KEY, config.tavilyApiKey)
+            putString(KEY_AUTORESEARCH_REPO_PATH, config.autoresearchRepoPath)
             apply()
         }
     }
@@ -70,7 +72,9 @@ actual class AiSettingsStorage {
 
             googleAiApiKey = prefs.getString(KEY_GOOGLE_AI_API_KEY, "") ?: "",
             yandexApiKey = prefs.getString(KEY_YANDEX_API_KEY, "") ?: "",
-            yandexFolderId = prefs.getString(KEY_YANDEX_FOLDER_ID, "") ?: ""
+            yandexFolderId = prefs.getString(KEY_YANDEX_FOLDER_ID, "") ?: "",
+            tavilyApiKey = prefs.getString(KEY_TAVILY_API_KEY, "") ?: "",
+            autoresearchRepoPath = prefs.getString(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy") ?: "./autoresearch-genealogy"
         )
     }
     
@@ -92,6 +96,8 @@ actual class AiSettingsStorage {
             remove(KEY_GOOGLE_AI_API_KEY)
             remove(KEY_YANDEX_API_KEY)
             remove(KEY_YANDEX_FOLDER_ID)
+            remove(KEY_TAVILY_API_KEY)
+            remove(KEY_AUTORESEARCH_REPO_PATH)
             apply()
         }
     }
@@ -114,6 +120,8 @@ actual class AiSettingsStorage {
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
         private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
         private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
+        private const val KEY_TAVILY_API_KEY = "ai_tavily_api_key"
+        private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         
         private var appContext: Context? = null
         

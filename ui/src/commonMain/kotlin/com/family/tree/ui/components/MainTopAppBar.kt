@@ -49,6 +49,7 @@ fun MainTopAppBar(
                     DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
                     DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; AppActions.manageSources() })
                     DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showMenu = false; AppActions.showAiSettings() })
+                    DropdownMenuItem(text = { Text("Autoresearch Agent...") }, onClick = { showMenu = false; AppActions.showAutoSearch() })
                     DropdownMenuItem(text = { Text("About") }, onClick = { showMenu = false; AppActions.showAbout() })
                     DropdownMenuItem(text = { Text("Exit") }, onClick = { showMenu = false; shouldExit = true })
                 }
