@@ -37,37 +37,62 @@ class TavilyClient(
     private val httpClient: HttpClient,
     private val json: Json
 ) {
-    suspend fun search(apiKey: String, query: String, searchDepth: String = "basic"): String {
+    suspend fun search(
+        apiKey: String,
+        query: String,
+        searchDepth: String = "basic",
+        onLog: (String) -> Unit = {}
+    ): String {
         if (apiKey.isBlank()) {
             return "Error: Tavily API Key is empty."
         }
         return try {
-            val request = TavilySearchRequest(api_key = apiKey, query = query, search_depth = searchDepth)
+            val request = TavilySearchRequest(
+                api_key = apiKey,
+                query = query,
+                search_depth = searchDepth,
+                include_answer = true
+            )
+            onLog("🔗 [HTTP POST] https://api.tavily.com/search  body={query=\"$query\", search_depth=\"$searchDepth\"}")
+
             val response = httpClient.post("https://api.tavily.com/search") {
                 contentType(ContentType.Application.Json)
                 setBody(json.encodeToString(request))
             }
+
+            onLog("🔗 [HTTP STATUS] ${response.status}")
+
             if (response.status.isSuccess()) {
                 val responseBody = response.bodyAsText()
+                onLog("🔗 [HTTP RAW BODY] ${responseBody.take(500)}...")
+
                 val parsed = json.decodeFromString<TavilySearchResponse>(responseBody)
                 buildString {
                     appendLine("Search results for '$query':")
-                    parsed.answer?.let { 
-                        appendLine("\n[AI SUMMARY - ATTENTION: This is an aggregated summary and may contain errors. Please verify facts using the specific source results below.]")
-                        appendLine("Summary: $it") 
+                    parsed.answer?.let {
+                        appendLine("\n[AI SUMMARY - verify facts using source results below]")
+                        appendLine("Summary: $it")
                     }
-                    appendLine("\n[SPECIFIC SOURCE RESULTS]")
-                    parsed.results.forEachIndexed { index, result ->
-                        appendLine("\nSource #${index + 1}: ${result.title}")
-                        appendLine("URL: ${result.url}")
-                        appendLine("Snippet: ${result.content}")
+                    if (parsed.results.isEmpty()) {
+                        appendLine("\n⚠️ No results returned by Tavily for this query.")
+                    } else {
+                        appendLine("\n[SPECIFIC SOURCE RESULTS] (${parsed.results.size} found)")
+                        parsed.results.forEachIndexed { index, result ->
+                            appendLine("\nSource #${index + 1}: ${result.title}")
+                            appendLine("URL: ${result.url}")
+                            appendLine("Snippet: ${result.content}")
+                        }
                     }
                 }
             } else {
-                "Search failed with status: ${response.status}"
+                val body = response.bodyAsText()
+                onLog("🔗 [HTTP ERROR BODY] $body")
+                "Search failed with status: ${response.status}. Body: $body"
             }
         } catch (e: Exception) {
-            "Search error: ${e.message}"
+            val msg = "Search error [${e::class.simpleName}]: ${e.message ?: "(no message)"}"
+            onLog("❌ [TAVILY EXCEPTION] $msg")
+            msg
         }
     }
 }

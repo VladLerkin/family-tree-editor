@@ -8,76 +8,95 @@ class GenealogyTools(
     private val projectData: ProjectData,
     private val tavilyClient: TavilyClient,
     private val apiKey: String,
-    private val repoPath: String = "files/autoresearch-genealogy"
+    private val repoPath: String = "files/autoresearch-genealogy",
+    private val onLog: (String) -> Unit = {}
 ) {
     private val loader = ResourceLoader()
 
     @Tool("Read a specific methodology workflow guide (e.g., 'discrepancy-resolution.md').")
     suspend fun readMethodology(fileName: String): String {
-        return loader.readFile(repoPath, "workflows/$fileName") 
+        onLog("📖 [TOOL] readMethodology(\"$fileName\")")
+        val result = loader.readFile(repoPath, "workflows/$fileName")
             ?: "Error: Workflow $fileName not found in $repoPath/workflows/"
+        onLog("📖 [TOOL RESULT] readMethodology → ${result.take(120)}...")
+        return result
     }
 
     @Tool("Read an archive guide for a specific country or region (e.g., 'norway.md', 'usa-census.md').")
     suspend fun readArchiveGuide(fileName: String): String {
-        return loader.readFile(repoPath, "archives/$fileName")
+        onLog("📖 [TOOL] readArchiveGuide(\"$fileName\")")
+        val result = loader.readFile(repoPath, "archives/$fileName")
             ?: "Error: Archive guide $fileName not found in $repoPath/archives/"
+        onLog("📖 [TOOL RESULT] readArchiveGuide → ${result.take(120)}...")
+        return result
     }
 
     @Tool("List all available archive guides for countries and regions.")
     suspend fun listArchiveGuides(): String {
+        onLog("📋 [TOOL] listArchiveGuides()")
         val files = loader.listDirectory(repoPath, "archives")
-        return if (files.isEmpty()) {
+        val result = if (files.isEmpty()) {
             "No archive guides found."
         } else {
             "Available archive guides: ${files.joinToString(", ")}"
         }
+        onLog("📋 [TOOL RESULT] listArchiveGuides → $result")
+        return result
     }
 
     @Tool("List all available professional methodology workflow guides.")
     suspend fun listMethodologyGuides(): String {
+        onLog("📋 [TOOL] listMethodologyGuides()")
         val files = loader.listDirectory(repoPath, "workflows")
-        return if (files.isEmpty()) {
+        val result = if (files.isEmpty()) {
             "No methodology guides found."
         } else {
             "Available methodology guides: ${files.joinToString(", ")}"
         }
+        onLog("📋 [TOOL RESULT] listMethodologyGuides → $result")
+        return result
     }
 
     @Tool("Get a summary of all unique geographic locations (countries, regions) found in the family tree.")
     fun getGeographicProfile(): String {
+        onLog("🗺️ [TOOL] getGeographicProfile()")
         val places = projectData.individuals
             .flatMap { it.events.mapNotNull { e -> e.place?.trim() }.filter { it.isNotBlank() } }
             .distinct()
             .sorted()
-        
-        return if (places.isEmpty()) {
+
+        val result = if (places.isEmpty()) {
             "No geographic locations found in the current family tree."
         } else {
             "The family tree contains the following locations: ${places.joinToString(", ")}"
         }
+        onLog("🗺️ [TOOL RESULT] getGeographicProfile → $result")
+        return result
     }
 
     @Tool("Search for specific individuals or facts in the local family tree by name or location keywords.")
     fun searchFamilyTree(query: String): String {
+        onLog("🔍 [TOOL] searchFamilyTree(query=\"$query\")")
         val results = projectData.individuals.filter { person ->
             person.displayName.contains(query, ignoreCase = true) ||
             person.events.any { it.place?.contains(query, ignoreCase = true) == true } ||
             person.events.any { it.date?.contains(query, ignoreCase = true) == true }
         }.take(10)
-        
-        return if (results.isEmpty()) {
+
+        val result = if (results.isEmpty()) {
             "No matching individuals found in the local tree for query: '$query'."
         } else {
-            "Found ${results.size} matches:\n" + results.joinToString("\n") { 
-                "- ${it.displayName} (${it.birthYear ?: "?"} - ${it.deathYear ?: "?"})" 
+            "Found ${results.size} matches:\n" + results.joinToString("\n") {
+                "- ${it.displayName} (${it.birthYear ?: "?"} - ${it.deathYear ?: "?"})"
             }
         }
+        onLog("🔍 [TOOL RESULT] searchFamilyTree → $result")
+        return result
     }
 
     @Tool("Perform an internet search for genealogy records using Tavily. Specify 'region' and 'targetSite' (e.g. 'vgd.ru') for higher precision.")
     suspend fun search(
-        name: String,
+        name: String = "",
         birth_location: String? = null,
         life_span: String? = null,
         query: String? = null,
@@ -86,23 +105,33 @@ class GenealogyTools(
     ): String {
         val baseQuery = if (query.isNullOrBlank()) {
             buildString {
-                append(name)
+                if (name.isNotBlank()) append(name)
                 birth_location?.let { append(" born in $it") }
                 life_span?.let { append(" ($it)") }
                 region?.let { append(" $it") }
                 targetSite?.let { append(" site:$it") }
-                append(" genealogy records")
+                if (isNotBlank()) append(" genealogy records")
+                else append("genealogy records")
             }
         } else {
-            // If custom query provided, still try to anchor it with name and region if missing
             var q = query
-            if (!q.contains(name, ignoreCase = true)) q = "$name $q"
+            if (name.isNotBlank() && !q.contains(name, ignoreCase = true)) q = "$name $q"
             if (region != null && !q.contains(region, ignoreCase = true)) q = "$q $region"
             if (targetSite != null && !q.contains(targetSite, ignoreCase = true)) q = "$q site:$targetSite"
             q
         }
-        
-        return tavilyClient.search(apiKey, baseQuery, searchDepth = "advanced")
+
+        onLog("🌐 [TAVILY REQUEST] query=\"$baseQuery\"  apiKey=${if (apiKey.isBlank()) "MISSING!" else "***${apiKey.takeLast(4)}"}")
+
+        if (apiKey.isBlank()) {
+            val err = "❌ Tavily API key is not set. Go to AI Settings and enter your Tavily key."
+            onLog(err)
+            return err
+        }
+
+        val result = tavilyClient.search(apiKey, baseQuery, searchDepth = "advanced", onLog = onLog)
+        onLog("🌐 [TAVILY RESPONSE] ${result.take(300)}...")
+        return result
     }
 }
 

@@ -2,7 +2,6 @@ package com.family.tree.core.ai.koog
 
 import com.family.tree.core.ai.AiClient
 import com.family.tree.core.ai.AiConfig
-import kotlin.reflect.KClass
 
 /**
  * Koog (Kotlin Object-Oriented generation) API Shim/Wrapper
@@ -73,9 +72,10 @@ class KoogAgent(
             }
 
             // Execute tool via platform invoker
-            onLog("Tool Call: ${toolCall.className}.${toolCall.methodName}(${toolCall.args})")
+            onLog("⚙️ [INVOKE] ${toolCall.className ?: "*"}.${toolCall.methodName}(${toolCall.args})")
             val result = invoker.invokeTool(tools, toolCall)
-            onLog("Tool Result: ${result.toString().take(200)}...")
+            val preview = if (result.length > 500) result.take(500) + "\n...[+${result.length - 500} chars]" else result
+            onLog("✅ [RESULT] ${toolCall.methodName} →\n$preview")
             history.add("System (Tool Result): $result")
         }
 
@@ -91,24 +91,51 @@ class KoogAgent(
         val methodName = match.groupValues[2]
         val argsText = match.groupValues[3]
         
-        // Simple argument parser (comma separated key="value" or just "value")
+        // Quoted-string-aware argument parser:
+        // Splits on commas that are NOT inside quotes, so values like name="Иванов, Иван" work correctly.
         val args = if (argsText.isBlank()) {
             emptyMap()
         } else {
-            argsText.split(",")
-                .filter { it.contains("=") }
-                .associate {
-                    val parts = it.split("=")
-                    val key = parts[0].trim()
-                    val value = parts[1].trim().removeSurrounding("\"").removeSurrounding("'")
-                    key to value
-                }
+            parseToolArgs(argsText)
         }
             
         return ToolCall(className.ifBlank { null }, methodName, args)
     }
 
     data class ToolCall(val className: String?, val methodName: String, val args: Map<String, String>)
+}
+
+/**
+ * Parses tool call arguments that are comma-separated key="value" pairs,
+ * correctly handling commas inside quoted strings.
+ * E.g.: name="Иванов, Иван", region="Тверская губерния"
+ */
+private fun parseToolArgs(argsText: String): Map<String, String> {
+    val result = mutableMapOf<String, String>()
+    val tokens = mutableListOf<String>()
+    val current = StringBuilder()
+    var inQuote = false
+    var quoteChar = ' '
+
+    for (ch in argsText) {
+        when {
+            inQuote && ch == quoteChar -> { inQuote = false; current.append(ch) }
+            !inQuote && (ch == '"' || ch == '\'') -> { inQuote = true; quoteChar = ch; current.append(ch) }
+            !inQuote && ch == ',' -> { tokens.add(current.toString()); current.clear() }
+            else -> current.append(ch)
+        }
+    }
+    if (current.isNotBlank()) tokens.add(current.toString())
+
+    for (token in tokens) {
+        val eqIdx = token.indexOf('=')
+        if (eqIdx < 0) continue
+        val key = token.substring(0, eqIdx).trim()
+        val value = token.substring(eqIdx + 1).trim()
+            .removeSurrounding("\"").removeSurrounding("'")
+        if (key.isNotBlank()) result[key] = value
+    }
+    return result
 }
 
 class AiClientAgentModel(

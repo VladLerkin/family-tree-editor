@@ -68,11 +68,13 @@ kotlin {
             implementation(libs.androidx.security.crypto)
             implementation(libs.pdfbox.android)
             api(libs.koin.android)
+            implementation(libs.kotlin.reflect)
         }
         
         val desktopMain by getting {
             dependencies {
                 implementation(libs.ktor.client.cio)
+                implementation(libs.kotlin.reflect)
             }
         }
         

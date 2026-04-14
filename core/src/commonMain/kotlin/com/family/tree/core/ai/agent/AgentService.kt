@@ -133,7 +133,7 @@ class AgentService(
         log("Instructions prepared. Context length: ${finalInstructions.length} characters.")
         
         val tools = listOf(
-            GenealogyTools(projectData, tavilyClient, tavilyKey, repoPath)
+            GenealogyTools(projectData, tavilyClient, tavilyKey, repoPath, onLog = { log(it) })
         )
         
         log("Connecting to AI Provider: ${config.provider}...")

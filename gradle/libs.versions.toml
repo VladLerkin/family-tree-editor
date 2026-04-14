@@ -6,8 +6,8 @@ android-compileSdk = "36"
 android-minSdk = "26"
 android-targetSdk = "36"
 java = "21"
-app-version = "1.4.43"
-app-versionCode = "53"
+app-version = "1.4.44"
+app-versionCode = "54"
 ktor = "3.4.2"
 serialization = "1.11.0"
 androidx-security = "1.1.0"
@@ -45,6 +45,7 @@ koin-compose = { group = "io.insert-koin", name = "koin-compose", version.ref = 
 koin-compose-viewmodel = { group = "io.insert-koin", name = "koin-compose-viewmodel", version.ref = "koin" }
 lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 koog-agents = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
+kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

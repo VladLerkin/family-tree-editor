@@ -1,12 +1,12 @@
 package com.family.tree.core.ai.koog
 
 import com.family.tree.core.ai.koog.KoogAgent.ToolCall
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.callSuspend
+import kotlin.reflect.full.instanceParameter
 
 /**
- * JVM implementation using reflection to discover and invoke tools.
+ * JVM (Desktop) implementation using reflection to discover and invoke tools.
  */
 actual class PlatformToolInvoker actual constructor() {
     actual fun getToolDocumentation(tools: List<Any>): String {
@@ -16,7 +16,10 @@ actual class PlatformToolInvoker actual constructor() {
                 .filter { method -> method.annotations.any { it is Tool } }
                 .joinToString("\n") { method ->
                     val toolAnnotation = method.annotations.find { it is Tool } as Tool
-                    val params = method.parameters.drop(1).joinToString(", ") { "${it.name}: ${it.type}" }
+                    val params = method.parameters.drop(1).joinToString(", ") { p ->
+                        val optional = if (p.isOptional) "?" else ""
+                        "${p.name}$optional: ${p.type}"
+                    }
                     "- ${method.name}($params): ${toolAnnotation.description}"
                 }
             "Tool Class: $className\nMethods:\n$methods"
@@ -28,9 +31,8 @@ actual class PlatformToolInvoker actual constructor() {
             tools.find { it::class.simpleName == call.className }
                 ?: return "Error: Tool class ${call.className} not found."
         } else {
-            // If class name is not specified, find the first tool that has this method
-            tools.find { tool ->
-                tool::class.memberFunctions.any { it.name == call.methodName && it.annotations.any { a -> a is Tool } }
+            tools.find { t ->
+                t::class.memberFunctions.any { it.name == call.methodName && it.annotations.any { a -> a is Tool } }
             } ?: return "Error: Method ${call.methodName} not found in any available tools."
         }
 
@@ -38,24 +40,36 @@ actual class PlatformToolInvoker actual constructor() {
             val method = tool::class.memberFunctions.find { it.name == call.methodName }
                 ?: return "Error: Method ${call.methodName} not found in ${call.className}."
 
-            val params = method.parameters.drop(1)
+            // Build a KParameter -> value map (callBy handles optional params automatically)
             val argsMap = mutableMapOf<kotlin.reflect.KParameter, Any?>()
-            argsMap[method.parameters[0]] = tool // 'this' argument
+            argsMap[method.instanceParameter!!] = tool
 
-            for (p in params) {
-                if (call.args.containsKey(p.name)) {
-                    argsMap[p] = call.args[p.name]
+            for (p in method.parameters.drop(1)) { // skip 'this'
+                val strVal = call.args[p.name]
+                if (strVal != null) {
+                    argsMap[p] = strVal
                 }
+                // optional params not in argsMap are skipped automatically by callBy
             }
 
             val result = if (method.isSuspend) {
-                method.callSuspend(tool, *argsMap.values.toTypedArray().drop(1).toTypedArray())
+                // callSuspend is positional — must include ALL parameters in declaration order.
+                // For params not provided by the AI, pass null (works for String?/optional params).
+                val orderedArgs = mutableListOf<Any?>()
+                for (p in method.parameters) {
+                    when {
+                        p == method.instanceParameter -> orderedArgs.add(tool)
+                        argsMap.containsKey(p) -> orderedArgs.add(argsMap[p])
+                        else -> orderedArgs.add(null) // null for all missing params
+                    }
+                }
+                method.callSuspend(*orderedArgs.toTypedArray())
             } else {
-                method.call(tool, *argsMap.values.toTypedArray().drop(1).toTypedArray())
+                method.callBy(argsMap)
             }
-            result.toString()
+            result?.toString() ?: "null"
         } catch (e: Exception) {
-            "Error executing tool: ${e.message}"
+            "❌ Error in ${call.methodName}: [${e::class.simpleName}] ${e.message ?: e.toString()}"
         }
     }
 }
