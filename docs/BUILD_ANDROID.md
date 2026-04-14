@@ -6,7 +6,7 @@ This guide explains how to build and run the Kotlin Multiplatform (KMP) Android 
 
 - **JDK 25** (required for Gradle and Compose Multiplatform)
 - **Android SDK 35** (Platform 35, Build-Tools 35.0.0, Platform-Tools)
-- **Gradle 9.1.0** (included via wrapper: `./gradlew` or `gradlew.bat`)
+- **Gradle 9.1.1** (included via wrapper: `./gradlew` or `gradlew.bat`)
 - **Android device or emulator** (API level 35 recommended)
 
 ### Install Android SDK

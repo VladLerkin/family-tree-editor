@@ -38,9 +38,9 @@ The issue is likely caused by one or more of the following:
 1. **Kotlin/Native distribution not downloaded:** First-time iOS target configuration requires Kotlin/Native toolchain download, which may fail or be incomplete.
 
 2. **Version compatibility:** The current combination of:
-   - Gradle 9.1.0
-   - Kotlin 2.3.0
-   - Compose Multiplatform 1.7.0
+   - Gradle 9.1.1
+   - Kotlin 2.3.20
+   - Compose Multiplatform 1.10.3
    
    May have compatibility issues with iOS targets. Kotlin/Native support for iOS in Compose Multiplatform was still maturing in these versions.
 

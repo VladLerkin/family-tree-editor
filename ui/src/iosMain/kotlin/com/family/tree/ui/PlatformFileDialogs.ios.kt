@@ -14,7 +14,8 @@ import platform.Foundation.NSData
 import platform.Foundation.NSFileManager
 import platform.Foundation.NSURL
 import platform.Foundation.create
-import androidx.compose.ui.interop.LocalUIViewController
+import androidx.compose.ui.uikit.LocalUIViewController
+
 import platform.UIKit.UIApplication
 import platform.UIKit.UIDocumentPickerDelegateProtocol
 import platform.UIKit.UIDocumentPickerViewController
@@ -103,29 +104,22 @@ actual fun PlatformFileDialogs(
             // Strategic delay to ensure UIKit and Compose layers are settled
             kotlinx.coroutines.delay(200)
             
-            val manualTopmost = findTopmostViewController()
-            val hostController = localViewController ?: manualTopmost
+            val hostController = localViewController
             
-                        
-            if (hostController != null) {
-                withContext(Dispatchers.Main) {
-                                        // Allow all file types for .ped (ZIP with JSON), JSON, and other formats
-                    val picker = UIDocumentPickerViewController(
-                        forOpeningContentTypes = listOf(UTTypeItem),
-                        asCopy = true
-                    )
-                    
-                    picker.setDelegate(delegate)
-                    picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
-                    
-                                        hostController.presentViewController(picker, animated = true) {
-                                            }
-                                    }
-            } else {
-                // Fallback if no root view controller
-                                onOpenResult(null)
-                onDismissOpen()
+            withContext(Dispatchers.Main) {
+                // Allow all file types for .ped (ZIP with JSON), JSON, and other formats
+                val picker = UIDocumentPickerViewController(
+                    forOpeningContentTypes = listOf(UTTypeItem),
+                    asCopy = true
+                )
+                
+                picker.setDelegate(delegate)
+                picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
+                
+                hostController.presentViewController(picker, animated = true) {
+                }
             }
+
         }
     }
     
@@ -151,47 +145,42 @@ actual fun PlatformFileDialogs(
             if (!showSave) return@LaunchedEffect
                         
             kotlinx.coroutines.delay(200)
-            val manualTopmost = findTopmostViewController()
-            val hostController = localViewController ?: manualTopmost
+            val hostController = localViewController
             
-            if (hostController != null) {
-                withContext(Dispatchers.Main) {
-                    val bytes = bytesToSave()
-                    val data = byteArrayToNSData(bytes)
-                                        
-                    // Write to temporary file first using NSFileManager
-                    val fileManager = NSFileManager.defaultManager
-                    val tempDir = platform.Foundation.NSTemporaryDirectory()
-                    val tempPath = "${tempDir}project.ped"
-                    val tempFileUrl = NSURL.fileURLWithPath(tempPath)
-                    
-                    // Write data to temporary file
-                    val success = fileManager.createFileAtPath(
-                        path = tempPath,
-                        contents = data,
-                        attributes = null
+            withContext(Dispatchers.Main) {
+                val bytes = bytesToSave()
+                val data = byteArrayToNSData(bytes)
+                
+                // Write to temporary file first using NSFileManager
+                val fileManager = NSFileManager.defaultManager
+                val tempDir = platform.Foundation.NSTemporaryDirectory()
+                val tempPath = "${tempDir}project.ped"
+                val tempFileUrl = NSURL.fileURLWithPath(tempPath)
+                
+                // Write data to temporary file
+                val success = fileManager.createFileAtPath(
+                    path = tempPath,
+                    contents = data,
+                    attributes = null
+                )
+                
+                if (success) {
+                    val picker = UIDocumentPickerViewController(
+                        forExportingURLs = listOf(tempFileUrl),
+                        asCopy = true
                     )
-                                        
-                    if (success) {
-                        val picker = UIDocumentPickerViewController(
-                            forExportingURLs = listOf(tempFileUrl),
-                            asCopy = true
-                        )
-                        
-                        picker.setDelegate(delegate)
-                        picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
-                        
-                                                hostController.presentViewController(picker, animated = true) {
-                                                    }
-                    } else {
-                        // Failed to write temp file
-                                                onDismissSave()
+                    
+                    picker.setDelegate(delegate)
+                    picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
+                    
+                    hostController.presentViewController(picker, animated = true) {
                     }
+                } else {
+                    // Failed to write temp file
+                    onDismissSave()
                 }
-            } else {
-                // Fallback if no root view controller
-                                onDismissSave()
             }
+
         }
     }
     
@@ -230,25 +219,20 @@ actual fun PlatformFileDialogs(
         LaunchedEffect(showRelImport) {
             if (!showRelImport) return@LaunchedEffect
             kotlinx.coroutines.delay(200)
-            val manualTopmost = findTopmostViewController()
-            val hostController = localViewController ?: manualTopmost
+            val hostController = localViewController
 
-            if (hostController != null) {
-                withContext(Dispatchers.Main) {
-                    // Allow all file types for .rel files
-                    val picker = UIDocumentPickerViewController(
-                        forOpeningContentTypes = listOf(UTTypeItem),
-                        asCopy = true
-                    )
-                    picker.setDelegate(delegate)
-                    picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
-                                        hostController.presentViewController(picker, animated = true) {
-                                            }
+            withContext(Dispatchers.Main) {
+                // Allow all file types for .rel files
+                val picker = UIDocumentPickerViewController(
+                    forOpeningContentTypes = listOf(UTTypeItem),
+                    asCopy = true
+                )
+                picker.setDelegate(delegate)
+                picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
+                hostController.presentViewController(picker, animated = true) {
                 }
-            } else {
-                onRelImportResult(null)
-                onDismissRelImport()
             }
+
         }
     }
     
@@ -277,24 +261,19 @@ actual fun PlatformFileDialogs(
         LaunchedEffect(showGedcomImport) {
             if (!showGedcomImport) return@LaunchedEffect
             kotlinx.coroutines.delay(200)
-            val manualTopmost = findTopmostViewController()
-            val hostController = localViewController ?: manualTopmost
+            val hostController = localViewController
 
-            if (hostController != null) {
-                withContext(Dispatchers.Main) {
-                    val picker = UIDocumentPickerViewController(
-                        forOpeningContentTypes = listOf(UTTypeData, UTTypePlainText),
-                        asCopy = true
-                    )
-                    picker.setDelegate(delegate)
-                    picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
-                                        hostController.presentViewController(picker, animated = true) {
-                                            }
+            withContext(Dispatchers.Main) {
+                val picker = UIDocumentPickerViewController(
+                    forOpeningContentTypes = listOf(UTTypeData, UTTypePlainText),
+                    asCopy = true
+                )
+                picker.setDelegate(delegate)
+                picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
+                hostController.presentViewController(picker, animated = true) {
                 }
-            } else {
-                onGedcomImportResult(null)
-                onDismissGedcomImport()
             }
+
         }
     }
     
@@ -333,25 +312,20 @@ actual fun PlatformFileDialogs(
         LaunchedEffect(showAiTextImport) {
             if (!showAiTextImport) return@LaunchedEffect
             kotlinx.coroutines.delay(200)
-            val manualTopmost = findTopmostViewController()
-            val hostController = localViewController ?: manualTopmost
+            val hostController = localViewController
 
-            if (hostController != null) {
-                withContext(Dispatchers.Main) {
-                    // Allow text and JSON files for AI import
-                    val picker = UIDocumentPickerViewController(
-                        forOpeningContentTypes = listOf(UTTypePlainText, UTTypeJSON, UTTypeData),
-                        asCopy = true
-                    )
-                    picker.setDelegate(delegate)
-                    picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
-                                        hostController.presentViewController(picker, animated = true) {
-                                            }
+            withContext(Dispatchers.Main) {
+                // Allow text and JSON files for AI import
+                val picker = UIDocumentPickerViewController(
+                    forOpeningContentTypes = listOf(UTTypePlainText, UTTypeJSON, UTTypeData),
+                    asCopy = true
+                )
+                picker.setDelegate(delegate)
+                picker.modalPresentationStyle = platform.UIKit.UIModalPresentationFormSheet
+                hostController.presentViewController(picker, animated = true) {
                 }
-            } else {
-                onAiTextImportResult(null)
-                onDismissAiTextImport()
             }
+
         }
     }
     

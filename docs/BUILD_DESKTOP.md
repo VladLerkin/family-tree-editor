@@ -5,7 +5,7 @@ This guide explains how to build and run the Kotlin Multiplatform (KMP) Desktop 
 ## Prerequisites
 
 - **JDK 25** (required for Gradle and Compose Multiplatform)
-- **Gradle 9.1.0** (included via wrapper: `./gradlew` or `gradlew.bat`)
+- **Gradle 9.1.1** (included via wrapper: `./gradlew` or `gradlew.bat`)
 - **Internet access** for Gradle to download dependencies
 - **Linux only:** Desktop environment (GNOME/KDE/etc.) for GUI display
 
