@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -115,7 +116,7 @@ fun AutoSearchDialog(
                             Text("Finish")
                         }
                     }
-                } else if (isRunning || logs.isNotEmpty()) {
+                } else if (isRunning || (selectedPrompt != null && logs.isNotEmpty())) {
                     // Phase 2: Researching / Progress
                     Text("Research in Progress", style = MaterialTheme.typography.titleLarge)
                     Text("Current Task: ${selectedPrompt?.name}", style = MaterialTheme.typography.bodyMedium)
@@ -140,21 +141,23 @@ fun AutoSearchDialog(
                         }
                     }
                     
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium)
-                            .padding(8.dp)
-                    ) {
-                        LazyColumn(state = listState) {
-                            items(logs) { logMsg ->
-                                Text(
-                                    text = logMsg,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
+                    SelectionContainer {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium)
+                                .padding(8.dp)
+                        ) {
+                            LazyColumn(state = listState) {
+                                items(logs) { logMsg ->
+                                    Text(
+                                        text = logMsg,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                }
                             }
                         }
                     }

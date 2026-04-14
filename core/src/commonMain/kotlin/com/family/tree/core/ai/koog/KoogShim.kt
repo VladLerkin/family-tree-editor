@@ -48,6 +48,7 @@ class KoogAgent(
                 appendLine("```tool_code")
                 appendLine("methodName(arg1=\"value\", ...)")
                 appendLine("```")
+                appendLine("CRITICAL: You MUST provide all required arguments. Empty calls like `methodName({})` or `methodName()` for tools that require parameters are strictly FORBIDDEN.")
                 appendLine("I will execute it and provide the result. You can omit the class prefix. If you have the final answer, just provide it WITHOUT a tool block.")
                 
                 appendLine("\n### Conversation History")

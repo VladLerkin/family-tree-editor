@@ -51,7 +51,7 @@ class TavilyClient(
                 api_key = apiKey,
                 query = query,
                 search_depth = searchDepth,
-                include_answer = true
+                include_answer = false
             )
             onLog("🔗 [HTTP POST] https://api.tavily.com/search  body={query=\"$query\", search_depth=\"$searchDepth\"}")
 
@@ -69,10 +69,6 @@ class TavilyClient(
                 val parsed = json.decodeFromString<TavilySearchResponse>(responseBody)
                 buildString {
                     appendLine("Search results for '$query':")
-                    parsed.answer?.let {
-                        appendLine("\n[AI SUMMARY - verify facts using source results below]")
-                        appendLine("Summary: $it")
-                    }
                     if (parsed.results.isEmpty()) {
                         appendLine("\n⚠️ No results returned by Tavily for this query.")
                     } else {

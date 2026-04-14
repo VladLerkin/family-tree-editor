@@ -15,6 +15,9 @@ class GenealogyTools(
 
     @Tool("Read a specific methodology workflow guide (e.g., 'discrepancy-resolution.md').")
     suspend fun readMethodology(fileName: String): String {
+        if (fileName.isBlank() || fileName == "null") {
+            return "Error: fileName is required. Use 'listMethodologyGuides' to find the available file names first."
+        }
         onLog("📖 [TOOL] readMethodology(\"$fileName\")")
         val result = loader.readFile(repoPath, "workflows/$fileName")
             ?: "Error: Workflow $fileName not found in $repoPath/workflows/"
@@ -24,6 +27,9 @@ class GenealogyTools(
 
     @Tool("Read an archive guide for a specific country or region (e.g., 'norway.md', 'usa-census.md').")
     suspend fun readArchiveGuide(fileName: String): String {
+        if (fileName.isBlank() || fileName == "null") {
+            return "Error: fileName is required. Use 'listArchiveGuides' to find the available file names first."
+        }
         onLog("📖 [TOOL] readArchiveGuide(\"$fileName\")")
         val result = loader.readFile(repoPath, "archives/$fileName")
             ?: "Error: Archive guide $fileName not found in $repoPath/archives/"
@@ -54,6 +60,56 @@ class GenealogyTools(
             "Available methodology guides: ${files.joinToString(", ")}"
         }
         onLog("📋 [TOOL RESULT] listMethodologyGuides → $result")
+        return result
+    }
+
+    @Tool("List all available research examples showing how to apply methodology.")
+    suspend fun listExamples(): String {
+        onLog("📋 [TOOL] listExamples()")
+        val files = loader.listDirectory(repoPath, "examples")
+        val result = if (files.isEmpty()) {
+            "No research examples found."
+        } else {
+            "Available examples: ${files.joinToString(", ")}"
+        }
+        onLog("📋 [TOOL RESULT] listExamples → $result")
+        return result
+    }
+
+    @Tool("Read a specific research example (e.g., 'tree-expansion-session.md') to see professional protocols in action.")
+    suspend fun readExample(fileName: String): String {
+        if (fileName.isBlank() || fileName == "null") {
+            return "Error: fileName is required. Use 'listExamples' to find the available file names first."
+        }
+        onLog("📖 [TOOL] readExample(\"$fileName\")")
+        val result = loader.readFile(repoPath, "examples/$fileName")
+            ?: "Error: Example $fileName not found in $repoPath/examples/"
+        onLog("📖 [TOOL RESULT] readExample → ${result.take(120)}...")
+        return result
+    }
+
+    @Tool("List all available reference guides (standard conventions, glossaries).")
+    suspend fun listReferenceGuides(): String {
+        onLog("📋 [TOOL] listReferenceGuides()")
+        val files = loader.listDirectory(repoPath, "reference")
+        val result = if (files.isEmpty()) {
+            "No reference guides found."
+        } else {
+            "Available reference guides: ${files.joinToString(", ")}"
+        }
+        onLog("📋 [TOOL RESULT] listReferenceGuides → $result")
+        return result
+    }
+
+    @Tool("Read a specific reference guide (e.g., 'gedcom-guide.md', 'confidence-tiers.md').")
+    suspend fun readReferenceGuide(fileName: String): String {
+        if (fileName.isBlank() || fileName == "null") {
+            return "Error: fileName is required. Use 'listReferenceGuides' to find the available file names first."
+        }
+        onLog("📖 [TOOL] readReferenceGuide(\"$fileName\")")
+        val result = loader.readFile(repoPath, "reference/$fileName")
+            ?: "Error: Reference guide $fileName not found in $repoPath/reference/"
+        onLog("📖 [TOOL RESULT] readReferenceGuide → ${result.take(120)}...")
         return result
     }
 

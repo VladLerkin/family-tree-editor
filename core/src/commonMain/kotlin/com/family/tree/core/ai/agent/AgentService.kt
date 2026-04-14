@@ -99,11 +99,14 @@ class AgentService(
             #### STEP 1: SCAN LOCAL CONTEXT
             - First, analyze the provided <Family_Tree> to identify the names, dates, and specifically the **geographic locations** (countries, parishes, regions) of the ancestors in scope.
             - Use the 'getGeographicProfile' tool to get a high-level summary of relevant regions.
+            - **Consult Standards**: Use 'listReferenceGuides' and 'readReferenceGuide' (e.g., 'gedcom-guide.md') to ensure your data mapping follows professional standards.
             
-            #### STEP 2: DISCOVER ARCHIVES
-            - Once regions are identified, use 'listArchiveGuides' to see available guides for different countries/regions.
+            #### STEP 2: DISCOVER ARCHIVES & EXAMPLES
+            - Once regions are identified, you MUST use 'listArchiveGuides' to see available guides for different countries/regions.
+            - **Mandatory Discovery**: You cannot guess filenames. Always use the list tools first.
+            - **Learn from Examples**: If the task is complex, use 'listExamples' and 'readExample' to see how professional genealogists handled similar cases (e.g., 'dna-to-genealogy-mapping.md').
             - Match the identified regions with the available guides (e.g., use 'russia-ukraine.md' for both Russia and Ukraine).
-            - Then use 'readArchiveGuide' with the exact filename to find specific online databases and search parameters.
+            - Then use 'readArchiveGuide' with the **exact filename** found in the listing.
             
             #### STEP 3: EXECUTE RESEARCH
             - Use 'listMethodologyGuides' and 'readMethodology' to consult workflow guides (e.g., 'discrepancy-resolution.md') if you find conflicting data.
@@ -119,10 +122,16 @@ class AgentService(
                - **IMPORTANT**: Mention ONLY facts that were discovered in EXTERNAL sources (web search, archives). 
                - **NO ECHOING**: Do NOT report facts that are already present in the provided <Family_Tree> context as 'New'.
                - **Deep Verification**: Every fact MUST be explicitly present in the 'Snippet' text of one of your search results. If it is not in the results, it is a hallucination—DISCARD IT.
-               - **No Fake URLs**: You MUST provide the exact URL from the 'URL' field of the result. Forging URLs (e.g., using placeholders like `123456789`, `abcdef`, `findagrave.com/memorial/000`) is strictly FORBIDDEN and will lead to total task failure.
-               - **Source Attribution**: Format each finding: `[NEW] Birth Date: 12 May 1890 [Source: Title](URL)`.
-               - Clearly mark what is NEW and what is a CORRECTION of existing data.
-            3. **[SOURCES]**: Mandatory section at the end listing ALL URLs found during the research. Do NOT list 'Family Tree' as a source here; ONLY external internet links.
+                - **Evidence Snippet**: For every NEW fact, you MUST include a short quote (verbatim snippet) in your thinking process or as a sub-bullet to prove its existence in the source.
+                - **DRACONIAN URL POLICY**: You are strictly prohibited from constructing, guessing, or "cleaning up" deep-link URLs. 
+                    1. You MUST copy-paste the exact URL from the 'URL' field of the tool result verbatim. 
+                    2. **Placeholder Ban**: Using placeholder IDs like `123456789`, `abcdef`, `0000`, or `1111` in a URL is a CRITICAL FAILURE and will result in task termination. 
+                    3. **No ID Fabrication**: If a result (e.g., from Find a Grave) is a search results page or a home page, you MUST use that exact URL. You are strictly FORBIDDEN from attempting to construct a memorial URL or person-details URL if the tool did not provide it.
+                    4. **Zero Tolerance**: Any deviation from the verbatim URL returned by the tool is considered a hallucination.
+                - **NO DOMAIN HALLUCINATION**: You are strictly forbidden from inventing plausible-sounding domain names (e.g., `history-tbilisi.com`, `georgianarchives.com`) if they were not explicitly present in the 'URL' field of a tool result. 
+                - **Source Attribution**: Format each finding: `[NEW] Birth Date: 12 May 1890 [Source #X: Title](URL)`. Replace X with the actual Source number from the tool output.
+                - Clearly mark what is NEW and what is a CORRECTION of existing data.
+            3. **[SOURCES]**: Mandatory section at the end listing ALL URLs found during the research. Use ONLY the verbatim URLs from the search results. Copy-paste them exactly as they appeared in the tool output.
             4. **Next Steps**: Recommended further searches if no external data was found.
             
             **AUTO-STOPPING POLICY**: Do NOT stop until you have attempted at least one specific search for EACH geographic region identified in Step 1. Use your high iteration limit to be exhaustive.
