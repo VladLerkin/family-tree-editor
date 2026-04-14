@@ -17,6 +17,8 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
         
         // Java compatibility
+
+
         with(java) {
              toolchain {
                  languageVersion.set(JavaLanguageVersion.of(libs.versions.java.get().toInt()))
@@ -90,6 +92,8 @@ kotlin {
 }
 
 compose.resources {
+
+
     publicResClass = true
     packageOfResClass = "com.family.tree.ui"
 }

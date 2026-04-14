@@ -48,3 +48,7 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Generated/Synced Android Assets
+app-android/src/main/assets/files/
+

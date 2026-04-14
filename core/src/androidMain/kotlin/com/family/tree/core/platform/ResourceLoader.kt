@@ -1,6 +1,8 @@
 package com.family.tree.core.platform
 
 import kotlinx.serialization.json.*
+import org.koin.core.context.GlobalContext
+import android.content.Context
 
 actual class ResourceLoader actual constructor() {
     private val json = Json { ignoreUnknownKeys = true }
@@ -30,47 +32,32 @@ actual class ResourceLoader actual constructor() {
         val cleanPath = path.removePrefix("./").removePrefix("/")
         println("[DEBUG_LOG] Android ResourceLoader: Probe started for '$cleanPath'")
         
-        // Define probes: Standard Compose paths + Project specific + Android assets + raw path
+        val context = GlobalContext.get().get<Context>()
+        
+        // Define probes: Standard UI module assets + Compose resources fallbacks
         val probes = listOf(
+            "files/$cleanPath", // Mapped via Gradle from commonMain/composeResources/files/
             "composeResources/com.family.tree.ui/files/$cleanPath",
             "composeResources/family_tree_kmp.ui.generated.resources/files/$cleanPath",
-            "composeResources/com.family.tree.ui.generated.resources/files/$cleanPath",
-            "composeResources/ui.generated.resources/files/$cleanPath",
-            "assets/composeResources/family_tree_kmp.ui.generated.resources/files/$cleanPath",
-            "assets/composeResources/com.family.tree.ui.generated.resources/files/$cleanPath",
-            "assets/composeResources/ui.generated.resources/files/$cleanPath",
             "composeResources/files/$cleanPath",
-            "assets/composeResources/files/$cleanPath",
-            "assets/files/$cleanPath",
-            "files/$cleanPath",
-            "composeResources/$cleanPath",
-            "assets/$cleanPath",
             cleanPath
         )
         
-        val classLoader = Thread.currentThread().contextClassLoader ?: this::class.java.classLoader
-        
         for (probePath in probes) {
-            println("[DEBUG_LOG] Android ResourceLoader: Trying probe '$probePath'")
-            
-            // Try different ways to get the stream
-            val stream = classLoader.getResourceAsStream(probePath)
-                ?: this::class.java.classLoader.getResourceAsStream(probePath)
-                ?: this::class.java.getResourceAsStream("/$probePath")
-                ?: this::class.java.getResourceAsStream(probePath)
-                
-            if (stream != null) {
-                println("[DEBUG_LOG] Android ResourceLoader: SUCCESS! Found at '$probePath'")
-                return try {
-                    stream.bufferedReader().use { it.readText() }
-                } catch (e: Exception) {
-                    println("[DEBUG_LOG] Android ResourceLoader: Error reading stream: ${e.message}")
-                    null
+            try {
+                context.assets.open(probePath).use { stream ->
+                    println("[DEBUG_LOG] Android ResourceLoader: SUCCESS! Found at '$probePath'")
+                    return stream.bufferedReader().use { it.readText() }
                 }
+            } catch (e: Exception) {
+                // Continue to next probe
+                println("[DEBUG_LOG] Android ResourceLoader: Probe missed '$probePath' - ${e.message}")
             }
         }
         
-        println("[DEBUG_LOG] Android ResourceLoader: FAILED to find '$cleanPath' after all probes.")
+        println("[DEBUG_LOG] Android ResourceLoader: FAILED to find '$cleanPath' in assets after all probes.")
         return null
     }
 }
+
+

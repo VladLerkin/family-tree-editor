@@ -118,3 +118,26 @@ dependencies {
     implementation(libs.koin.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// ------------------------------------------------------------------------------------------------
+// AUTOMATED RESOURCE SYNC
+// Copies common prompts/resources from :ui module to Android assets at build time.
+// This ensures a single source of truth in commonMain while making them available to AssetManager.
+// ------------------------------------------------------------------------------------------------
+val syncComposeResources = tasks.register<Copy>("syncComposeResources") {
+    group = "build"
+    description = "Syncs common resources from :ui to Android assets"
+    
+    from(project(":ui").projectDir.resolve("src/commonMain/composeResources/files"))
+    into(projectDir.resolve("src/main/assets/files"))
+    
+    // Ensure we don't copy stale data
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    includeEmptyDirs = false
+}
+
+// Ensure the resources are synced before any Android build task starts
+tasks.named("preBuild") {
+    dependsOn(syncComposeResources)
+}
+
