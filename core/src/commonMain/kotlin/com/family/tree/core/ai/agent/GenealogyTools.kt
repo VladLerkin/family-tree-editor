@@ -1,7 +1,7 @@
 package com.family.tree.core.ai.agent
 
 import com.family.tree.core.ProjectData
-import com.family.tree.core.ai.koog.Tool
+import ai.koog.agents.core.tool.Tool
 import com.family.tree.core.platform.ResourceLoader
 
 class GenealogyTools(

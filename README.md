@@ -14,7 +14,6 @@
 - 🎨 **Modern UI** - Built with Compose Multiplatform for native look and feel
 - 🔍 **Inspector Panel** - View and edit individual and family details
 - 🤖 **AI Genealogy Agent** - Autonomous research and expansion using professional protocols ([Documentation](core/src/commonMain/composeResources/files/autoresearch-genealogy/README.md))
-- ⌨️ **Keyboard Shortcuts** - Efficient navigation and editing
 
 ## 📦 Download
 
