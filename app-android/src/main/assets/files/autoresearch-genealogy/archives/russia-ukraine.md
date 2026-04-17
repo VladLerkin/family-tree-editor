@@ -4,6 +4,12 @@ Genealogical research in Russia and Ukraine presents significant challenges: Cyr
 
 ## Key Databases
 
+### Geni.com
+- **URL**: https://www.geni.com/
+- **Coverage**: Significant Russian and Ukrainian family trees, often with sourced data. Useful for finding connections and existing research.
+- **Cost**: Free (basic), subscription for full access
+- **AI accessibility**: AI-readable
+
 ### FamilySearch (Russia/Ukraine collections)
 - **URL**: https://www.familysearch.org/
 - **Coverage**: Rapidly growing collection. Metric books (metricheskie knigi) from many guberniyas are being digitized. Includes Orthodox, Catholic, Lutheran, and Jewish records.
@@ -38,12 +44,6 @@ Genealogical research in Russia and Ukraine presents significant challenges: Cyr
 - **Cost**: Free
 - **Searchable**: Yes (by name, rank, date, place)
 - **AI accessibility**: AI-searchable (in Russian)
-
-### Geni.com
-- **URL**: https://www.geni.com/
-- **Coverage**: Significant Russian and Ukrainian family trees, often with sourced data. Useful for finding connections and existing research.
-- **Cost**: Free (basic), subscription for full access
-- **AI accessibility**: AI-readable
 
 ### Ukrainian State Archives (various)
 - **Coverage**: The Central State Historical Archive of Ukraine in Kyiv (CDIAK) and Lviv (CDIAuL) hold the most extensive collections. Individual oblast archives hold records for their regions. Some have online catalogs; most require in-person or email research.

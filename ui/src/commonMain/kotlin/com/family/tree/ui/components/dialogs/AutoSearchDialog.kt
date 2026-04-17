@@ -8,12 +8,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -132,7 +135,27 @@ fun AutoSearchDialog(
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Agent Output Console:", style = MaterialTheme.typography.labelMedium)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Agent Output Console:", style = MaterialTheme.typography.labelMedium)
+                        
+                        val clipboardManager = LocalClipboardManager.current
+                        TextButton(
+                            onClick = {
+                                val allLogs = logs.joinToString("\n")
+                                clipboardManager.setText(AnnotatedString(allLogs))
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Copy Logs", style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                     
                     val listState = rememberLazyListState()
                     LaunchedEffect(logs.size) {
