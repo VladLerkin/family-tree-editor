@@ -13,7 +13,7 @@ class MarkdownTreeExporter {
         val familiesCount = data.families.size
         
         // Geographic Profile
-        val places = data.individuals.flatMap { it.events.mapNotNull { e -> e.place?.trim() }.filter { it.isNotBlank() } }
+        val places = data.individuals.flatMap { it.events.mapNotNull { e -> e.place.trim() }.filter { it.isNotBlank() } }
         val topPlaces = places.groupBy { it }
             .mapValues { it.value.size }
             .toList()

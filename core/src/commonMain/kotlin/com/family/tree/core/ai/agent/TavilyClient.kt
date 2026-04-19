@@ -64,9 +64,10 @@ class TavilyClient(
 
             if (response.status.isSuccess()) {
                 val responseBody = response.bodyAsText()
-                onLog("🔗 [HTTP RAW BODY] ${responseBody.take(500)}...")
+                onLog("🔗 [HTTP RAW BODY] ${responseBody.take(1500)}${if (responseBody.length > 1500) "..." else ""}")
 
                 val parsed = json.decodeFromString<TavilySearchResponse>(responseBody)
+                onLog("✅ [TAVILY PARSED] Found ${parsed.results.size} potential sources.")
                 buildString {
                     appendLine("Search results for '$query':")
                     if (parsed.results.isEmpty()) {
@@ -74,6 +75,9 @@ class TavilyClient(
                     } else {
                         appendLine("\n[SPECIFIC SOURCE RESULTS] (${parsed.results.size} found)")
                         parsed.results.forEachIndexed { index, result ->
+                            onLog("📍 [SOURCE #${index + 1}] ${result.title}")
+                            onLog("🔗 [URL] ${result.url}")
+                            
                             appendLine("\nSource #${index + 1}: ${result.title}")
                             appendLine("URL: ${result.url}")
                             appendLine("Snippet: ${result.content}")

@@ -1,15 +1,14 @@
 package com.family.tree.core.platform
 
 import kotlinx.serialization.json.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 actual class ResourceLoader actual constructor() {
     private val json = Json { ignoreUnknownKeys = true }
 
     companion object {
-        // Cache for the manifest content to avoid re-reading it multiple times
         private var cachedManifestContent: String? = null
-        
-        // Cache the last successful prefix to prioritize it in future probes
         private var successfulPrefix: String? = null
     }
 
@@ -22,7 +21,6 @@ actual class ResourceLoader actual constructor() {
             val manifestContent = cachedManifestContent ?: readResourceText("autoresearch-genealogy/manifest.json")
             if (manifestContent == null) return emptyList()
             
-            // Successfully read, cache it
             cachedManifestContent = manifestContent
             
             val manifest = json.parseToJsonElement(manifestContent).jsonObject
@@ -34,28 +32,23 @@ actual class ResourceLoader actual constructor() {
 
     actual suspend fun readFile(basePath: String, relativePath: String): String? {
         val path = if (basePath.isEmpty()) relativePath else "$basePath/$relativePath"
-        // Remove 'files/' if it exists (legacy path)
         val cleanPath = path.removePrefix("files/").removePrefix("/")
         return readResourceText(cleanPath)
     }
 
-    private fun readResourceText(path: String): String? {
+    private suspend fun readResourceText(path: String): String? = withContext(Dispatchers.IO) {
         val cleanPath = path.removePrefix("./").removePrefix("/")
-        println("[DEBUG_LOG] Desktop ResourceLoader: Probe started for '$cleanPath'")
         
-        val classLoader = Thread.currentThread().contextClassLoader ?: this::class.java.classLoader
+        val classLoader = Thread.currentThread().contextClassLoader ?: this@ResourceLoader::class.java.classLoader
         
-        // Use the successful prefix first if we have one
         successfulPrefix?.let { prefix ->
             val probePath = if (prefix.endsWith("/")) "$prefix$cleanPath" else "$prefix/$cleanPath"
             val stream = tryResolve(classLoader, probePath)
             if (stream != null) {
-                // println("[DEBUG_LOG] Desktop ResourceLoader: Fast-match SUCCESS at '$probePath'")
-                return stream.bufferedReader().use { it.readText() }
+                return@withContext stream.bufferedReader().use { it.readText() }
             }
         }
 
-        // Define probes: Standard Compose paths + raw path
         val probePrefixes = listOf(
             "composeResources/com.family.tree.ui/files/",
             "composeResources/com.family.tree.ui.generated.resources/files/",
@@ -70,19 +63,17 @@ actual class ResourceLoader actual constructor() {
         
         for (prefix in probePrefixes) {
             val probePath = if (prefix.isEmpty()) cleanPath else "$prefix$cleanPath"
-            println("[DEBUG_LOG] Desktop ResourceLoader: Trying probe '$probePath'")
             val stream = tryResolve(classLoader, probePath)
             
             if (stream != null) {
-                println("[DEBUG_LOG] Desktop ResourceLoader: SUCCESS! Found at '$probePath'")
-                // Cache the prefix part (everything before the cleanPath)
+                println("[DEBUG_LOG] Desktop ResourceLoader: Found resource at '$probePath'")
                 successfulPrefix = probePath.removeSuffix(cleanPath)
-                return stream.bufferedReader().use { it.readText() }
+                return@withContext stream.bufferedReader().use { it.readText() }
             }
         }
         
-        println("[DEBUG_LOG] Desktop ResourceLoader: FAILED to find '$cleanPath' after all probes.")
-        return null
+        println("[DEBUG_LOG] Desktop ResourceLoader: FAILED to find '$cleanPath'")
+        null
     }
 
     private fun tryResolve(classLoader: ClassLoader, path: String): java.io.InputStream? {

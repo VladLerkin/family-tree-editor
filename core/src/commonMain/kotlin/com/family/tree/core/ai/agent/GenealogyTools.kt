@@ -3,12 +3,16 @@ package com.family.tree.core.ai.agent
 import com.family.tree.core.ProjectData
 import ai.koog.agents.core.tools.annotations.Tool
 import com.family.tree.core.platform.ResourceLoader
+import com.family.tree.core.ai.AiClient
+import com.family.tree.core.ai.AiConfig
 
 class GenealogyTools(
     private val projectData: ProjectData,
     private val tavilyClient: TavilyClient,
     private val apiKey: String,
     private val repoPath: String = "files/autoresearch-genealogy",
+    private val aiClient: AiClient? = null,
+    private val aiConfig: AiConfig? = null,
     private val onLog: (String) -> Unit = {}
 ) {
     private val loader = ResourceLoader()
@@ -21,7 +25,7 @@ class GenealogyTools(
         onLog("📖 [TOOL] readMethodology(\"$fileName\")")
         val result = loader.readFile(repoPath, "workflows/$fileName")
             ?: "Error: Workflow $fileName not found in $repoPath/workflows/"
-        onLog("📖 [TOOL RESULT] readMethodology → ${result.take(120)}...")
+        onLog("📖 [TOOL RESULT] readMethodology → $result")
         return result
     }
 
@@ -33,7 +37,7 @@ class GenealogyTools(
         onLog("📖 [TOOL] readArchiveGuide(\"$fileName\")")
         val result = loader.readFile(repoPath, "archives/$fileName")
             ?: "Error: Archive guide $fileName not found in $repoPath/archives/"
-        onLog("📖 [TOOL RESULT] readArchiveGuide → ${result.take(120)}...")
+        onLog("📖 [TOOL RESULT] readArchiveGuide → $result")
         return result
     }
 
@@ -46,7 +50,11 @@ class GenealogyTools(
         } else {
             "Available archive guides: ${files.joinToString(", ")}"
         }
-        onLog("📋 [TOOL RESULT] listArchiveGuides → $result")
+        if (files.isNotEmpty()) {
+            onLog("📋 [TOOL RESULT] listArchiveGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+        } else {
+            onLog("📋 [TOOL RESULT] listArchiveGuides → $result")
+        }
         return result
     }
 
@@ -59,7 +67,11 @@ class GenealogyTools(
         } else {
             "Available methodology guides: ${files.joinToString(", ")}"
         }
-        onLog("📋 [TOOL RESULT] listMethodologyGuides → $result")
+        if (files.isNotEmpty()) {
+            onLog("📋 [TOOL RESULT] listMethodologyGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+        } else {
+            onLog("📋 [TOOL RESULT] listMethodologyGuides → $result")
+        }
         return result
     }
 
@@ -72,7 +84,11 @@ class GenealogyTools(
         } else {
             "Available examples: ${files.joinToString(", ")}"
         }
-        onLog("📋 [TOOL RESULT] listExamples → $result")
+        if (files.isNotEmpty()) {
+            onLog("📋 [TOOL RESULT] listExamples found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+        } else {
+            onLog("📋 [TOOL RESULT] listExamples → $result")
+        }
         return result
     }
 
@@ -84,7 +100,7 @@ class GenealogyTools(
         onLog("📖 [TOOL] readExample(\"$fileName\")")
         val result = loader.readFile(repoPath, "examples/$fileName")
             ?: "Error: Example $fileName not found in $repoPath/examples/"
-        onLog("📖 [TOOL RESULT] readExample → ${result.take(120)}...")
+        onLog("📖 [TOOL RESULT] readExample → $result")
         return result
     }
 
@@ -97,7 +113,11 @@ class GenealogyTools(
         } else {
             "Available reference guides: ${files.joinToString(", ")}"
         }
-        onLog("📋 [TOOL RESULT] listReferenceGuides → $result")
+        if (files.isNotEmpty()) {
+            onLog("📋 [TOOL RESULT] listReferenceGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+        } else {
+            onLog("📋 [TOOL RESULT] listReferenceGuides → $result")
+        }
         return result
     }
 
@@ -109,7 +129,7 @@ class GenealogyTools(
         onLog("📖 [TOOL] readReferenceGuide(\"$fileName\")")
         val result = loader.readFile(repoPath, "reference/$fileName")
             ?: "Error: Reference guide $fileName not found in $repoPath/reference/"
-        onLog("📖 [TOOL RESULT] readReferenceGuide → ${result.take(120)}...")
+        onLog("📖 [TOOL RESULT] readReferenceGuide → $result")
         return result
     }
 
@@ -117,7 +137,7 @@ class GenealogyTools(
     fun getGeographicProfile(): String {
         onLog("🗺️ [TOOL] getGeographicProfile()")
         val places = projectData.individuals
-            .flatMap { it.events.mapNotNull { e -> e.place?.trim() }.filter { it.isNotBlank() } }
+            .flatMap { it.events.mapNotNull { e -> e.place.trim() }.filter { it.isNotBlank() } }
             .distinct()
             .sorted()
 
@@ -135,8 +155,8 @@ class GenealogyTools(
         onLog("🔍 [TOOL] searchFamilyTree(query=\"$query\")")
         val results = projectData.individuals.filter { person ->
             person.displayName.contains(query, ignoreCase = true) ||
-            person.events.any { it.place?.contains(query, ignoreCase = true) == true } ||
-            person.events.any { it.date?.contains(query, ignoreCase = true) == true }
+            person.events.any { it.place.contains(query, ignoreCase = true) } ||
+            person.events.any { it.date.contains(query, ignoreCase = true) }
         }.take(10)
 
         val result = if (results.isEmpty()) {
@@ -186,7 +206,32 @@ class GenealogyTools(
         }
 
         val result = tavilyClient.search(apiKey, baseQuery, searchDepth = "advanced", onLog = onLog)
-        onLog("🌐 [TAVILY RESPONSE] ${result.take(300)}...")
+        
+        if (aiClient != null && aiConfig != null) {
+            onLog("🤖 [TOOL SUB-AGENT] Summarizing raw search results to save tokens...")
+            try {
+                val summaryPrompt = """
+                    You are a sub-agent for a genealogy researcher. 
+                    The main researcher requested a web search targeting the individual or query: "$baseQuery".
+                    Below are the raw search results returned by Tavily.
+                    Your task is to filter out all noise and extract ONLY the relevant genealogical facts (births, deaths, relatives, locations) that strictly belong to the primary person in the query. Do NOT include facts about other people who happen to share a similar last name or appear in the same document.
+                    You MUST preserve the specific source ID (e.g. Source #1) and the exact verbatim URL for every extracted fact so the main agent can cite them.
+                    If the results contain no relevant genealogical facts for THIS specific person, clearly state that no relevant facts were found.
+                    Do NOT hallucinate. Do NOT invent URLs. Keep the summary under 1500 characters.
+
+                    RAW RESULTS:
+                    $result
+                """.trimIndent()
+                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
+                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
+                return summarized
+            } catch (e: Exception) {
+                onLog("⚠️ [TOOL SUB-AGENT ERROR] Failed to summarize. Returning raw data. Error: ${e.message}")
+            }
+        }
+        
+        val logsToShow = result.take(1500)
+        onLog("🌐 [TAVILY RESPONSE] ${if (result.length > 1500) "$logsToShow... (truncated in logs)" else result}")
         return result
     }
 }
