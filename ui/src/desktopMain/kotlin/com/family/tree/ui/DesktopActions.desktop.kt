@@ -123,7 +123,7 @@ actual object DesktopActions {
                 onLoaded(loaded)
                 return
             }
-            
+            //TODO
             // If it's not binary, it might be a misnamed .ped file - show error
             java.awt.EventQueue.invokeLater {
                 javax.swing.JOptionPane.showMessageDialog(
@@ -138,7 +138,7 @@ actual object DesktopActions {
         } catch (e: Exception) {
             println("[DEBUG_LOG] importRel: ERROR during read/parse:")
             e.printStackTrace()
-            
+            //TODO
             // Show error dialog
             java.awt.EventQueue.invokeLater {
                 javax.swing.JOptionPane.showMessageDialog(
@@ -178,7 +178,7 @@ actual object DesktopActions {
         } catch (e: Exception) {
             println("[DEBUG_LOG] importGedcom: ERROR during import:")
             e.printStackTrace()
-            
+            //TODO
             java.awt.EventQueue.invokeLater {
                 javax.swing.JOptionPane.showMessageDialog(
                     null,
@@ -219,7 +219,8 @@ actual object DesktopActions {
                 println("[DEBUG_LOG] importAiText: Read ${content.length} chars, processing with ${config.provider}/${config.model}")
                 
                 // Определяем тип файла и обрабатываем
-                val importer = AiTextImporter(config)
+                val koin = org.koin.core.context.GlobalContext.get()
+                val importer = koin.get<AiTextImporter> { org.koin.core.parameter.parametersOf(config) }
                 val loaded = if (content.trimStart().startsWith("{") || content.trimStart().startsWith("[")) {
                     // JSON format - parse directly
                     println("[DEBUG_LOG] importAiText: Detected JSON format")
@@ -241,7 +242,7 @@ actual object DesktopActions {
                 println("[DEBUG_LOG] importAiText: ERROR - ${e.message}")
                 e.printStackTrace()
                 onLoaded(null)
-                
+                //TODO
                 // Show error dialog
                 java.awt.EventQueue.invokeLater {
                     javax.swing.JOptionPane.showMessageDialog(
@@ -270,6 +271,7 @@ actual object DesktopActions {
             true
         } catch (e: Exception) {
             e.printStackTrace()
+            //TODO
             java.awt.EventQueue.invokeLater {
                 javax.swing.JOptionPane.showMessageDialog(
                     null,
@@ -297,6 +299,7 @@ actual object DesktopActions {
             true
         } catch (e: Exception) {
             e.printStackTrace()
+            //TODO
             java.awt.EventQueue.invokeLater {
                 javax.swing.JOptionPane.showMessageDialog(
                     null,

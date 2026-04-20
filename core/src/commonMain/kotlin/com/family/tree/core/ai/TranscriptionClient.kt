@@ -17,15 +17,19 @@ interface TranscriptionClient {
 /**
  * Factory for creating transcription clients based on provider.
  */
-object TranscriptionClientFactory {
+class TranscriptionClientFactory(
+    private val openAiWhisperClient: OpenAiWhisperClient,
+    private val googleSpeechClient: GoogleSpeechClient,
+    private val yandexSpeechClient: YandexSpeechClient
+) {
     /**
      * Creates a transcription client based on configuration.
      */
     fun createClient(config: AiConfig): TranscriptionClient {
         return when (config.getTranscriptionProvider()) {
-            TranscriptionProvider.OPENAI_WHISPER -> OpenAiWhisperClient()
-            TranscriptionProvider.GOOGLE_SPEECH -> GoogleSpeechClient()
-            TranscriptionProvider.YANDEX_SPEECHKIT -> YandexSpeechClient()
+            TranscriptionProvider.OPENAI_WHISPER -> openAiWhisperClient
+            TranscriptionProvider.GOOGLE_SPEECH -> googleSpeechClient
+            TranscriptionProvider.YANDEX_SPEECHKIT -> yandexSpeechClient
         }
     }
 }

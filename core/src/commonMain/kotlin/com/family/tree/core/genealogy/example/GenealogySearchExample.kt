@@ -301,14 +301,19 @@ class GenealogySearchExample(
  * Запуск примеров.
  */
 suspend fun main() {
-    val httpClient = HttpClient()
+    org.koin.core.context.startKoin {
+        modules(com.family.tree.core.di.coreModule)
+    }
+    
+    val koinComponent = object : org.koin.core.component.KoinComponent {}
+    val httpClient: HttpClient = koinComponent.getKoin().get()
     val aiConfig = AiConfig(
         provider = "OPENAI",
         openaiApiKey = "your-openai-key",
         model = "gpt-4o-mini"
     )
-    val aiClient = com.family.tree.core.ai.AiClientFactory.createClient(aiConfig)
-    
+    val aiClientFactory: com.family.tree.core.ai.AiClientFactory = koinComponent.getKoin().get()
+    val aiClient = aiClientFactory.createClient(aiConfig)
     
     val example = GenealogySearchExample(httpClient, aiClient, aiConfig)
     

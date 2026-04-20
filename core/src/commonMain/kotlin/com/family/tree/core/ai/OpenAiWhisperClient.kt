@@ -11,12 +11,10 @@ import kotlinx.serialization.json.*
 /**
  * Клиент для работы с OpenAI Whisper API (транскрипция аудио).
  */
-class OpenAiWhisperClient : TranscriptionClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
+class OpenAiWhisperClient(
+    private val httpClient: HttpClient,
+    private val json: Json
+) : TranscriptionClient {
     override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         val apiKey = config.getApiKeyForTranscription()
         if (apiKey.isBlank()) {
@@ -65,52 +63,40 @@ class OpenAiWhisperClient : TranscriptionClient {
         
         println("[DEBUG_LOG] OpenAiWhisperClient: Sending audio format: $contentType (size: ${finalData.size} bytes)")
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for audio processing
-                connectTimeoutMillis = 30_000
-                socketTimeoutMillis = 120_000
+        val response = httpClient.submitFormWithBinaryData(
+            url = url,
+            formData = formData {
+                append("file", finalData, Headers.build {
+                    append(HttpHeaders.ContentType, contentType)
+                    append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                })
+                append("model", "whisper-1")
+                // Добавляем параметр language если он указан
+                if (config.language.isNotBlank()) {
+                    append("language", config.language)
+                    println("[DEBUG_LOG] OpenAiWhisperClient: Using language parameter: ${config.language}")
+                }
             }
+        ) {
+            header("Authorization", "Bearer $apiKey")
         }
         
-        try {
-            val response = client.submitFormWithBinaryData(
-                url = url,
-                formData = formData {
-                    append("file", finalData, Headers.build {
-                        append(HttpHeaders.ContentType, contentType)
-                        append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
-                    })
-                    append("model", "whisper-1")
-                    // Добавляем параметр language если он указан
-                    if (config.language.isNotBlank()) {
-                        append("language", config.language)
-                        println("[DEBUG_LOG] OpenAiWhisperClient: Using language parameter: ${config.language}")
-                    }
-                }
-            ) {
-                header("Authorization", "Bearer $apiKey")
-            }
-            
-            println("[DEBUG_LOG] OpenAiWhisperClient: Whisper API response status: ${response.status}")
-            
-            val responseText = response.bodyAsText()
-            println("[DEBUG_LOG] OpenAiWhisperClient: Whisper API response body: $responseText")
-            
-            val responseJson = json.parseToJsonElement(responseText).jsonObject
-            
-            // Извлекаем транскрибированный текст
-            val text = responseJson["text"]?.jsonPrimitive?.content
-            
-            if (text == null) {
-                println("[DEBUG_LOG] OpenAiWhisperClient: No 'text' field in response. Response keys: ${responseJson.keys}")
-                throw Exception("No text in Whisper API response")
-            }
-            
-            return text
-        } finally {
-            client.close()
+        println("[DEBUG_LOG] OpenAiWhisperClient: Whisper API response status: ${response.status}")
+        
+        val responseText = response.bodyAsText()
+        println("[DEBUG_LOG] OpenAiWhisperClient: Whisper API response body: $responseText")
+        
+        val responseJson = json.parseToJsonElement(responseText).jsonObject
+        
+        // Извлекаем транскрибированный текст
+        val text = responseJson["text"]?.jsonPrimitive?.content
+        
+        if (text == null) {
+            println("[DEBUG_LOG] OpenAiWhisperClient: No 'text' field in response. Response keys: ${responseJson.keys}")
+            throw Exception("No text in Whisper API response")
         }
+        
+        return text
     }
     
     /**

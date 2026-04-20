@@ -5,6 +5,10 @@ import com.family.tree.core.platform.VoiceRecorder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+import org.koin.core.parameter.parametersOf
+
 /**
  * Voice input processor for importing relatives
  * Connects VoiceRecorder (audio recording) -> AiClient (transcription via Whisper) -> AiTextImporter (processing via LLM)
@@ -12,8 +16,9 @@ import kotlinx.coroutines.launch
 class VoiceInputProcessor(
     private val voiceRecorder: VoiceRecorder,
     private val settingsStorage: AiSettingsStorage,
+    private val transcriptionClientFactory: TranscriptionClientFactory,
     private val coroutineScope: CoroutineScope
-) {
+) : KoinComponent {
     
     /**
      * Check if voice input is available
@@ -77,8 +82,8 @@ class VoiceInputProcessor(
                         println("[DEBUG_LOG] VoiceInputProcessor: Loaded AI config - provider=${aiConfig.getProvider()}, model=${aiConfig.model}, apiKey=${if (aiConfig.getApiKeyForProvider().isBlank()) "empty" else "present"}")
                         
                         // Create clients with actual config
-                        val transcriptionClient = TranscriptionClientFactory.createClient(aiConfig)
-                        val aiTextImporter = AiTextImporter(aiConfig)
+                        val transcriptionClient = transcriptionClientFactory.createClient(aiConfig)
+                        val aiTextImporter = get<AiTextImporter> { parametersOf(aiConfig) }
                         
                         // Step 1: Transcribe audio via selected provider (Whisper, Google Speech or Yandex SpeechKit)
                         val providerName = when (aiConfig.getTranscriptionProvider()) {

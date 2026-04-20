@@ -87,17 +87,23 @@ data class AiToolDescriptor(
 /**
  * Factory for creating AI clients based on provider.
  */
-object AiClientFactory {
+class AiClientFactory(
+    private val openAiClient: OpenAiClient,
+    private val googleClient: GoogleClient,
+    private val yandexClient: YandexClient,
+    private val ollamaClient: OllamaClient,
+    private val customClient: CustomClient
+) {
     /**
      * Creates a client for the specified provider.
      */
     fun createClient(provider: AiProvider): AiClient {
         return when (provider) {
-            AiProvider.OPENAI -> OpenAiClient()
-            AiProvider.GOOGLE -> GoogleClient()
-            AiProvider.YANDEX -> YandexClient()
-            AiProvider.OLLAMA -> OllamaClient()
-            AiProvider.CUSTOM -> CustomClient()
+            AiProvider.OPENAI -> openAiClient
+            AiProvider.GOOGLE -> googleClient
+            AiProvider.YANDEX -> yandexClient
+            AiProvider.OLLAMA -> ollamaClient
+            AiProvider.CUSTOM -> customClient
         }
     }
     

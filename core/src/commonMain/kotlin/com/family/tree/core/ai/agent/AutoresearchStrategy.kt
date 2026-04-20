@@ -33,17 +33,11 @@ fun createAutoresearchStrategy(
             </Family_Tree>
             
             DRACONIAN DIRECTIVE (MANDATORY): 
-            You are STRICTLY FORBIDDEN from writing tool calls as text. 
-            Do NOT write "1. getGeographicProfile" in your response. 
-            Instead, use the provided Function Calling API to invoke the tools.
+            1. You MUST call ALL of these three tools in your first turn: 'getGeographicProfile', 'listArchiveGuides', and 'listMethodologyGuides'.
+            2. You are STRICTLY FORBIDDEN from calling the 'search' or 'searchFamilyTree' tools during this phase. 
+            3. Do NOT provide any text analysis until all three tools have returned results.
             
-            Your ONLY allowed action in the first turn is to call these tools:
-            1. 'getGeographicProfile'
-            2. 'listArchiveGuides'
-            3. 'listMethodologyGuides'
-            
-            Wait for tool results before providing any text. 
-            If you provide a text summary instead of real tool calls, the research will fail.
+            If you do not call 'listArchiveGuides', you will not know which sources to search, and the process will fail.
         """.trimIndent())
     }
     val scanRequest: AIAgentNodeBase<String, Message.Response> by nodeLLMRequest("Scanner", allowToolCalls = true)
@@ -57,16 +51,14 @@ fun createAutoresearchStrategy(
             CRITICAL REQUIREMENT: You MUST use the results of 'listArchiveGuides' from the history to select which guides to read.
             
             STRICT FORBIDDEN ACTION: Do NOT write tool calls as text. Use the Function Calling API.
-            Do NOT guess, invent, or construct filenames for 'readArchiveGuide'.
-            - If you need a guide for 'Russia', do NOT assume the guide is 'russia.md'. 
-            - You MUST look at the verbatim output of 'listArchiveGuides' and use the EXACT filename provided (e.g., 'russia-ukraine.md').
+            Do NOT guess or invent filenames. You MUST look at the verbatim output of 'listArchiveGuides' and use the EXACT filename provided (e.g., 'russia.md').
             
             TASK: Read ALL relevant guides for the regions found in Scan phase.
-            - Call 'readArchiveGuide(fileName="...")' for EVERY relevant country.
+            - Call 'readArchiveGuide(fileName="...")' for EVERY available country.
             - Call 'readMethodology' for research protocols.
             
             Do NOT finish this phase until you have read the content of all relevant guides.
-            Once you have all data, build a research plan.
+            Once you have all data, build a research plan. DO NOT CALL 'search' YET.
         """.trimIndent())
     }
     val discoveryRequest: AIAgentNodeBase<String, Message.Response> by nodeLLMRequest("Discovery", allowToolCalls = true)
@@ -122,9 +114,15 @@ fun createAutoresearchStrategy(
         text
     }
 
-    // Tool execution nodes
-    val executeTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by nodeExecuteTool("ToolExecutor")
-    val sendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by nodeLLMSendToolResult("ToolResultSender")
+    // Phase-specific Tool execution nodes
+    val scanExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by nodeExecuteTool("ScanToolExecutor")
+    val scanSendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by nodeLLMSendToolResult("ScanToolResultSender")
+
+    val discoveryExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by nodeExecuteTool("DiscoveryToolExecutor")
+    val discoverySendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by nodeLLMSendToolResult("DiscoveryToolResultSender")
+
+    val researchExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by nodeExecuteTool("ResearchToolExecutor")
+    val researchSendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by nodeLLMSendToolResult("ResearchToolResultSender")
 
     // --- GRAPH FLOW ---
 
@@ -133,9 +131,9 @@ fun createAutoresearchStrategy(
     edge(scanPrompt.forwardTo<String>(scanRequest))
 
     // Scan Loop (Tool calling)
-    edge(scanRequest.forwardTo<Message.Tool.Call>(executeTool) onToolCall { true })
-    edge(executeTool.forwardTo<ReceivedToolResult>(sendToolResult))
-    edge(sendToolResult.forwardTo<String>(scanRequest).transformed { it.asString() })
+    edge(scanRequest.forwardTo<Message.Tool.Call>(scanExecuteTool) onToolCall { true })
+    edge(scanExecuteTool.forwardTo<ReceivedToolResult>(scanSendToolResult))
+    edge(scanSendToolResult.forwardTo<String>(scanRequest).transformed { it.asString() })
 
     // Helper to detect if a message looks like a halluncinated tool list instead of a real response
     fun isSubstantiveResponse(it: Message.Response): Boolean {
@@ -154,10 +152,10 @@ fun createAutoresearchStrategy(
     edge(discoveryPrompt.forwardTo<String>(discoveryRequest))
 
     // Discovery Loop (Tool calling)
-    edge(discoveryRequest.forwardTo<Message.Tool.Call>(executeTool) onToolCall { true })
-    edge(executeTool.forwardTo<ReceivedToolResult>(sendToolResult))
+    edge(discoveryRequest.forwardTo<Message.Tool.Call>(discoveryExecuteTool) onToolCall { true })
+    edge(discoveryExecuteTool.forwardTo<ReceivedToolResult>(discoverySendToolResult))
     // Return to Discovery request, transforming Tool Result Response back to String
-    edge(sendToolResult.forwardTo<String>(discoveryRequest).transformed { it.asString() })
+    edge(discoverySendToolResult.forwardTo<String>(discoveryRequest).transformed { it.asString() })
     
     // Discovery Done -> Research (Transform Response -> String)
     edge(discoveryRequest.forwardTo<String>(researchPrompt).onAssistantMessage { isSubstantiveResponse(it) }.transformed { 
@@ -166,9 +164,9 @@ fun createAutoresearchStrategy(
     edge(researchPrompt.forwardTo<String>(researchRequest))
 
     // Research Loop (Tool calling)
-    edge(researchRequest.forwardTo<Message.Tool.Call>(executeTool) onToolCall { true })
-    edge(executeTool.forwardTo<ReceivedToolResult>(sendToolResult))
-    edge(sendToolResult.forwardTo<String>(researchRequest).transformed { it.asString() })
+    edge(researchRequest.forwardTo<Message.Tool.Call>(researchExecuteTool) onToolCall { true })
+    edge(researchExecuteTool.forwardTo<ReceivedToolResult>(researchSendToolResult))
+    edge(researchSendToolResult.forwardTo<String>(researchRequest).transformed { it.asString() })
 
     // Research Done -> Finalize (Transform Response -> String)
     edge(researchRequest.forwardTo<String>(finalizePrompt).onAssistantMessage { isSubstantiveResponse(it) }.transformed { 

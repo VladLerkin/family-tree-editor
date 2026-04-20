@@ -14,12 +14,10 @@ import kotlinx.serialization.json.*
  * Supported formats: LPCM, OggOpus
  * Supported languages: ru-RU, en-US, tr-TR and others
  */
-class YandexSpeechClient : TranscriptionClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
+class YandexSpeechClient(
+    private val httpClient: HttpClient,
+    private val json: Json
+) : TranscriptionClient {
     /**
      * Converts ISO-639-1 language code to Yandex SpeechKit format.
      * 
@@ -116,16 +114,9 @@ class YandexSpeechClient : TranscriptionClient {
         
         println("[DEBUG_LOG] YandexSpeechClient: Detected audio format: $audioFormat (isOgg=$isOgg, isM4A=$isM4A)")
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds
-                connectTimeoutMillis = 30_000
-                socketTimeoutMillis = 120_000
-            }
-        }
         
         try {
-            val response = client.post(url) {
+            val response = httpClient.post(url) {
                 header("Authorization", "Api-Key $apiKey")
                 
                 contentType(ContentType.Application.OctetStream)
@@ -177,8 +168,6 @@ class YandexSpeechClient : TranscriptionClient {
             println("[DEBUG_LOG] YandexSpeechClient: Error during transcription: ${e.message}")
             e.printStackTrace()
             throw e
-        } finally {
-            client.close()
         }
     }
 }

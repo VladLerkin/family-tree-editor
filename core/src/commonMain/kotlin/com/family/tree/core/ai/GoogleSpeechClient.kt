@@ -12,12 +12,10 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 /**
  * Клиент для работы с Google Cloud Speech-to-Text API (транскрипция аудио).
  */
-class GoogleSpeechClient : TranscriptionClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
-    
+class GoogleSpeechClient(
+    private val httpClient: HttpClient,
+    private val json: Json
+) : TranscriptionClient {
     /**
      * Преобразует ISO-639-1 код языка (например, "ru") в BCP-47 формат (например, "ru-RU")
      * для Google Speech-to-Text API.
@@ -202,18 +200,9 @@ class GoogleSpeechClient : TranscriptionClient {
             }
         }
         
-        println("[DEBUG_LOG] GoogleSpeechClient: Sending audio (size: ${audioData.size} bytes, base64 length: ${audioBase64.length})")
-        
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for audio processing
-                connectTimeoutMillis = 30_000
-                socketTimeoutMillis = 120_000
-            }
-        }
         
         try {
-            val response = client.post(url) {
+            val response = httpClient.post(url) {
                 contentType(ContentType.Application.Json)
                 setBody(requestBody.toString())
             }
@@ -266,8 +255,6 @@ class GoogleSpeechClient : TranscriptionClient {
             println("[DEBUG_LOG] GoogleSpeechClient: Error during transcription: ${e.message}")
             e.printStackTrace()
             throw e
-        } finally {
-            client.close()
         }
     }
     

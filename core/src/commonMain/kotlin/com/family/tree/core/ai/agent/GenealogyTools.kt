@@ -1,19 +1,19 @@
 package com.family.tree.core.ai.agent
 
-import com.family.tree.core.ProjectData
 import ai.koog.agents.core.tools.annotations.Tool
-import com.family.tree.core.platform.ResourceLoader
+import com.family.tree.core.ProjectData
 import com.family.tree.core.ai.AiClient
 import com.family.tree.core.ai.AiConfig
+import com.family.tree.core.platform.ResourceLoader
 
 class GenealogyTools(
-    private val projectData: ProjectData,
-    private val tavilyClient: TavilyClient,
-    private val apiKey: String,
-    private val repoPath: String = "files/autoresearch-genealogy",
-    private val aiClient: AiClient? = null,
-    private val aiConfig: AiConfig? = null,
-    private val onLog: (String) -> Unit = {}
+        private val projectData: ProjectData,
+        private val tavilyClient: TavilyClient,
+        private val apiKey: String,
+        private val repoPath: String = "files/autoresearch-genealogy",
+        private val aiClient: AiClient? = null,
+        private val aiConfig: AiConfig? = null,
+        private val onLog: (String) -> Unit = {}
 ) {
     private val loader = ResourceLoader()
 
@@ -23,20 +23,24 @@ class GenealogyTools(
             return "Error: fileName is required. Use 'listMethodologyGuides' to find the available file names first."
         }
         onLog("📖 [TOOL] readMethodology(\"$fileName\")")
-        val result = loader.readFile(repoPath, "workflows/$fileName")
-            ?: "Error: Workflow $fileName not found in $repoPath/workflows/"
+        val result =
+                loader.readFile(repoPath, "workflows/$fileName")
+                        ?: "Error: Workflow $fileName not found in $repoPath/workflows/"
         onLog("📖 [TOOL RESULT] readMethodology → $result")
         return result
     }
 
-    @Tool("Read an archive guide for a specific country or region (e.g., 'norway.md', 'usa-census.md').")
+    @Tool(
+            "Read an archive guide for a specific country or region (e.g., 'norway.md', 'usa-census.md')."
+    )
     suspend fun readArchiveGuide(fileName: String): String {
         if (fileName.isBlank() || fileName == "null") {
             return "Error: fileName is required. Use 'listArchiveGuides' to find the available file names first."
         }
         onLog("📖 [TOOL] readArchiveGuide(\"$fileName\")")
-        val result = loader.readFile(repoPath, "archives/$fileName")
-            ?: "Error: Archive guide $fileName not found in $repoPath/archives/"
+        val result =
+                loader.readFile(repoPath, "archives/$fileName")
+                        ?: "Error: Archive guide $fileName not found in $repoPath/archives/"
         onLog("📖 [TOOL RESULT] readArchiveGuide → $result")
         return result
     }
@@ -45,13 +49,17 @@ class GenealogyTools(
     suspend fun listArchiveGuides(): String {
         onLog("📋 [TOOL] listArchiveGuides()")
         val files = loader.listDirectory(repoPath, "archives")
-        val result = if (files.isEmpty()) {
-            "No archive guides found."
-        } else {
-            "Available archive guides: ${files.joinToString(", ")}"
-        }
+        val result =
+                if (files.isEmpty()) {
+                    "No archive guides found."
+                } else {
+                    "Available archive guides: ${files.joinToString(", ")}"
+                }
         if (files.isNotEmpty()) {
-            onLog("📋 [TOOL RESULT] listArchiveGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+            onLog(
+                    "📋 [TOOL RESULT] listArchiveGuides found ${files.size} files:\n" +
+                            files.joinToString("\n") { "  - $it" }
+            )
         } else {
             onLog("📋 [TOOL RESULT] listArchiveGuides → $result")
         }
@@ -62,13 +70,17 @@ class GenealogyTools(
     suspend fun listMethodologyGuides(): String {
         onLog("📋 [TOOL] listMethodologyGuides()")
         val files = loader.listDirectory(repoPath, "workflows")
-        val result = if (files.isEmpty()) {
-            "No methodology guides found."
-        } else {
-            "Available methodology guides: ${files.joinToString(", ")}"
-        }
+        val result =
+                if (files.isEmpty()) {
+                    "No methodology guides found."
+                } else {
+                    "Available methodology guides: ${files.joinToString(", ")}"
+                }
         if (files.isNotEmpty()) {
-            onLog("📋 [TOOL RESULT] listMethodologyGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+            onLog(
+                    "📋 [TOOL RESULT] listMethodologyGuides found ${files.size} files:\n" +
+                            files.joinToString("\n") { "  - $it" }
+            )
         } else {
             onLog("📋 [TOOL RESULT] listMethodologyGuides → $result")
         }
@@ -79,27 +91,34 @@ class GenealogyTools(
     suspend fun listExamples(): String {
         onLog("📋 [TOOL] listExamples()")
         val files = loader.listDirectory(repoPath, "examples")
-        val result = if (files.isEmpty()) {
-            "No research examples found."
-        } else {
-            "Available examples: ${files.joinToString(", ")}"
-        }
+        val result =
+                if (files.isEmpty()) {
+                    "No research examples found."
+                } else {
+                    "Available examples: ${files.joinToString(", ")}"
+                }
         if (files.isNotEmpty()) {
-            onLog("📋 [TOOL RESULT] listExamples found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+            onLog(
+                    "📋 [TOOL RESULT] listExamples found ${files.size} files:\n" +
+                            files.joinToString("\n") { "  - $it" }
+            )
         } else {
             onLog("📋 [TOOL RESULT] listExamples → $result")
         }
         return result
     }
 
-    @Tool("Read a specific research example (e.g., 'tree-expansion-session.md') to see professional protocols in action.")
+    @Tool(
+            "Read a specific research example (e.g., 'tree-expansion-session.md') to see professional protocols in action."
+    )
     suspend fun readExample(fileName: String): String {
         if (fileName.isBlank() || fileName == "null") {
             return "Error: fileName is required. Use 'listExamples' to find the available file names first."
         }
         onLog("📖 [TOOL] readExample(\"$fileName\")")
-        val result = loader.readFile(repoPath, "examples/$fileName")
-            ?: "Error: Example $fileName not found in $repoPath/examples/"
+        val result =
+                loader.readFile(repoPath, "examples/$fileName")
+                        ?: "Error: Example $fileName not found in $repoPath/examples/"
         onLog("📖 [TOOL RESULT] readExample → $result")
         return result
     }
@@ -108,13 +127,17 @@ class GenealogyTools(
     suspend fun listReferenceGuides(): String {
         onLog("📋 [TOOL] listReferenceGuides()")
         val files = loader.listDirectory(repoPath, "reference")
-        val result = if (files.isEmpty()) {
-            "No reference guides found."
-        } else {
-            "Available reference guides: ${files.joinToString(", ")}"
-        }
+        val result =
+                if (files.isEmpty()) {
+                    "No reference guides found."
+                } else {
+                    "Available reference guides: ${files.joinToString(", ")}"
+                }
         if (files.isNotEmpty()) {
-            onLog("📋 [TOOL RESULT] listReferenceGuides found ${files.size} files:\n" + files.joinToString("\n") { "  - $it" })
+            onLog(
+                    "📋 [TOOL RESULT] listReferenceGuides found ${files.size} files:\n" +
+                            files.joinToString("\n") { "  - $it" }
+            )
         } else {
             onLog("📋 [TOOL RESULT] listReferenceGuides → $result")
         }
@@ -127,77 +150,101 @@ class GenealogyTools(
             return "Error: fileName is required. Use 'listReferenceGuides' to find the available file names first."
         }
         onLog("📖 [TOOL] readReferenceGuide(\"$fileName\")")
-        val result = loader.readFile(repoPath, "reference/$fileName")
-            ?: "Error: Reference guide $fileName not found in $repoPath/reference/"
+        val result =
+                loader.readFile(repoPath, "reference/$fileName")
+                        ?: "Error: Reference guide $fileName not found in $repoPath/reference/"
         onLog("📖 [TOOL RESULT] readReferenceGuide → $result")
         return result
     }
 
-    @Tool("Get a summary of all unique geographic locations (countries, regions) found in the family tree.")
+    @Tool(
+            "Get a summary of all unique geographic locations (countries, regions) found in the family tree."
+    )
     fun getGeographicProfile(): String {
         onLog("🗺️ [TOOL] getGeographicProfile()")
-        val places = projectData.individuals
-            .flatMap { it.events.mapNotNull { e -> e.place.trim() }.filter { it.isNotBlank() } }
-            .distinct()
-            .sorted()
+        val places =
+                projectData
+                        .individuals
+                        .flatMap {
+                            it.events.mapNotNull { e -> e.place.trim() }.filter { it.isNotBlank() }
+                        }
+                        .distinct()
+                        .sorted()
 
-        val result = if (places.isEmpty()) {
-            "No geographic locations found in the current family tree."
-        } else {
-            "The family tree contains the following locations: ${places.joinToString(", ")}"
-        }
+        val result =
+                if (places.isEmpty()) {
+                    "No geographic locations found in the current family tree."
+                } else {
+                    "The family tree contains the following locations: ${places.joinToString(", ")}"
+                }
         onLog("🗺️ [TOOL RESULT] getGeographicProfile → $result")
         return result
     }
 
-    @Tool("Search for specific individuals or facts in the local family tree by name or location keywords.")
+    @Tool(
+            "Search for specific individuals or facts in the local family tree by name or location keywords."
+    )
     fun searchFamilyTree(query: String): String {
         onLog("🔍 [TOOL] searchFamilyTree(query=\"$query\")")
-        val results = projectData.individuals.filter { person ->
-            person.displayName.contains(query, ignoreCase = true) ||
-            person.events.any { it.place.contains(query, ignoreCase = true) } ||
-            person.events.any { it.date.contains(query, ignoreCase = true) }
-        }.take(10)
+        val results =
+                projectData
+                        .individuals
+                        .filter { person ->
+                            person.displayName.contains(query, ignoreCase = true) ||
+                                    person.events.any {
+                                        it.place.contains(query, ignoreCase = true)
+                                    } ||
+                                    person.events.any { it.date.contains(query, ignoreCase = true) }
+                        }
+                        .take(10)
 
-        val result = if (results.isEmpty()) {
-            "No matching individuals found in the local tree for query: '$query'."
-        } else {
-            "Found ${results.size} matches:\n" + results.joinToString("\n") {
-                "- ${it.displayName} (${it.birthYear ?: "?"} - ${it.deathYear ?: "?"})"
-            }
-        }
+        val result =
+                if (results.isEmpty()) {
+                    "No matching individuals found in the local tree for query: '$query'."
+                } else {
+                    "Found ${results.size} matches:\n" +
+                            results.joinToString("\n") {
+                                "- ${it.displayName} (${it.birthYear ?: "?"} - ${it.deathYear ?: "?"})"
+                            }
+                }
         onLog("🔍 [TOOL RESULT] searchFamilyTree → $result")
         return result
     }
 
-    @Tool("Perform an internet search for genealogy records using Tavily. Specify 'region' and 'targetSite' (e.g. 'vgd.ru') for higher precision.")
+    @Tool(
+            "Perform an internet search for genealogy records using Tavily. Specify 'region' and 'targetSite' (e.g. 'vgd.ru') for higher precision."
+    )
     suspend fun search(
-        name: String = "",
-        birth_location: String? = null,
-        life_span: String? = null,
-        query: String? = null,
-        region: String? = null,
-        targetSite: String? = null
+            name: String = "",
+            birth_location: String? = null,
+            life_span: String? = null,
+            query: String? = null,
+            region: String? = null,
+            targetSite: String? = null
     ): String {
-        val baseQuery = if (query.isNullOrBlank()) {
-            buildString {
-                if (name.isNotBlank()) append(name)
-                birth_location?.let { append(" born in $it") }
-                life_span?.let { append(" ($it)") }
-                region?.let { append(" $it") }
-                targetSite?.let { append(" site:$it") }
-                if (isNotBlank()) append(" genealogy records")
-                else append("genealogy records")
-            }
-        } else {
-            var q = query
-            if (name.isNotBlank() && !q.contains(name, ignoreCase = true)) q = "$name $q"
-            if (region != null && !q.contains(region, ignoreCase = true)) q = "$q $region"
-            if (targetSite != null && !q.contains(targetSite, ignoreCase = true)) q = "$q site:$targetSite"
-            q
-        }
+        val baseQuery =
+                if (query.isNullOrBlank()) {
+                    buildString {
+                        if (name.isNotBlank()) append(name)
+                        birth_location?.let { append(" born in $it") }
+                        life_span?.let { append(" ($it)") }
+                        region?.let { append(" $it") }
+                        targetSite?.let { append(" site:$it") }
+                        if (isNotBlank()) append(" genealogy records")
+                        else append("genealogy records")
+                    }
+                } else {
+                    var q = query
+                    if (name.isNotBlank() && !q.contains(name, ignoreCase = true)) q = "$name $q"
+                    if (region != null && !q.contains(region, ignoreCase = true)) q = "$q $region"
+                    if (targetSite != null && !q.contains(targetSite, ignoreCase = true))
+                            q = "$q site:$targetSite"
+                    q
+                }
 
-        onLog("🌐 [TAVILY REQUEST] query=\"$baseQuery\"  apiKey=${if (apiKey.isBlank()) "MISSING!" else "***${apiKey.takeLast(4)}"}")
+        onLog(
+                "🌐 [TAVILY REQUEST] query=\"$baseQuery\"  apiKey=${if (apiKey.isBlank()) "MISSING!" else "***${apiKey.takeLast(4)}"}"
+        )
 
         if (apiKey.isBlank()) {
             val err = "❌ Tavily API key is not set. Go to AI Settings and enter your Tavily key."
@@ -206,11 +253,12 @@ class GenealogyTools(
         }
 
         val result = tavilyClient.search(apiKey, baseQuery, searchDepth = "advanced", onLog = onLog)
-        
+
         if (aiClient != null && aiConfig != null) {
             onLog("🤖 [TOOL SUB-AGENT] Summarizing raw search results to save tokens...")
             try {
-                val summaryPrompt = """
+                val summaryPrompt =
+                        """
                     You are a sub-agent for a genealogy researcher. 
                     The main researcher requested a web search targeting the individual or query: "$baseQuery".
                     Below are the raw search results returned by Tavily.
@@ -226,18 +274,18 @@ class GenealogyTools(
                 onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
                 return summarized
             } catch (e: Exception) {
-                onLog("⚠️ [TOOL SUB-AGENT ERROR] Failed to summarize. Returning raw data. Error: ${e.message}")
+                onLog(
+                        "⚠️ [TOOL SUB-AGENT ERROR] Failed to summarize. Returning raw data. Error: ${e.message}"
+                )
             }
         }
-        
+
         val logsToShow = result.take(1500)
-        onLog("🌐 [TAVILY RESPONSE] ${if (result.length > 1500) "$logsToShow... (truncated in logs)" else result}")
+        onLog(
+                "🌐 [TAVILY RESPONSE] ${if (result.length > 1500) "$logsToShow... (truncated in logs)" else result}"
+        )
         return result
     }
 }
 
-data class AgentProposal(
-    val promptName: String,
-    val taskDescription: String,
-    val results: String
-)
+data class AgentProposal(val promptName: String, val taskDescription: String, val results: String)
