@@ -34,7 +34,7 @@ fun createAutoresearchStrategy(
             
             DRACONIAN DIRECTIVE (MANDATORY): 
             1. You MUST call ALL of these three tools in your first turn: 'getGeographicProfile', 'listArchiveGuides', and 'listMethodologyGuides'.
-            2. You are STRICTLY FORBIDDEN from calling the 'search' or 'searchFamilyTree' tools during this phase. 
+            2. You are STRICTLY FORBIDDEN from calling the 'searchFamilyTree' tool during this phase. 
             3. Do NOT provide any text analysis until all three tools have returned results.
             
             If you do not call 'listArchiveGuides', you will not know which sources to search, and the process will fail.
@@ -58,7 +58,7 @@ fun createAutoresearchStrategy(
             - Call 'readMethodology' for research protocols.
             
             Do NOT finish this phase until you have read the content of all relevant guides.
-            Once you have all data, build a research plan. DO NOT CALL 'search' YET.
+            Once you have all data, build a research plan. DO NOT START specialized searches YET.
         """.trimIndent())
     }
     val discoveryRequest: AIAgentNodeBase<String, Message.Response> by nodeLLMRequest("Discovery", allowToolCalls = true)
@@ -71,8 +71,9 @@ fun createAutoresearchStrategy(
             
             STRICT FORBIDDEN ACTION: Do NOT write tool calls as text. Use the Function Calling API.
             
-            TASK: Execute targeted searches using 'search' (Tavily) for EACH person and location identified in the research plan provided in the user message.
-            - Use the 'search' tool for external records.
+            TASK: Execute targeted searches for EACH person and location identified in the research plan.
+            - WWII ARCHIVES FILTER: You MUST use 'searchPamyatNaroda' and 'searchOBDMemorial' ONLY for individuals from the USSR/Russia born approximately between 1880 and 1930. 
+            - For individuals born before 1880 or after 1930, do NOT use WWII military tools.
             - Use 'searchFamilyTree' to verify local facts.
             - Every NEW fact must be backed by a verbatim 'Evidence Snippet' from the tool output.
             

@@ -38,7 +38,7 @@ val coreModule = module {
     // Tavily Client
     single { TavilyClient(get(), get()) }
 
-    single { AgentService(get(), get(), get(), get()) }
+    single { AgentService(get(), get(), get(), get(), get()) }
 
     single {
         Json {

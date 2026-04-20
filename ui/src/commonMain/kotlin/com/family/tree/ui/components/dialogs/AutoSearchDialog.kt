@@ -10,14 +10,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -26,6 +36,7 @@ import com.family.tree.core.ai.agent.AgentProposal
 import com.family.tree.core.ai.agent.AgentService
 import com.family.tree.core.ai.agent.PromptTemplate
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +65,9 @@ fun AutoSearchDialog(
     
     val logs by agentService.agentLogs.collectAsState()
     val scope = rememberCoroutineScope()
+    var researchJob by remember { mutableStateOf<Job?>(null) }
+    var hasStarted by remember { mutableStateOf(false) }
+    var logSearchQuery by remember { mutableStateOf("") }
 
     Dialog(
         onDismissRequest = { if (!isRunning) onDismissRequest() },
@@ -111,7 +125,17 @@ fun AutoSearchDialog(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        OutlinedButton(onClick = { finalProposal = null }) {
+                        TextButton(onClick = { 
+                            finalProposal = null 
+                        }) {
+                            Text("Show Logs")
+                        }
+                        Spacer(modifier = Modifier.weight(1f))
+                        OutlinedButton(onClick = { 
+                            finalProposal = null
+                            hasStarted = false
+                            agentService.clearLogs() 
+                        }) {
                             Text("Back to Prompts")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -119,22 +143,22 @@ fun AutoSearchDialog(
                             Text("Finish")
                         }
                     }
-                } else if (isRunning || (selectedPrompt != null && logs.isNotEmpty())) {
+                } else if (isRunning || hasStarted) {
                     // Phase 2: Researching / Progress
-                    Text("Research in Progress", style = MaterialTheme.typography.titleLarge)
+                    val title = if (isRunning) "Research in Progress" else "Research Finished"
+                    Text(title, style = MaterialTheme.typography.titleLarge)
                     Text("Current Task: ${selectedPrompt?.name}", style = MaterialTheme.typography.bodyMedium)
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
                     
                     if (isRunning) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("The AI agent is consulting methodology guides and searching the web...", style = MaterialTheme.typography.bodySmall)
+                        Text("The AI agent is consulting methodology guides and searching the archives...", style = MaterialTheme.typography.bodySmall)
                     } else {
                         Text("Research completed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
                     
                     Spacer(modifier = Modifier.height(16.dp))
+                    
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -143,23 +167,69 @@ fun AutoSearchDialog(
                         Text("Agent Output Console:", style = MaterialTheme.typography.labelMedium)
                         
                         val clipboardManager = LocalClipboardManager.current
-                        TextButton(
-                            onClick = {
-                                val allLogs = logs.joinToString("\n")
-                                clipboardManager.setText(AnnotatedString(allLogs))
-                            },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copy Logs", style = MaterialTheme.typography.labelSmall)
+                        Row {
+                            TextButton(
+                                onClick = {
+                                    val allLogs = logs.joinToString("\n")
+                                    clipboardManager.setText(AnnotatedString(allLogs))
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                modifier = Modifier.height(32.dp)
+                            ) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Copy Logs", style = MaterialTheme.typography.labelSmall)
+                            }
+                            
+                            if (isRunning) {
+                                TextButton(
+                                    onClick = { researchJob?.cancel() },
+                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("Stop Research", style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
                     }
                     
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    OutlinedTextField(
+                        value = logSearchQuery,
+                        onValueChange = { logSearchQuery = it },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        placeholder = { Text("Search logs...", style = MaterialTheme.typography.bodySmall) },
+                        leadingIcon = { Icon(Icons.Default.Search, null, Modifier.size(18.dp)) },
+                        trailingIcon = { 
+                            if (logSearchQuery.isNotEmpty()) {
+                                IconButton(onClick = { logSearchQuery = "" }) {
+                                    Icon(Icons.Default.Clear, null, Modifier.size(18.dp))
+                                }
+                            }
+                        },
+                        textStyle = MaterialTheme.typography.bodySmall,
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                            unfocusedBorderColor = Color.Transparent
+                        )
+                    )
+                    
+                    val filteredLogs = remember(logs, logSearchQuery) {
+                        if (logSearchQuery.isBlank()) logs
+                        else logs.filter { it.contains(logSearchQuery, ignoreCase = true) }
+                    }
+                    
                     val listState = rememberLazyListState()
+                    val uriHandler = LocalUriHandler.current
+                    val urlRegex = remember { "(https?://[\\w\\d\\.\\-\\/\\?\\=\\&\\%\\+]+)".toRegex() }
+                    
                     LaunchedEffect(logs.size) {
-                        if (logs.isNotEmpty()) {
+                        if (logs.isNotEmpty() && logSearchQuery.isBlank()) {
                             listState.animateScrollToItem(logs.size - 1)
                         }
                     }
@@ -173,11 +243,61 @@ fun AutoSearchDialog(
                                 .padding(8.dp)
                         ) {
                             LazyColumn(state = listState) {
-                                items(logs) { logMsg ->
-                                    Text(
-                                        text = logMsg,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = FontFamily.Monospace
+                                items(filteredLogs) { logMsg ->
+                                    val annotatedLog = buildAnnotatedString {
+                                        // 1. Base Text
+                                        append(logMsg)
+                                        
+                                        // 2. Apply Search Highlighting
+                                        if (logSearchQuery.isNotBlank()) {
+                                            var start = 0
+                                            while (start < logMsg.length) {
+                                                val index = logMsg.indexOf(logSearchQuery, start, ignoreCase = true)
+                                                if (index == -1) break
+                                                addStyle(
+                                                    style = SpanStyle(
+                                                        background = MaterialTheme.colorScheme.primaryContainer,
+                                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                        fontWeight = FontWeight.Bold
+                                                    ),
+                                                    start = index,
+                                                    end = index + logSearchQuery.length
+                                                )
+                                                start = index + logSearchQuery.length
+                                            }
+                                        }
+                                        
+                                        // 3. Apply URL Styling and Annotations
+                                        urlRegex.findAll(logMsg).forEach { match ->
+                                            addStyle(
+                                                style = SpanStyle(
+                                                    color = Color(0xFF2196F3), // Nice blue for links
+                                                    textDecoration = TextDecoration.Underline
+                                                ),
+                                                start = match.range.first,
+                                                end = match.range.last + 1
+                                            )
+                                            addStringAnnotation(
+                                                tag = "URL",
+                                                annotation = match.value,
+                                                start = match.range.first,
+                                                end = match.range.last + 1
+                                            )
+                                        }
+                                    }
+                                    
+                                    ClickableText(
+                                        text = annotatedLog,
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontFamily = FontFamily.Monospace,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        onClick = { offset ->
+                                            annotatedLog.getStringAnnotations(tag = "URL", start = offset, end = offset)
+                                                .firstOrNull()?.let { annotation ->
+                                                    uriHandler.openUri(annotation.item)
+                                                }
+                                        }
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                 }
@@ -187,7 +307,14 @@ fun AutoSearchDialog(
                     
                     if (!isRunning) {
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { finalProposal = null; agentService.clearLogs() }, modifier = Modifier.align(Alignment.End)) {
+                        Button(
+                            onClick = { 
+                                finalProposal = null
+                                hasStarted = false
+                                agentService.clearLogs() 
+                            }, 
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
                             Text("Run Another Prompt")
                         }
                     }
@@ -254,8 +381,9 @@ fun AutoSearchDialog(
                         onClick = {
                             selectedPrompt?.let { prompt ->
                                 isRunning = true
+                                hasStarted = true
                                 agentService.clearLogs()
-                                scope.launch {
+                                researchJob = scope.launch {
                                     val proposal = agentService.runAutoresearchPrompt(
                                         projectData = projectData,
                                         promptName = prompt.name,

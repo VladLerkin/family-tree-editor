@@ -48,7 +48,8 @@ class ReadMethodologyTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: FileNameArgs): String = tools.readMethodology(args.fileName)
+        override suspend fun execute(args: FileNameArgs): String =
+                tools.readMethodology(args.fileName)
 }
 
 class ReadArchiveGuideTool(private val tools: GenealogyTools) :
@@ -70,7 +71,8 @@ class ReadArchiveGuideTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: FileNameArgs): String = tools.readArchiveGuide(args.fileName)
+        override suspend fun execute(args: FileNameArgs): String =
+                tools.readArchiveGuide(args.fileName)
 }
 
 class ListArchiveGuidesTool(private val tools: GenealogyTools) :
@@ -84,7 +86,7 @@ class ListArchiveGuidesTool(private val tools: GenealogyTools) :
                                         "List all available archive guides for countries and regions."
                         )
         ) {
-    override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listArchiveGuides()
+        override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listArchiveGuides()
 }
 
 class ListMethodologyGuidesTool(private val tools: GenealogyTools) :
@@ -98,7 +100,8 @@ class ListMethodologyGuidesTool(private val tools: GenealogyTools) :
                                         "List all available professional methodology workflow guides."
                         )
         ) {
-    override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listMethodologyGuides()
+        override suspend fun execute(args: GenealogyEmptyArgs): String =
+                tools.listMethodologyGuides()
 }
 
 class ListExamplesTool(private val tools: GenealogyTools) :
@@ -112,7 +115,7 @@ class ListExamplesTool(private val tools: GenealogyTools) :
                                         "List all available research examples showing how to apply methodology."
                         )
         ) {
-    override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listExamples()
+        override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listExamples()
 }
 
 class ReadExampleTool(private val tools: GenealogyTools) :
@@ -134,7 +137,7 @@ class ReadExampleTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: FileNameArgs): String = tools.readExample(args.fileName)
+        override suspend fun execute(args: FileNameArgs): String = tools.readExample(args.fileName)
 }
 
 class ListReferenceGuidesTool(private val tools: GenealogyTools) :
@@ -148,7 +151,7 @@ class ListReferenceGuidesTool(private val tools: GenealogyTools) :
                                         "List all available reference guides (standard conventions, glossaries)."
                         )
         ) {
-    override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listReferenceGuides()
+        override suspend fun execute(args: GenealogyEmptyArgs): String = tools.listReferenceGuides()
 }
 
 class ReadReferenceGuideTool(private val tools: GenealogyTools) :
@@ -170,8 +173,8 @@ class ReadReferenceGuideTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: FileNameArgs): String =
-            tools.readReferenceGuide(args.fileName)
+        override suspend fun execute(args: FileNameArgs): String =
+                tools.readReferenceGuide(args.fileName)
 }
 
 class GetGeographicProfileTool(private val tools: GenealogyTools) :
@@ -185,7 +188,8 @@ class GetGeographicProfileTool(private val tools: GenealogyTools) :
                                         "Get a summary of all unique geographic locations found in the family tree."
                         )
         ) {
-    override suspend fun execute(args: GenealogyEmptyArgs): String = tools.getGeographicProfile()
+        override suspend fun execute(args: GenealogyEmptyArgs): String =
+                tools.getGeographicProfile()
 }
 
 class SearchFamilyTreeTool(private val tools: GenealogyTools) :
@@ -207,18 +211,18 @@ class SearchFamilyTreeTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: QueryArgs): String = tools.searchFamilyTree(args.query)
+        override suspend fun execute(args: QueryArgs): String = tools.searchFamilyTree(args.query)
 }
 
-class TavilySearchTool(private val tools: GenealogyTools) :
+class GeneralWebSearchTool(private val tools: GenealogyTools) :
         Tool<SearchArgs, String>(
                 argsType = typeToken<SearchArgs>(),
                 resultType = typeToken<String>(),
                 descriptor =
                         ToolDescriptor(
-                                name = "search",
+                                name = "generalWebSearch",
                                 description =
-                                        "Perform an internet search for genealogy records using Tavily.",
+                                        "Perform an internet search for historical context, geographical questions, or open forums (e.g. 'vgd.ru'). NOT for direct database searches.",
                                 optionalParameters =
                                         listOf(
                                                 ToolParameterDescriptor(
@@ -254,15 +258,123 @@ class TavilySearchTool(private val tools: GenealogyTools) :
                                         )
                         )
         ) {
-    override suspend fun execute(args: SearchArgs): String =
-            tools.search(
-                    name = args.name,
-                    birth_location = args.birth_location,
-                    life_span = args.life_span,
-                    query = args.query,
-                    region = args.region,
-                    targetSite = args.targetSite
-            )
+        override suspend fun execute(args: SearchArgs): String =
+                tools.generalWebSearch(
+                        name = args.name,
+                        birth_location = args.birth_location,
+                        life_span = args.life_span,
+                        query = args.query,
+                        region = args.region,
+                        targetSite = args.targetSite
+                )
+}
+
+@Serializable
+data class PamyatNarodaSearchArgs(
+        val firstName: String,
+        val lastName: String,
+        val patronymic: String? = null,
+        val birthYear: String? = null
+)
+
+class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
+        Tool<PamyatNarodaSearchArgs, String>(
+                argsType = typeToken<PamyatNarodaSearchArgs>(),
+                resultType = typeToken<String>(),
+                descriptor =
+                        ToolDescriptor(
+                                name = "searchPamyatNaroda",
+                                description =
+                                        "Search the 'Pamyat Naroda' WWII database for Soviet military records. Target individuals born ~1880-1930 who could have served in 1941-1945.",
+                                requiredParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "firstName",
+                                                        "Given name of the person",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "lastName",
+                                                        "Surname of the person",
+                                                        ToolParameterType.String
+                                                )
+                                        ),
+                                optionalParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "patronymic",
+                                                        "Optional patronymic (Otchestvo) name",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "birthYear",
+                                                        "Optional year of birth to narrow results",
+                                                        ToolParameterType.String
+                                                )
+                                        )
+                        )
+        ) {
+        override suspend fun execute(args: PamyatNarodaSearchArgs): String =
+                tools.searchPamyatNaroda(
+                        firstName = args.firstName,
+                        lastName = args.lastName,
+                        patronymic = args.patronymic,
+                        birthYear = args.birthYear
+                )
+}
+
+@Serializable
+data class OBDMemorialSearchArgs(
+        val firstName: String,
+        val lastName: String,
+        val patronymic: String? = null,
+        val birthYear: String? = null
+)
+
+class OBDMemorialSearchTool(private val tools: GenealogyTools) :
+        Tool<OBDMemorialSearchArgs, String>(
+                argsType = typeToken<OBDMemorialSearchArgs>(),
+                resultType = typeToken<String>(),
+                descriptor =
+                        ToolDescriptor(
+                                name = "searchOBDMemorial",
+                                description =
+                                        "Search the 'OBD Memorial' database for WWII casualty records. Target individuals born ~1880-1930 who could have been killed or MIA in 1941-1945.",
+                                requiredParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "firstName",
+                                                        "Given name of the person",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "lastName",
+                                                        "Surname of the person",
+                                                        ToolParameterType.String
+                                                )
+                                        ),
+                                optionalParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "patronymic",
+                                                        "Optional patronymic (Otchestvo) name",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "birthYear",
+                                                        "Optional year of birth to narrow results",
+                                                        ToolParameterType.String
+                                                )
+                                        )
+                        )
+        ) {
+        override suspend fun execute(args: OBDMemorialSearchArgs): String =
+                tools.searchOBDMemorial(
+                        firstName = args.firstName,
+                        lastName = args.lastName,
+                        patronymic = args.patronymic,
+                        birthYear = args.birthYear
+                )
 }
 
 /** Extension to provide class-based tools for non-JVM platforms. */
@@ -278,5 +390,6 @@ fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
                 ReadReferenceGuideTool(this),
                 GetGeographicProfileTool(this),
                 SearchFamilyTreeTool(this),
-                TavilySearchTool(this)
+                PamyatNarodaSearchTool(this),
+                OBDMemorialSearchTool(this)
         )

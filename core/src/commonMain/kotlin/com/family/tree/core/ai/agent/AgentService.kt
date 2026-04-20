@@ -15,12 +15,16 @@ import io.ktor.client.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.CancellationException
 
 class AgentService(
         private val settingsStorage: AiSettingsStorage,
         private val exporter: MarkdownTreeExporter,
         private val tavilyClient: TavilyClient,
-        private val aiClientFactory: AiClientFactory
+        private val aiClientFactory: AiClientFactory,
+        private val httpClient: HttpClient
 ) {
 
     private val _agentLogs = MutableStateFlow<List<String>>(emptyList())
@@ -116,12 +120,12 @@ class AgentService(
             - Identify the OLDEST ancestor in the <Family_Tree> who belongs to that specific country.
             
             #### STEP 4: SEARCH
-            - Use the 'search' tool to check ONLY this oldest ancestor on ALL the relevant links/databases mentioned in the archive guide. 
-            - Use the 'targetSite' parameter to restrict the search to those exact sites.
+            - Use specialized tools like 'searchPamyatNaroda' and 'searchOBDMemorial' to check for ancestors in Russia/USSR.
+            - Focus on finding service records, casualty records, and citations.
             
             #### STEP 5: SHOW RESULTS & STOP
-            - Present the results found for this oldest ancestor from the searched links.
-            - Provide the exact URLs of the findings.
+            - Present the results found for the ancestor.
+            - Provide the exact details and evidence snippets.
             - Stop immediately. Everything else is unnecessary. Do not perform any other searches or analyses.
         """.trimIndent()
 
@@ -139,6 +143,7 @@ class AgentService(
                 GenealogyTools(
                         projectData,
                         tavilyClient,
+                        httpClient,
                         tavilyKey,
                         repoPath,
                         aiClient,
@@ -206,6 +211,40 @@ class AgentService(
                     results = response
             )
         } catch (e: Exception) {
+            val message = e.message ?: "Unknown error"
+            val isTimeout = message.contains("given number of steps")
+            val isCancellation = e is CancellationException
+
+            if (isTimeout || isCancellation) {
+                val reason = if (isTimeout) "Iteration limit reached (40 steps)" else "User cancelled execution"
+                log("⚠️ [GRACEFUL STOP] $reason. Synthesizing results...")
+
+                return withContext(NonCancellable) {
+                    val logsContext = _agentLogs.value.joinToString("\n").takeLast(10000)
+                    val synthesisPrompt = """
+                        The genealogy research agent was interrupted ($reason).
+                        Based on the following logs of its activities, please summarize the findings, 
+                        extracted facts, and potential sources discovered so far.
+                        If nothing meaningful was found, please state that.
+                        
+                        LOGS:
+                        $logsContext
+                    """.trimIndent()
+
+                    val fallbackResult = try {
+                        aiClient.sendPrompt(synthesisPrompt, config)
+                    } catch (ex: Exception) {
+                        "Research stopped: $reason. Additionally, result synthesis failed: ${ex.message}\n\nCheck the console logs for partial findings."
+                    }
+
+                    AgentProposal(
+                            promptName = promptName,
+                            taskDescription = "Research partially completed ($reason)",
+                            results = fallbackResult
+                    )
+                }
+            }
+
             log("Agent execution failed: ${e.message}")
             return AgentProposal(
                     promptName = promptName,

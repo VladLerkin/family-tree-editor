@@ -5,10 +5,16 @@ import com.family.tree.core.ProjectData
 import com.family.tree.core.ai.AiClient
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.platform.ResourceLoader
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.encodeURLQueryComponent
 
 class GenealogyTools(
         private val projectData: ProjectData,
         private val tavilyClient: TavilyClient,
+        val httpClient: HttpClient,
         private val apiKey: String,
         private val repoPath: String = "files/autoresearch-genealogy",
         private val aiClient: AiClient? = null,
@@ -211,10 +217,10 @@ class GenealogyTools(
         return result
     }
 
-    @Tool(
-            "Perform an internet search for genealogy records using Tavily. Specify 'region' and 'targetSite' (e.g. 'vgd.ru') for higher precision."
-    )
-    suspend fun search(
+    // @Tool(
+    //         "Perform an internet search for historical context, geographical questions, or open forums (e.g. 'vgd.ru'). NOT for direct database searches."
+    // )
+    suspend fun generalWebSearch(
             name: String = "",
             birth_location: String? = null,
             life_span: String? = null,
@@ -285,6 +291,90 @@ class GenealogyTools(
                 "🌐 [TAVILY RESPONSE] ${if (result.length > 1500) "$logsToShow... (truncated in logs)" else result}"
         )
         return result
+    }
+    @Tool("Search the 'Pamyat Naroda' WWII database for Soviet military records. Target individuals born ~1880-1930 who could have served in 1941-1945.")
+    suspend fun searchPamyatNaroda(firstName: String, lastName: String, patronymic: String? = null, birthYear: String? = null): String {
+        onLog("🔎 [PAMYAT NARODA] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear)")
+        val url = buildString {
+            append("https://pamyat-naroda.ru/api/search/?")
+            append("first_name=${firstName.encodeURLQueryComponent()}&")
+            append("last_name=${lastName.encodeURLQueryComponent()}")
+            if (!patronymic.isNullOrBlank()) append("&middle_name=${patronymic.encodeURLQueryComponent()}")
+            if (!birthYear.isNullOrBlank()) append("&year_birth=$birthYear")
+        }
+        return try {
+            val response = httpClient.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                header("Referer", "https://pamyat-naroda.ru/")
+            }
+            val body = response.bodyAsText()
+            
+            if (aiClient != null && aiConfig != null) {
+                onLog("🤖 [TOOL SUB-AGENT] Summarizing Pamyat Naroda API response...")
+                val summaryPrompt = """
+                    Extract Soviet WWII military records from this Pamyat Naroda JSON data for $lastName $firstName ${patronymic ?: ""}.
+                    Include ranks, units, awards, and dates of death/MIA if present.
+                    If nothing found, say so. Keep it concise.
+                    RAW JSON DATA:
+                    ${body.take(4000)}
+                """.trimIndent()
+                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
+                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
+                summarized
+            } else {
+                body.take(1500)
+            }
+        } catch (e: Exception) {
+            val err = "Failed to query Pamyat Naroda: ${e.message}"
+            onLog("⚠️ [PAMYAT NARODA ERROR] $err")
+            err
+        }
+    }
+
+    @Tool("Search the 'OBD Memorial' database for WWII casualty records. Target individuals born ~1880-1930 who could have been killed or MIA in 1941-1945.")
+    suspend fun searchOBDMemorial(firstName: String, lastName: String, patronymic: String? = null, birthYear: String? = null): String {
+        onLog("🔎 [OBD MEMORIAL] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear)")
+        val url = buildString {
+            append("https://obd-memorial.ru/html/search.htm?")
+            // Using P~ prefix for exact phrase match as it significantly improves accuracy on this platform
+            append("f=P~${lastName.encodeURLQueryComponent()}&")
+            append("n=P~${firstName.encodeURLQueryComponent()}&")
+            if (!patronymic.isNullOrBlank()) append("s=P~${patronymic.encodeURLQueryComponent()}&")
+            else append("s=&")
+            if (!birthYear.isNullOrBlank()) append("y=$birthYear&")
+            else append("y=&")
+            // Default entities mask for a comprehensive casualty search
+            append("entities=24,28,27,23,34,22,20,21&entity=000000011111110")
+        }
+        return try {
+            val response = httpClient.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                header("Referer", "https://obd-memorial.ru/html/index.html")
+            }
+            val body = response.bodyAsText()
+            
+            if (aiClient != null && aiConfig != null) {
+                onLog("🤖 [TOOL SUB-AGENT] Analyzing OBD Memorial response...")
+                val summaryPrompt = """
+                    Extract Soviet WWII casualty records from this OBD Memorial page for $lastName $firstName ${patronymic ?: ""}.
+                    Identify rank, unit, date of death/disappearance, and place of burial if found.
+                    If the page looks like a generic search results list, summarize the top 3-5 matches.
+                    If nothing found, report: "No records found in OBD Memorial."
+                    
+                    RAW CONTENT:
+                    ${body.take(5000)}
+                """.trimIndent()
+                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
+                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
+                summarized
+            } else {
+                body.take(1500)
+            }
+        } catch (e: Exception) {
+            val err = "Failed to query OBD Memorial: ${e.message}"
+            onLog("⚠️ [OBD MEMORIAL ERROR] $err")
+            err
+        }
     }
 }
 
