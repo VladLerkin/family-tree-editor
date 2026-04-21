@@ -61,6 +61,7 @@ fun AiConfigDialog(
     var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
     var tavilyApiKey by remember { mutableStateOf(initialConfig.tavilyApiKey) }
     var autoresearchRepoPath by remember { mutableStateOf(initialConfig.autoresearchRepoPath) }
+    var pamyatNarodaCookies by remember { mutableStateOf(initialConfig.pamyatNarodaCookies) }
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -207,6 +208,19 @@ fun AiConfigDialog(
                         .fillMaxWidth()
                         .padding(bottom = 12.dp),
                     singleLine = true
+                )
+
+                OutlinedTextField(
+                    value = pamyatNarodaCookies,
+                    onValueChange = { pamyatNarodaCookies = it },
+                    label = { Text("Archive Cookies (Pamyat Naroda)") },
+                    placeholder = { Text("PHPSESSID=...;") },
+                    supportingText = { Text("Paste cookies from your browser log in (F12 -> Application -> Cookies) to bypass login redirects.") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = false,
+                    maxLines = 3
                 )
                 
                 // Custom URL (for Ollama and Custom)
@@ -413,7 +427,8 @@ fun AiConfigDialog(
                                 yandexApiKey = yandexKey,
                                 yandexFolderId = yandexFolderId,
                                 tavilyApiKey = tavilyApiKey,
-                                autoresearchRepoPath = autoresearchRepoPath
+                                autoresearchRepoPath = autoresearchRepoPath,
+                                pamyatNarodaCookies = pamyatNarodaCookies
                             )
                             onConfirm(config)
                         },

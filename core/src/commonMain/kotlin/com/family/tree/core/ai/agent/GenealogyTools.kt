@@ -8,8 +8,12 @@ import com.family.tree.core.platform.ResourceLoader
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.encodeURLQueryComponent
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import kotlinx.serialization.json.*
 
 class GenealogyTools(
         private val projectData: ProjectData,
@@ -19,9 +23,12 @@ class GenealogyTools(
         private val repoPath: String = "files/autoresearch-genealogy",
         private val aiClient: AiClient? = null,
         private val aiConfig: AiConfig? = null,
+        private val pamyatNarodaCookies: String? = null,
         private val onLog: (String) -> Unit = {}
 ) {
     private val loader = ResourceLoader()
+    private var liveCookies: String? = pamyatNarodaCookies
+    private var liveStaticHash: String? = null
 
     @Tool("Read a specific methodology workflow guide (e.g., 'discrepancy-resolution.md').")
     suspend fun readMethodology(fileName: String): String {
@@ -217,9 +224,9 @@ class GenealogyTools(
         return result
     }
 
-    // @Tool(
-    //         "Perform an internet search for historical context, geographical questions, or open forums (e.g. 'vgd.ru'). NOT for direct database searches."
-    // )
+    @Tool(
+            "CRITICAL: Do NOT use for specific person search if person is eligible for specialized archives (e.g. WWII, USSR 1880-1930). Use ONLY for finding archive URLs, general history, or if specialized tools fail or do not exist."
+    )
     suspend fun generalWebSearch(
             name: String = "",
             birth_location: String? = null,
@@ -292,31 +299,149 @@ class GenealogyTools(
         )
         return result
     }
-    @Tool("Search the 'Pamyat Naroda' WWII database for Soviet military records. Target individuals born ~1880-1930 who could have served in 1941-1945.")
-    suspend fun searchPamyatNaroda(firstName: String, lastName: String, patronymic: String? = null, birthYear: String? = null): String {
+    @Tool(
+            "[MANDATORY PRIMARY TOOL for USSR/Russia 1890-1930] Search the 'Pamyat Naroda' WWII database for Soviet military records. Target individuals born ~1880-1930 who could have served in 1941-1945."
+    )
+    suspend fun searchPamyatNaroda(
+            firstName: String,
+            lastName: String,
+            patronymic: String? = null,
+            birthYear: String? = null
+    ): String {
         onLog("🔎 [PAMYAT NARODA] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear)")
-        val url = buildString {
-            append("https://pamyat-naroda.ru/api/search/?")
-            append("first_name=${firstName.encodeURLQueryComponent()}&")
-            append("last_name=${lastName.encodeURLQueryComponent()}")
-            if (!patronymic.isNullOrBlank()) append("&middle_name=${patronymic.encodeURLQueryComponent()}")
-            if (!birthYear.isNullOrBlank()) append("&year_birth=$birthYear")
+
+        // 0. Age Filter: 1890 - 1930
+        val year = birthYear?.toIntOrNull()
+        if (year != null && (year < 1890 || year > 1930)
+        ) { // Slightly expanded range for late starters
+            val msg =
+                    "Skipping Pamyat Naroda search: Year $year is outside the WWII candidate range (1890-1935)."
+            onLog("⚠️ [PAMYAT NARODA] $msg")
+            return msg
         }
+
+        // 1. Fetch tokens first
+        val tokens =
+                try {
+                    fetchSecurityTokens()
+                } catch (e: Exception) {
+                    onLog("⚠️ [PAMYAT NARODA] Failed to fetch security tokens: ${e.message}")
+                    null
+                }
+        val csrfToken = tokens?.first
+        val staticHash = tokens?.second ?: liveStaticHash
+
+        // IMPORTANT: Inject tokens into cookies if they are not already there
+        val tokensToInject = mutableListOf<String>()
+        csrfToken?.let { tokensToInject.add("csrf=$it") }
+        staticHash?.let { tokensToInject.add("static_hash=$it") }
+        if (tokensToInject.isNotEmpty()) {
+            updateLiveCookies(tokensToInject)
+        }
+
+        val apiUrl = "https://pamyat-naroda.ru/entrypoint/api/"
         return try {
-            val response = httpClient.get(url) {
-                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                header("Referer", "https://pamyat-naroda.ru/")
-            }
+            onLog("🔎 [PAMYAT NARODA REQUEST] URL: $apiUrl")
+            val response =
+                    httpClient.post(apiUrl) {
+                        header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+                        )
+                        header("Referer", "https://pamyat-naroda.ru/heroes/")
+                        header("Origin", "https://pamyat-naroda.ru")
+                        header("X-Requested-With", "XMLHttpRequest")
+                        header("Accept", "application/json, text/javascript, */*; q=0.01")
+                        header("Sec-Fetch-Dest", "empty")
+                        header("Sec-Fetch-Mode", "cors")
+                        header("Sec-Fetch-Site", "same-origin")
+
+                        if (!csrfToken.isNullOrBlank()) {
+                            header("X-Csrf-Token", csrfToken)
+                        }
+
+                        if (!staticHash.isNullOrBlank()) {
+                            header("X-Static-Hash", staticHash)
+                        }
+
+                        if (!liveCookies.isNullOrBlank()) {
+                            header("Cookie", liveCookies?.trim())
+                        }
+                        contentType(ContentType.Application.Json)
+                        setBody(
+                                """
+                    {
+                        "entrypoint": "heroes/search",
+                        "parameters": {
+                            "query": {
+                                "first_name": "$firstName",
+                                "last_name": "$lastName",
+                                "middle_name": "${patronymic ?: ""}",
+                                "birth_date_from": "${birthYear ?: ""}",
+                                "birth_place_ids": [],
+                                "award_id": [],
+                                "location": [],
+                                "exclude_ids": [],
+                                "exclude_guids": [],
+                                "kld_source_id": [],
+                                "kr_source_id": [],
+                                "division_ids": [],
+                                "exclude_birthplace_region_ids": []
+                            },
+                            "page": 1,
+                            "size": 10,
+                            "options": {
+                                "person": true
+                            }
+                        }
+                    }
+                """.trimIndent()
+                        )
+                    }
             val body = response.bodyAsText()
-            
+            onLog(
+                    "🔎 [PAMYAT NARODA RESPONSE] Received ${body.length} chars: ${if (body.length > 500) body.take(500) + "..." else body}"
+            )
+
+            if (body.contains("url='https://pamyat-naroda.ru/login/'") ||
+                            body.contains("href=\"https://pamyat-naroda.ru/login/\"")
+            ) {
+                onLog("⚠️ [PAMYAT NARODA] SESSION EXPIRED OR LOGIN REQUIRED.")
+                val cookieSnippet =
+                        if (!liveCookies.isNullOrBlank()) {
+                            liveCookies?.take(10) + "..."
+                        } else "empty"
+                onLog(
+                        "🔎 [PAMYAT NARODA DEBUG] Cookie length: ${liveCookies?.length ?: 0}, snippet: $cookieSnippet"
+                )
+                onLog(
+                        "💡 TIP: Log in to pamyat-naroda.ru in your browser, go to Network tab, copy full 'Cookie' header, and paste it in AI Settings."
+                )
+                return "Error: Pamyat Naroda requires authorization. Please provide cookies in AI Settings."
+            }
+
             if (aiClient != null && aiConfig != null) {
-                onLog("🤖 [TOOL SUB-AGENT] Summarizing Pamyat Naroda API response...")
-                val summaryPrompt = """
-                    Extract Soviet WWII military records from this Pamyat Naroda JSON data for $lastName $firstName ${patronymic ?: ""}.
-                    Include ranks, units, awards, and dates of death/MIA if present.
-                    If nothing found, say so. Keep it concise.
-                    RAW JSON DATA:
-                    ${body.take(4000)}
+                onLog("🤖 [TOOL SUB-AGENT] Cleaning and summarizing Pamyat Naroda API response...")
+                val cleanedData =
+                        try {
+                            cleanPamyatNarodaData(body)
+                        } catch (e: Exception) {
+                            onLog(
+                                    "⚠️ [PAMYAT NARODA] JSON parsing failed, falling back to raw truncation: ${e.message}"
+                            )
+                            body.take(4000)
+                        }
+
+                val summaryPrompt =
+                        """
+                    Extract Soviet WWII military records from this Pamyat Naroda data for $lastName $firstName ${patronymic ?: ""}.
+                    The data below has been cleaned and structured. 
+                    Include ranks, units, awards, dates of birth, and dates of death/MIA for all potentially matching individuals.
+                    If multiple records seem to belong to the same person, consolidate them into a single military path.
+                    If nothing found, say so. 
+                    
+                    DATA:
+                    $cleanedData
                 """.trimIndent()
                 val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
                 onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
@@ -325,56 +450,182 @@ class GenealogyTools(
                 body.take(1500)
             }
         } catch (e: Exception) {
-            val err = "Failed to query Pamyat Naroda: ${e.message}"
-            onLog("⚠️ [PAMYAT NARODA ERROR] $err")
-            err
+            onLog("❌ [PAMYAT NARODA ERROR] ${e.message}")
+            "Error searching Pamyat Naroda: ${e.message}"
         }
     }
 
-    @Tool("Search the 'OBD Memorial' database for WWII casualty records. Target individuals born ~1880-1930 who could have been killed or MIA in 1941-1945.")
-    suspend fun searchOBDMemorial(firstName: String, lastName: String, patronymic: String? = null, birthYear: String? = null): String {
-        onLog("🔎 [OBD MEMORIAL] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear)")
-        val url = buildString {
-            append("https://obd-memorial.ru/html/search.htm?")
-            // Using P~ prefix for exact phrase match as it significantly improves accuracy on this platform
-            append("f=P~${lastName.encodeURLQueryComponent()}&")
-            append("n=P~${firstName.encodeURLQueryComponent()}&")
-            if (!patronymic.isNullOrBlank()) append("s=P~${patronymic.encodeURLQueryComponent()}&")
-            else append("s=&")
-            if (!birthYear.isNullOrBlank()) append("y=$birthYear&")
-            else append("y=&")
-            // Default entities mask for a comprehensive casualty search
-            append("entities=24,28,27,23,34,22,20,21&entity=000000011111110")
-        }
+    /**
+     * Fetches the main page of Pamyat Naroda with user's cookies to extract safety tokens. Returns
+     * Pair(csrf, static_hash)
+     */
+    private suspend fun fetchSecurityTokens(): Pair<String?, String?> {
+        if (liveCookies.isNullOrBlank()) return null to null
+
+        onLog("🔎 [PAMYAT NARODA] Attempting to fetch security tokens from /heroes/ page...")
+
         return try {
-            val response = httpClient.get(url) {
-                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                header("Referer", "https://obd-memorial.ru/html/index.html")
+            val response =
+                    httpClient.get("https://pamyat-naroda.ru/heroes/") {
+                        header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+                        )
+                        if (!liveCookies.isNullOrBlank()) {
+                            header("Cookie", liveCookies?.trim() ?: "")
+                        }
+                    }
+
+            // Capture new cookies from server
+            val setCookieHeaders = response.headers.getAll("Set-Cookie")
+            if (!setCookieHeaders.isNullOrEmpty()) {
+                updateLiveCookies(setCookieHeaders)
             }
-            val body = response.bodyAsText()
-            
-            if (aiClient != null && aiConfig != null) {
-                onLog("🤖 [TOOL SUB-AGENT] Analyzing OBD Memorial response...")
-                val summaryPrompt = """
-                    Extract Soviet WWII casualty records from this OBD Memorial page for $lastName $firstName ${patronymic ?: ""}.
-                    Identify rank, unit, date of death/disappearance, and place of burial if found.
-                    If the page looks like a generic search results list, summarize the top 3-5 matches.
-                    If nothing found, report: "No records found in OBD Memorial."
-                    
-                    RAW CONTENT:
-                    ${body.take(5000)}
-                """.trimIndent()
-                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
-                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
-                summarized
+
+            val html = response.bodyAsText()
+
+            // Robust extractor: handles value/name in any order
+            fun extractByRegex(name: String): String? {
+                val patterns =
+                        listOf(
+                                Regex("""name="$name"\s+value="([^"]+)""""),
+                                Regex("""value="([^"]+)"\s+name="$name"""")
+                        )
+                return patterns.firstNotNullOfOrNull { it.find(html)?.groupValues?.get(1) }
+            }
+
+            val csrf = extractByRegex("csrf")
+            val sHash = extractByRegex("static_hash")
+
+            if (csrf != null) {
+                onLog(
+                        "🔎 [PAMYAT NARODA] CSRF Token found (length ${csrf.length}): ${csrf.take(15)}..."
+                )
             } else {
-                body.take(1500)
+                onLog(
+                        "⚠️ [PAMYAT NARODA] CSRF Token NOT found in HTML. Try logging in again in browser."
+                )
             }
+
+            if (sHash != null) {
+                onLog("🔎 [PAMYAT NARODA] Static Hash found: ${sHash.take(8)}...")
+                liveStaticHash = sHash
+            }
+
+            csrf to sHash
         } catch (e: Exception) {
-            val err = "Failed to query OBD Memorial: ${e.message}"
-            onLog("⚠️ [OBD MEMORIAL ERROR] $err")
-            err
+            onLog("⚠️ [PAMYAT NARODA] Error fetching security tokens: ${e.message}")
+            null to null
         }
+    }
+
+    /** Merges current cookies with new ones from Set-Cookie headers. */
+    private fun updateLiveCookies(setCookieHeaders: List<String>) {
+        val cookieMap = mutableMapOf<String, String>()
+
+        // Parse existing cookies
+        liveCookies?.split(";")?.forEach { pair ->
+            val parts = pair.split("=", limit = 2)
+            if (parts.size == 2) {
+                cookieMap[parts[0].trim()] = parts[1].trim()
+            }
+        }
+
+        // Parse and merge new cookies
+        var updated = false
+        setCookieHeaders.forEach { header ->
+            // Set-Cookie format: "name=value; Path=/; ..."
+            val firstPart = header.split(";").firstOrNull()
+            if (firstPart != null) {
+                val parts = firstPart.split("=", limit = 2)
+                if (parts.size == 2) {
+                    val name = parts[0].trim()
+                    val value = parts[1].trim()
+                    if (cookieMap[name] != value) {
+                        cookieMap[name] = value
+                        updated = true
+                    }
+                }
+            }
+        }
+
+        if (updated) {
+            liveCookies = cookieMap.entries.joinToString("; ") { "${it.key}=${it.value}" }
+            onLog("🔎 [PAMYAT NARODA] Cookies updated from server response.")
+        }
+    }
+
+    /**
+     * Parses the Pamyat Naroda JSON and extracts key military fields to save tokens and improve
+     * readability.
+     */
+    private fun cleanPamyatNarodaData(json: String): String {
+        val root = Json.parseToJsonElement(json).jsonObject
+        val dataArray = root["data"]?.jsonArray ?: return "No data found."
+
+        fun JsonElement?.toSafeString(): String? {
+            return when (this) {
+                null -> null
+                is JsonPrimitive -> content
+                is JsonArray -> joinToString(", ") { it.toSafeString() ?: "" }
+                is JsonObject -> {
+                    // Try to finding 'name' or 'value' or just take the first primitive
+                    this["name"]?.toSafeString()
+                            ?: this["value"]?.toSafeString()
+                                    ?: this.values
+                                    .firstOrNull { it is JsonPrimitive }
+                                    ?.toSafeString()
+                }
+                else -> toString()
+            }
+        }
+
+        return buildString {
+            dataArray.forEachIndexed { index, element ->
+                val source = element.jsonObject["_source"]?.jsonObject ?: return@forEachIndexed
+                appendLine("--- Record #${index + 1} ---")
+
+                val last = source["last_name"].toSafeString() ?: ""
+                val first = source["first_name"].toSafeString() ?: ""
+                val middle = source["middle_name"].toSafeString() ?: ""
+                appendLine("Name: $last $first $middle")
+
+                source["date_birth"].toSafeString()?.let { appendLine("Birth Date: $it") }
+                source["birth_place"].toSafeString()?.let { appendLine("Birth Place: $it") }
+                source["rank"].toSafeString()?.let { appendLine("Rank: $it") }
+                source["prizv"].toSafeString()?.let { appendLine("Drafted/RVK: $it") }
+
+                // Units can be in multiple fields
+                val unit = source["unit"].toSafeString()
+                val division = source["division"].toSafeString()
+                val vchResource = source["vch_name"].toSafeString()
+                val combinedUnit =
+                        listOfNotNull(unit, division, vchResource)
+                                .filter { it.isNotBlank() }
+                                .joinToString(", ")
+                if (combinedUnit.isNotBlank()) appendLine("Unit: $combinedUnit")
+
+                source["award_name"].toSafeString()?.let { appendLine("Award: $it") }
+                source["doc_name"].toSafeString()?.let { appendLine("Document: $it") }
+                source["date_death"].toSafeString()?.let { appendLine("Death/MIA Date: $it") }
+                source["date_mub"].toSafeString()?.let { appendLine("Date MUB: $it") }
+                source["date_disposal"].toSafeString()?.let { appendLine("Disposal Date: $it") }
+                source["date_exit"].toSafeString()?.let {
+                    appendLine("Demobilization/Exit Date: $it")
+                }
+                source["date_demobilization"].toSafeString()?.let {
+                    appendLine("Demobilization Date: $it")
+                }
+                source["disposal_place"].toSafeString()?.let { appendLine("Disposal Place: $it") }
+                source["burial_place"].toSafeString()?.let { appendLine("Burial/Death Place: $it") }
+                source["family"].toSafeString()?.let { appendLine("Family/Next of Kin: $it") }
+                source["additional_info"].toSafeString()?.let { appendLine("Additional Info: $it") }
+
+                appendLine()
+                if (length > 40000) return@buildString // Safety limit for cleaning
+            }
+        }
+                .ifBlank { "No military records extracted." }
     }
 }
 

@@ -51,7 +51,10 @@ data class AiConfig(
     val tavilyApiKey: String = "",
     
     // Path to the professional methodology repository (autoresearch-genealogy)
-    val autoresearchRepoPath: String = "./autoresearch-genealogy"
+    val autoresearchRepoPath: String = "./autoresearch-genealogy",
+    
+    // Cookie string for Pamyat Naroda session injection
+    val pamyatNarodaCookies: String = ""
 ) {
     fun getProvider(): AiProvider = try {
         AiProvider.valueOf(provider)

@@ -72,6 +72,14 @@ actual class AiSettingsStorage {
         // Save Autoresearch Repo Path (no encryption needed)
         prefs.put(KEY_AUTORESEARCH_REPO_PATH, config.autoresearchRepoPath)
         
+        // Encrypt and save Pamyat Naroda Cookies
+        val encryptedCookies = if (config.pamyatNarodaCookies.isNotBlank()) {
+            encryptApiKey(config.pamyatNarodaCookies)
+        } else {
+            ""
+        }
+        prefs.put(KEY_PAMYAT_NARODA_COOKIES, encryptedCookies)
+        
         prefs.flush()
     }
     
@@ -149,6 +157,18 @@ actual class AiSettingsStorage {
         } else {
             ""
         }
+
+        // Decrypt Pamyat Naroda Cookies on load
+        val encryptedCookies = prefs.get(KEY_PAMYAT_NARODA_COOKIES, "")
+        val decryptedCookies = if (encryptedCookies.isNotBlank()) {
+            try {
+                decryptApiKey(encryptedCookies)
+            } catch (e: Exception) {
+                encryptedCookies
+            }
+        } else {
+            ""
+        }
         
         return AiConfig(
             provider = prefs.get(KEY_PROVIDER, AiPresets.OPENAI_GPT4O_MINI.provider),
@@ -169,7 +189,8 @@ actual class AiSettingsStorage {
             // If folderId is not saved, use default value
             yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" },
             tavilyApiKey = decryptedTavilyKey,
-            autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy")
+            autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy"),
+            pamyatNarodaCookies = decryptedCookies
         )
     }
     
@@ -192,6 +213,7 @@ actual class AiSettingsStorage {
         prefs.remove(KEY_YANDEX_FOLDER_ID)
         prefs.remove(KEY_TAVILY_API_KEY)
         prefs.remove(KEY_AUTORESEARCH_REPO_PATH)
+        prefs.remove(KEY_PAMYAT_NARODA_COOKIES)
         
         prefs.flush()
     }
@@ -255,6 +277,7 @@ actual class AiSettingsStorage {
         private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         private const val KEY_TAVILY_API_KEY = "ai_tavily_api_key"
         private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
+        private const val KEY_PAMYAT_NARODA_COOKIES = "ai_pamyat_naroda_cookies"
         
         private const val ALGORITHM = "AES"
         private const val SALT = "FamilyTreeApp-AI-Key-Salt-v1"

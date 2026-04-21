@@ -4,14 +4,6 @@ Genealogical research in Russia and Ukraine presents significant challenges: Cyr
 
 ## Key Databases
 
-### OBD Memorial
-
-- **URL**: <https://obd-memorial.ru/>
-- **Coverage**: WWII casualties database. Killed in action, missing in action, prisoner of war records, burial records.
-- **Cost**: Free
-- **Searchable**: Yes (by name, rank, date, place)
-- **AI accessibility**: AI-searchable (in Russian)
-
 ### Pamyat Naroda (Memory of the People)
 
 - **URL**: <https://pamyat-naroda.ru/>

@@ -323,60 +323,6 @@ class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
                 )
 }
 
-@Serializable
-data class OBDMemorialSearchArgs(
-        val firstName: String,
-        val lastName: String,
-        val patronymic: String? = null,
-        val birthYear: String? = null
-)
-
-class OBDMemorialSearchTool(private val tools: GenealogyTools) :
-        Tool<OBDMemorialSearchArgs, String>(
-                argsType = typeToken<OBDMemorialSearchArgs>(),
-                resultType = typeToken<String>(),
-                descriptor =
-                        ToolDescriptor(
-                                name = "searchOBDMemorial",
-                                description =
-                                        "Search the 'OBD Memorial' database for WWII casualty records. Target individuals born ~1880-1930 who could have been killed or MIA in 1941-1945.",
-                                requiredParameters =
-                                        listOf(
-                                                ToolParameterDescriptor(
-                                                        "firstName",
-                                                        "Given name of the person",
-                                                        ToolParameterType.String
-                                                ),
-                                                ToolParameterDescriptor(
-                                                        "lastName",
-                                                        "Surname of the person",
-                                                        ToolParameterType.String
-                                                )
-                                        ),
-                                optionalParameters =
-                                        listOf(
-                                                ToolParameterDescriptor(
-                                                        "patronymic",
-                                                        "Optional patronymic (Otchestvo) name",
-                                                        ToolParameterType.String
-                                                ),
-                                                ToolParameterDescriptor(
-                                                        "birthYear",
-                                                        "Optional year of birth to narrow results",
-                                                        ToolParameterType.String
-                                                )
-                                        )
-                        )
-        ) {
-        override suspend fun execute(args: OBDMemorialSearchArgs): String =
-                tools.searchOBDMemorial(
-                        firstName = args.firstName,
-                        lastName = args.lastName,
-                        patronymic = args.patronymic,
-                        birthYear = args.birthYear
-                )
-}
-
 /** Extension to provide class-based tools for non-JVM platforms. */
 fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
         listOf(
@@ -389,7 +335,6 @@ fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
                 ListReferenceGuidesTool(this),
                 ReadReferenceGuideTool(this),
                 GetGeographicProfileTool(this),
-                SearchFamilyTreeTool(this),
                 PamyatNarodaSearchTool(this),
-                OBDMemorialSearchTool(this)
+                SearchFamilyTreeTool(this)
         )

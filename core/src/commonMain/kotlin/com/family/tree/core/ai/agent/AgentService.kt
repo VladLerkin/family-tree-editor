@@ -117,11 +117,13 @@ class AgentService(
             
             #### STEP 3: IDENTIFY TARGET ANCESTOR & SOURCES
             - Find the list of recommended sources/links mentioned in the archive guide for that country.
-            - Identify the OLDEST ancestor in the <Family_Tree> who belongs to that specific country.
+            - Identify ancestors in the <Family_Tree> born between 1880 and 1930. 
+            - CRITICAL: Do NOT search for anyone born BEFORE 1880 or AFTER 1930. Ignore them entirely.
             
             #### STEP 4: SEARCH
-            - Use specialized tools like 'searchPamyatNaroda' and 'searchOBDMemorial' to check for ancestors in Russia/USSR.
+            - Use 'searchPamyatNaroda' as THE PRIMARY TOOL for all valid candidates from USSR/Russia.
             - Focus on finding service records, casualty records, and citations.
+            - Only use general web search (Tavily) as a final resort or for broad historical context.
             
             #### STEP 5: SHOW RESULTS & STOP
             - Present the results found for the ancestor.
@@ -148,6 +150,7 @@ class AgentService(
                         repoPath,
                         aiClient,
                         config,
+                        config.pamyatNarodaCookies,
                         onLog = { log(it) }
                 )
 
@@ -163,6 +166,7 @@ class AgentService(
                 )
 
         log("Building AIAgent...")
+        log("DEBUG: Pamyat Naroda Cookies length from config: ${config.pamyatNarodaCookies.length}")
         val agent =
                 AIAgent(
                         promptExecutor = modelAdapter,
@@ -176,9 +180,10 @@ class AgentService(
                         You are equipped with specialized tools for archive guides, family tree analysis, and internet search.
                         
                         PROTOCOL:
-                        1. You MUST use tools to fetch data. DO NOT guess facts.
-                        2. You MUST use the Function Calling API for tools. DO NOT write tool calls as text.
-                        3. Always verify facts against the provided family tree context.
+                        1. ARCHIVE-FIRST: You MUST prioritize specialized archive tools (like Pamyat Naroda) OVER general web search for eligible candidates.
+                        2. You MUST use tools to fetch data. DO NOT guess facts.
+                        3. You MUST use the Function Calling API for tools. DO NOT write tool calls as text.
+                        4. Always verify facts against the provided family tree context.
                     """.trimIndent()
                                                     )
                                                 },
