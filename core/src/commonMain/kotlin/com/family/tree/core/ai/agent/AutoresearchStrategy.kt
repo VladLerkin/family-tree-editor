@@ -43,10 +43,10 @@ fun createAutoresearchStrategy(
             
             AGE-FILTERING & TOOLS PROTOCOL: 
             - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930. ONLY these persons are eligible for 'searchPamyatNaroda'.
-            - GLOBAL SEARCH: Use 'searchFamilySearch' for ALL individuals in the tree regardless of age. It is the primary tool for finding birth, marriage, and death records globally.
+            - GLOBAL SEARCH: Use 'queryFamilySearch' for ALL individuals. This tool automatically performs a DUAL search (Historical Records + Family Tree).
             - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person from WWII research. 
             - Many veterans are found in the 1985 Jubilee Award database. Always plan 'searchPamyatNaroda' for them if they fit the birth year range.
-            - For individuals born BEFORE 1880 or AFTER 1935, focus EXCLUSIVELY on 'searchFamilySearch'.
+            - For individuals born BEFORE 1880 or AFTER 1935, focus on 'queryFamilySearch'.
             - Use 'generalWebSearch' ONLY for historical context or specific archive URLs.
             
             ANTI-LOOP RULE: 
@@ -82,8 +82,8 @@ fun createAutoresearchStrategy(
             Once you have all data, build a research plan. DO NOT START specialized searches YET.
             
             STRICT PLANNING RULE: 
-            - For individuals born 1890-1930 (USSR/Russia), your FIRST and ONLY search step MUST be 'searchPamyatNaroda'.
-            - For ALL OTHER individuals, and as a follow-up for the above, use 'searchFamilySearch'.
+            - For individuals born 1890-1930 (USSR/Russia), your FIRST search step MUST be 'searchPamyatNaroda'.
+            - For ALL individuals, perform search with 'queryFamilySearch'. This tool is ESSENTIAL for finding parents and family connections.
             - Do NOT plan any other searches (e.g. Find a Grave, Ancestry, General Search) until these specialized tools are searched.
         """.trimIndent()
                         )
@@ -103,7 +103,9 @@ fun createAutoresearchStrategy(
             
             TASK: Execute targeted searches for EACH person and location identified in the research plan.
             - WWII ARCHIVES: Use 'searchPamyatNaroda' for individuals from the USSR/Russia born approximately 1890-1930. 
-            - GLOBAL ARCHIVES: Use 'searchFamilySearch' for ALL individuals to find official records (birth, marriage, death). Use exactMatch=true if the name is very common (e.g., 'Ivanov') to reduce noise.
+- GLOBAL ARCHIVES: For EVERY person, you MUST call 'queryFamilySearch'. Skipping it is a CRITICAL FAILURE. It automatically searches both records and user trees.
+                3. NAME PROTOCOL: Surnames and First Names for MEN are treated as EXACT. To maximize matches for men, provide ONLY the first name in 'firstName' (omit patronymic). For WOMEN, First Name is EXACT, but Surname is FUZZY. Always pass the 'gender' parameter.
+            - COMMON NAMES: If the person has a very common last name (Smith, Jones, Ivanov, Kuznetsov, etc.), you MUST set exactMatch=true. 
             - SURVIVOR POLICY: Do NOT skip people who survived the war for WWII research. 
             - PRIORITY: Archive tools (Pamyat Naroda, FamilySearch) MUST be performed BEFORE any general web searches.
             - Do NOT use 'generalWebSearch' as a substitute if specialized tools apply.

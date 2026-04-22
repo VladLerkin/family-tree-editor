@@ -119,12 +119,16 @@ class AgentService(
             - Find the list of recommended sources/links mentioned in the archive guide for that country.
             - Identify ancestors in the <Family_Tree>.
             - For individuals born 1890-1930 (USSR/Russia), prioritize 'searchPamyatNaroda'.
-            - For ALL individuals in the tree, use 'searchFamilySearch' to find official vital records.
+            - For ALL individuals in the tree, you MUST call 'queryFamilySearch' (it automatically searches BOTH Historical Records and Family Tree).
+                2. Skipping 'queryFamilySearch' is a CRITICAL FAILURE as it contains parents/family links.
             
             #### STEP 4: SEARCH
             - Use 'searchPamyatNaroda' as THE PRIMARY TOOL for all valid candidates from USSR/Russia (born 1890-1930).
-            - Use 'searchFamilySearch' for EVERYONE ELSE and as a secondary global search for all candidates. It is excellent for birth/marriage/death records.
-            - Focus on finding service records, casualty records, and citations.
+            - Use 'queryFamilySearch' for ALL individuals (it automatically queries both Records and Tree in one call). 
+                1. searchType='HISTORICAL_RECORDS': To find official birth/marriage/death records.
+                2. searchType='FAMILY_TREE': To find parents, children, and spouses already linked by other users.
+            - NAME PROTOCOL: Always include the patronymic (if known) in the 'firstName' parameter. Do NOT cut it off. (Example: firstName='Иван Иванович', lastName='Иванов').
+            - Focus on finding service records, casualty records, citations, and lineage expansions.
             - Only use general web search (Tavily) as a final resort or for broad historical context.
             
             #### STEP 5: SHOW RESULTS & STOP
@@ -179,14 +183,10 @@ class AgentService(
                                                 prompt("genealogy-researcher") {
                                                     system(
                                                             """
-                        You are a professional genealogist assistant. 
-                        You are equipped with specialized tools for archive guides, family tree analysis, and internet search.
-                        
                         PROTOCOL:
-                        1. ARCHIVE-FIRST: You MUST prioritize specialized archive tools (like Pamyat Naroda) OVER general web search for eligible candidates.
-                        2. You MUST use tools to fetch data. DO NOT guess facts.
-                        3. You MUST use the Function Calling API for tools. DO NOT write tool calls as text.
-                        4. Always verify facts against the provided family tree context.
+                        - Use 'searchPamyatNaroda' for WWII veterans (1890-1930, USSR/Russia).
+                        - Use 'queryFamilySearch' for BOTH vital records and relatives (dual search).
+                        - Always provide evidence snippets.
                     """.trimIndent()
                                                     )
                                                 },
@@ -195,7 +195,7 @@ class AgentService(
                                                         provider = LLMProvider.OpenAI,
                                                         id = config.model
                                                 ),
-                                        maxAgentIterations = 40
+                                        maxAgentIterations = 50
                                 ),
                         strategy = strategy,
                         toolRegistry = createToolRegistry(tools),
@@ -224,7 +224,7 @@ class AgentService(
             val isCancellation = e is CancellationException
 
             if (isTimeout || isCancellation) {
-                val reason = if (isTimeout) "Iteration limit reached (40 steps)" else "User cancelled execution"
+                val reason = if (isTimeout) "Iteration limit reached (50 steps)" else "User cancelled execution"
                 log("⚠️ [GRACEFUL STOP] $reason. Synthesizing results...")
 
                 return withContext(NonCancellable) {

@@ -297,18 +297,18 @@ class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
                                                         "lastName",
                                                         "Surname of the person",
                                                         ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "patronymic",
+                                                        "Patronymic (отчество) - separate field",
+                                                        ToolParameterType.String
                                                 )
                                         ),
                                 optionalParameters =
                                         listOf(
                                                 ToolParameterDescriptor(
-                                                        "patronymic",
-                                                        "Optional patronymic (Otchestvo) name",
-                                                        ToolParameterType.String
-                                                ),
-                                                ToolParameterDescriptor(
                                                         "birthYear",
-                                                        "Optional year of birth to narrow results",
+                                                        "Year of birth",
                                                         ToolParameterType.String
                                                 )
                                         )
@@ -331,28 +331,29 @@ data class FamilySearchSearchArgs(
         val birthPlace: String? = null,
         val deathYear: String? = null,
         val deathPlace: String? = null,
+        val gender: String? = null,
         val exactMatch: Boolean = false
 )
 
-class FamilySearchSearchTool(private val tools: GenealogyTools) :
+class FamilySearchQueryTool(private val tools: GenealogyTools) :
         Tool<FamilySearchSearchArgs, String>(
                 argsType = typeToken<FamilySearchSearchArgs>(),
                 resultType = typeToken<String>(),
                 descriptor =
                         ToolDescriptor(
-                                name = "searchFamilySearch",
+                                name = "queryFamilySearch",
                                 description =
-                                        "Search the FamilySearch database for historical records globally (births, marriages, deaths).",
+                                        "Search FamilySearch. Automatically queries BOTH Historical Records and Family Tree.",
                                 requiredParameters =
                                         listOf(
                                                 ToolParameterDescriptor(
                                                         "firstName",
-                                                        "Given name of the person",
+                                                        "Given name",
                                                         ToolParameterType.String
                                                 ),
                                                 ToolParameterDescriptor(
                                                         "lastName",
-                                                        "Surname of the person",
+                                                        "Surname",
                                                         ToolParameterType.String
                                                 )
                                         ),
@@ -379,23 +380,30 @@ class FamilySearchSearchTool(private val tools: GenealogyTools) :
                                                         ToolParameterType.String
                                                 ),
                                                 ToolParameterDescriptor(
+                                                        "gender",
+                                                        "Optional gender: 'Male' or 'Female'",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
                                                         "exactMatch",
-                                                        "Set to true for exact matching (recommended for common names), false for fuzzy matching (default)",
+                                                        "Set to true for exact matching",
                                                         ToolParameterType.Boolean
                                                 )
                                         )
                         )
         ) {
-        override suspend fun execute(args: FamilySearchSearchArgs): String =
-                tools.searchFamilySearch(
+        override suspend fun execute(args: FamilySearchSearchArgs): String {
+                return tools.queryFamilySearch(
                         firstName = args.firstName,
                         lastName = args.lastName,
                         birthYear = args.birthYear,
                         birthPlace = args.birthPlace,
                         deathYear = args.deathYear,
                         deathPlace = args.deathPlace,
+                        gender = args.gender,
                         exactMatch = args.exactMatch
                 )
+        }
 }
 
 /** Extension to provide class-based tools for non-JVM platforms. */
@@ -411,7 +419,7 @@ fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
                 ReadReferenceGuideTool(this),
                 GetGeographicProfileTool(this),
                 PamyatNarodaSearchTool(this),
-                FamilySearchSearchTool(this),
+                FamilySearchQueryTool(this),
                 GeneralWebSearchTool(this),
                 SearchFamilyTreeTool(this)
         )

@@ -12,6 +12,14 @@ Genealogical research in Russia and Ukraine presents significant challenges: Cyr
 - **Searchable**: Yes (by name, unit, date)
 - **AI accessibility**: AI-readable (in Russian)
 
+### FamilySearch (Russia/Ukraine collections)
+
+- **URL**: <https://www.familysearch.org/>
+- **Coverage**: Rapidly growing collection. Metric books (metricheskie knigi) from many guberniyas are being digitized. Includes Orthodox, Catholic, Lutheran, and Jewish records.
+- **Cost**: Free (account required)
+- **Searchable**: Mostly browse-only (images organized by guberniya, uyezd, parish, and year). Some indexed collections.
+- **AI accessibility**: Browser-only for images.
+
 ### Geni.com
 
 - **URL**: <https://www.geni.com/>

@@ -405,6 +405,11 @@ class GenealogyTools(
                     "🔎 [PAMYAT NARODA RESPONSE] Received ${body.length} chars: ${if (body.length > 500) body.take(500) + "..." else body}"
             )
 
+            if (body.contains("\"data\":[]") || body.contains("\"total\":0")) {
+                onLog("🔎 [PAMYAT NARODA] No records found.")
+                return "No records found on Pamyat Naroda."
+            }
+
             if (body.contains("url='https://pamyat-naroda.ru/login/'") ||
                             body.contains("href=\"https://pamyat-naroda.ru/login/\"")
             ) {
@@ -457,30 +462,94 @@ class GenealogyTools(
         }
     }
 
+    enum class FamilySearchSearchType {
+        HISTORICAL_RECORDS,
+        FAMILY_TREE
+    }
+
     @Tool(
-        "Search the FamilySearch database for historical records. Requires session cookies in AI Settings. " +
-                "Use exactMatch=true for common names to reduce noise. Use exactMatch=false if no results are found."
+        "Search FamilySearch. This tool automatically performs a DUAL search: " +
+        "1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). " +
+        "PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. " +
+        "3. For WOMEN, First Name is EXACT, Surname is FUZZY."
     )
-    suspend fun searchFamilySearch(
+    suspend fun queryFamilySearch(
         firstName: String,
         lastName: String,
         birthYear: String? = null,
         birthPlace: String? = null,
         deathYear: String? = null,
         deathPlace: String? = null,
+        gender: String? = null,
         exactMatch: Boolean = false
     ): String {
-        onLog("🔎 [FAMILYSEARCH] Query: $lastName $firstName (born $birthYear in $birthPlace), exact: $exactMatch")
+        val recordsTask = executeFamilySearchQuery(FamilySearchSearchType.HISTORICAL_RECORDS, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
+        val treeTask = executeFamilySearchQuery(FamilySearchSearchType.FAMILY_TREE, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
+        
+        return """
+            ### RESULTS FROM FAMILYSEARCH HISTORICAL RECORDS
+            $recordsTask
+            
+            ### RESULTS FROM FAMILYSEARCH FAMILY TREE
+            $treeTask
+        """.trimIndent()
+    }
 
-        if (liveFamilySearchCookies.isNullOrBlank()) {
-            val err = "Error: FamilySearch cookies are not set. Go to AI Settings and paste your cookies."
-            onLog("⚠️ [FAMILYSEARCH] $err")
-            return err
+    private suspend fun executeFamilySearchQuery(
+        searchType: FamilySearchSearchType,
+        firstName: String,
+        lastName: String,
+        birthYear: String? = null,
+        birthPlace: String? = null,
+        deathYear: String? = null,
+        deathPlace: String? = null,
+        gender: String? = null,
+        exactMatch: Boolean = false
+    ): String {
+        val label = if (searchType == FamilySearchSearchType.FAMILY_TREE) "FAMILYSEARCH TREE" else "FAMILYSEARCH HISTORICAL RECORDS"
+        
+        if (!exactMatch) {
+            onLog("🔎 [$label] Trying AUTO-EXACT search first...")
+            val exactResponse = fetchFamilySearchResponse(searchType, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, true)
+            if (exactResponse.results > 0) {
+                onLog("✅ [$label] Found ${exactResponse.results} high-quality exact matches. Skipping fuzzy search.")
+                return processFamilySearchResponse(exactResponse.body, label, firstName, lastName)
+            }
+            onLog("ℹ️ [$label] No exact matches found. Proceeding with fuzzy search...")
         }
 
-        val baseUrl = "https://www.familysearch.org/service/search/hr/v2/personas"
-        return try {
-            val response = httpClient.get(baseUrl) {
+        val response = fetchFamilySearchResponse(searchType, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
+        
+        if (response.results > 50 && !exactMatch) {
+            val msg = "Too many results found (${response.results}). Please provide more specific parameters."
+            onLog("⚠️ [$label] $msg")
+            return msg
+        }
+
+        return processFamilySearchResponse(response.body, label, firstName, lastName)
+    }
+
+    private data class FamilySearchRawResponse(val results: Int, val body: String)
+
+    private suspend fun fetchFamilySearchResponse(
+        searchType: FamilySearchSearchType,
+        firstName: String,
+        lastName: String,
+        birthYear: String?,
+        birthPlace: String?,
+        deathYear: String?,
+        deathPlace: String?,
+        gender: String?,
+        exactMatch: Boolean
+    ): FamilySearchRawResponse {
+        val source = when (searchType) {
+            FamilySearchSearchType.HISTORICAL_RECORDS -> "hr"
+            FamilySearchSearchType.FAMILY_TREE -> "tree"
+        }
+
+        val baseUrl = "https://www.familysearch.org/service/search/$source/v2/personas"
+        val response = try {
+            httpClient.get(baseUrl) {
                 url {
                     parameters.append("count", "20")
                     parameters.append("offset", "0")
@@ -488,20 +557,53 @@ class GenealogyTools(
                     parameters.append("m.facetNestCollectionInCategory", "on")
                     parameters.append("m.queryRequireDefault", "on")
                     
+                    val isMale = gender?.equals("Male", true) == true || gender?.equals("M", true) == true
+                    val isFemale = gender?.equals("Female", true) == true || gender?.equals("F", true) == true
+                    
+                    val nameExact = exactMatch || isMale || isFemale
+                    val surnameExact = exactMatch || isMale
+                    
+                    if (firstName.isNotBlank() || lastName.isNotBlank()) {
+                        val logFields = mutableListOf<String>()
+                        if (firstName.isNotBlank()) logFields.add("name=\"$firstName\"(exact=$nameExact)")
+                        if (lastName.isNotBlank()) logFields.add("surname=\"$lastName\"(exact=$surnameExact)")
+                        if (gender != null) logFields.add("gender=\"$gender\"")
+                        
+                        fun String?.isValid(): Boolean = !this.isNullOrBlank() && 
+                            !this.lowercase().let { it == "unknown" || it == "none" || it == "null" || it == "undefined" }
+
+                        if (birthYear.isValid()) logFields.add("birthYear=\"$birthYear\"(exact=$exactMatch)")
+                        if (birthPlace.isValid()) logFields.add("birthPlace=\"$birthPlace\"(exact=$exactMatch)")
+                        if (deathYear.isValid()) logFields.add("deathYear=\"$deathYear\"(exact=$exactMatch)")
+                        if (deathPlace.isValid()) logFields.add("deathPlace=\"$deathPlace\"(exact=$exactMatch)")
+                        
+                        onLog("🌐 [FAMILYSEARCH] Query: ${logFields.joinToString(", ")}")
+                    }
+
                     if (firstName.isNotBlank()) {
                         parameters.append("q.givenName", firstName)
-                        if (exactMatch) parameters.append("q.givenName.exact", "on")
+                        if (nameExact) {
+                            parameters.append("q.givenName.exact", "on")
+                            if (source == "tree") parameters.append("q.givenName.require", "on")
+                        }
                     }
                     if (lastName.isNotBlank()) {
                         parameters.append("q.surname", lastName)
-                        if (exactMatch) parameters.append("q.surname.exact", "on")
+                        if (surnameExact) {
+                            parameters.append("q.surname.exact", "on")
+                            if (source == "tree") parameters.append("q.surname.require", "on")
+                        }
+                    }
+                    
+                    if (isMale) {
+                        parameters.append("q.sex", "Male")
+                    } else if (isFemale) {
+                        parameters.append("q.sex", "Female")
                     }
                     
                     fun String?.isValid(): Boolean = !this.isNullOrBlank() && 
                         !this.lowercase().let { it == "unknown" || it == "none" || it == "null" || it == "undefined" }
 
-                    if (!birthYear.isValid()) { } // Just for flow, actual appends below
-                    
                     if (birthYear.isValid()) {
                         val key = if (exactMatch) "q.birthDate" else "q.birthLikeDate"
                         parameters.append(key, birthYear!!)
@@ -525,47 +627,60 @@ class GenealogyTools(
                 header("Accept", "application/json")
                 header("Cookie", liveFamilySearchCookies?.trim() ?: "")
             }
-
-            val fullUrl = response.call.request.url.toString()
-            onLog("🔎 [FAMILYSEARCH REQUEST] URL: $fullUrl")
-            val body = response.bodyAsText()
-            onLog(
-                "🔎 [FAMILYSEARCH RESPONSE] Received ${body.length} chars: ${if (body.length > 500) body.take(500) + "..." else body}"
-            )
-
-            if (body.contains("\"error\"") || body.contains("\"errors\"")) {
-                 onLog("⚠️ [FAMILYSEARCH] API returned an error. Cookies might be expired.")
-                 return "Error: FamilySearch API returned an error. Please check your cookies."
-            }
-
-            if (aiClient != null && aiConfig != null) {
-                onLog("🤖 [TOOL SUB-AGENT] Summarizing FamilySearch results...")
-                val cleanedData = try {
-                    cleanFamilySearchData(body)
-                } catch (e: Exception) {
-                    onLog("⚠️ [FAMILYSEARCH] JSON parsing failed: ${e.message}")
-                    body.take(4000)
-                }
-
-                val summaryPrompt = """
-                    Extract genealogical records from this FamilySearch data for $lastName $firstName.
-                    The data below has been cleaned from JSON. 
-                    Include dates, locations, and relationships (parents, spouse) for each record.
-                    If multiple records seem to belong to the same person, group them.
-                    
-                    DATA:
-                    $cleanedData
-                """.trimIndent()
-                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
-                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
-                summarized
-            } else {
-                body.take(1500)
-            }
         } catch (e: Exception) {
-            onLog("❌ [FAMILYSEARCH ERROR] ${e.message}")
-            "Error searching FamilySearch: ${e.message}"
+            return FamilySearchRawResponse(0, "Network error: ${e.message}")
         }
+
+        val body = response.bodyAsText()
+        val resultsCount = try {
+            Json.parseToJsonElement(body).jsonObject["results"]?.jsonPrimitive?.int ?: 0
+        } catch (e: Exception) {
+            0
+        }
+        
+        return FamilySearchRawResponse(resultsCount, body)
+    }
+
+    private suspend fun processFamilySearchResponse(
+        body: String,
+        label: String,
+        firstName: String,
+        lastName: String
+    ): String {
+        if (body.contains("\"error\"") || body.contains("\"errors\"")) {
+             onLog("⚠️ [$label] API returned an error. Cookies might be expired.")
+             return "Error: FamilySearch API returned an error. Please check your cookies."
+        }
+
+        if (body.contains("\"results\":0") || body.contains("\"entries\":[]")) {
+            onLog("🔎 [$label] No records found.")
+            return "No records found on FamilySearch."
+        }
+
+        if (aiClient != null && aiConfig != null) {
+            onLog("🤖 [TOOL SUB-AGENT] Summarizing $label results...")
+            val cleanedData = try {
+                cleanFamilySearchData(body)
+            } catch (e: Exception) {
+                onLog("⚠️ [FAMILYSEARCH] JSON parsing failed: ${e.message}")
+                body.take(4000)
+            }
+
+            val summaryPrompt = """
+                Extract genealogical records from this FamilySearch data for $lastName $firstName.
+                The data below has been cleaned from JSON. 
+                Include dates, locations, and relationships (parents, spouse) for each record.
+                If multiple records seem to belong to the same person, group them.
+                
+                DATA:
+                $cleanedData
+            """.trimIndent()
+            val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
+            onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
+            return summarized
+        }
+        
+        return body.take(2000)
     }
 
     private fun cleanFamilySearchData(json: String): String {
@@ -573,7 +688,8 @@ class GenealogyTools(
         val entries = root["entries"]?.jsonArray ?: return "No records found."
         
         return buildString {
-            entries.forEachIndexed { index, entry ->
+            // Process only first 10 entries to avoid overwhelming the AI
+            entries.take(10).forEachIndexed { index, entry ->
                 val content = entry.jsonObject["content"]?.jsonObject ?: return@forEachIndexed
                 val gedcomx = content["gedcomx"]?.jsonObject ?: return@forEachIndexed
                 val persons = gedcomx["persons"]?.jsonArray ?: return@forEachIndexed
@@ -755,7 +871,6 @@ class GenealogyTools(
                                     .firstOrNull { it is JsonPrimitive }
                                     ?.toSafeString()
                 }
-                else -> toString()
             }
         }
 

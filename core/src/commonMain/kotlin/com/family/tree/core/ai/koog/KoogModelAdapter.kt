@@ -43,7 +43,6 @@ class KoogModelAdapter(
         tools: List<ToolDescriptor>
     ): List<Message.Response> {
         onLog("[AI-DEBUG] Building prompt from ${prompt.messages.size} messages...")
-        prompt.messages.forEachIndexed { i, m -> onLog("[AI-DEBUG]   Msg $i: ${m::class.simpleName}") }
         
         // Map Koog messages to AiMessage
         val aiMessages = mutableListOf<AiMessage>()
