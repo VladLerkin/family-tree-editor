@@ -330,7 +330,8 @@ data class FamilySearchSearchArgs(
         val birthYear: String? = null,
         val birthPlace: String? = null,
         val deathYear: String? = null,
-        val deathPlace: String? = null
+        val deathPlace: String? = null,
+        val exactMatch: Boolean = false
 )
 
 class FamilySearchSearchTool(private val tools: GenealogyTools) :
@@ -376,6 +377,11 @@ class FamilySearchSearchTool(private val tools: GenealogyTools) :
                                                         "deathPlace",
                                                         "Place of death",
                                                         ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "exactMatch",
+                                                        "Set to true for exact matching (recommended for common names), false for fuzzy matching (default)",
+                                                        ToolParameterType.Boolean
                                                 )
                                         )
                         )
@@ -387,7 +393,8 @@ class FamilySearchSearchTool(private val tools: GenealogyTools) :
                         birthYear = args.birthYear,
                         birthPlace = args.birthPlace,
                         deathYear = args.deathYear,
-                        deathPlace = args.deathPlace
+                        deathPlace = args.deathPlace,
+                        exactMatch = args.exactMatch
                 )
 }
 

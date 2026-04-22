@@ -459,7 +459,7 @@ class GenealogyTools(
 
     @Tool(
         "Search the FamilySearch database for historical records. Requires session cookies in AI Settings. " +
-                "Useful for finding birth, marriage, and death records globally."
+                "Use exactMatch=true for common names to reduce noise. Use exactMatch=false if no results are found."
     )
     suspend fun searchFamilySearch(
         firstName: String,
@@ -467,9 +467,10 @@ class GenealogyTools(
         birthYear: String? = null,
         birthPlace: String? = null,
         deathYear: String? = null,
-        deathPlace: String? = null
+        deathPlace: String? = null,
+        exactMatch: Boolean = false
     ): String {
-        onLog("🔎 [FAMILYSEARCH] Query: $lastName $firstName (born $birthYear in $birthPlace)")
+        onLog("🔎 [FAMILYSEARCH] Query: $lastName $firstName (born $birthYear in $birthPlace), exact: $exactMatch")
 
         if (liveFamilySearchCookies.isNullOrBlank()) {
             val err = "Error: FamilySearch cookies are not set. Go to AI Settings and paste your cookies."
@@ -487,13 +488,38 @@ class GenealogyTools(
                     parameters.append("m.facetNestCollectionInCategory", "on")
                     parameters.append("m.queryRequireDefault", "on")
                     
-                    if (firstName.isNotBlank()) parameters.append("q.givenName", firstName)
-                    if (lastName.isNotBlank()) parameters.append("q.surname", lastName)
+                    if (firstName.isNotBlank()) {
+                        parameters.append("q.givenName", firstName)
+                        if (exactMatch) parameters.append("q.givenName.exact", "on")
+                    }
+                    if (lastName.isNotBlank()) {
+                        parameters.append("q.surname", lastName)
+                        if (exactMatch) parameters.append("q.surname.exact", "on")
+                    }
                     
-                    if (!birthYear.isNullOrBlank()) parameters.append("q.birthLikeDate", birthYear)
-                    if (!birthPlace.isNullOrBlank()) parameters.append("q.birthLikePlace", birthPlace)
-                    if (!deathYear.isNullOrBlank()) parameters.append("q.deathLikeDate", deathYear)
-                    if (!deathPlace.isNullOrBlank()) parameters.append("q.deathLikePlace", deathPlace)
+                    fun String?.isValid(): Boolean = !this.isNullOrBlank() && 
+                        !this.lowercase().let { it == "unknown" || it == "none" || it == "null" || it == "undefined" }
+
+                    if (!birthYear.isValid()) { } // Just for flow, actual appends below
+                    
+                    if (birthYear.isValid()) {
+                        val key = if (exactMatch) "q.birthDate" else "q.birthLikeDate"
+                        parameters.append(key, birthYear!!)
+                    }
+                    if (birthPlace.isValid()) {
+                        val key = if (exactMatch) "q.birthPlace" else "q.birthLikePlace"
+                        parameters.append(key, birthPlace!!)
+                        if (exactMatch) parameters.append("$key.exact", "on")
+                    }
+                    if (deathYear.isValid()) {
+                        val key = if (exactMatch) "q.deathDate" else "q.deathLikeDate"
+                        parameters.append(key, deathYear!!)
+                    }
+                    if (deathPlace.isValid()) {
+                        val key = if (exactMatch) "q.deathPlace" else "q.deathLikePlace"
+                        parameters.append(key, deathPlace!!)
+                        if (exactMatch) parameters.append("$key.exact", "on")
+                    }
                 }
                 header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
                 header("Accept", "application/json")

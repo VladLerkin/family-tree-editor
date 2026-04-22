@@ -103,7 +103,7 @@ fun createAutoresearchStrategy(
             
             TASK: Execute targeted searches for EACH person and location identified in the research plan.
             - WWII ARCHIVES: Use 'searchPamyatNaroda' for individuals from the USSR/Russia born approximately 1890-1930. 
-            - GLOBAL ARCHIVES: Use 'searchFamilySearch' for ALL individuals to find official records (birth, marriage, death).
+            - GLOBAL ARCHIVES: Use 'searchFamilySearch' for ALL individuals to find official records (birth, marriage, death). Use exactMatch=true if the name is very common (e.g., 'Ivanov') to reduce noise.
             - SURVIVOR POLICY: Do NOT skip people who survived the war for WWII research. 
             - PRIORITY: Archive tools (Pamyat Naroda, FamilySearch) MUST be performed BEFORE any general web searches.
             - Do NOT use 'generalWebSearch' as a substitute if specialized tools apply.
