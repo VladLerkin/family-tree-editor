@@ -41,12 +41,13 @@ fun createAutoresearchStrategy(
             2. You are STRICTLY FORBIDDEN from calling the 'searchFamilyTree' tool during this phase. 
             3. Do NOT provide any text analysis until all three tools have returned results.
             
-            AGE-FILTERING PROTOCOL: 
-            - Identify all persons in the tree born between 1890 and 1930. 
-            - ONLY these persons are eligible for WWII archive research. 
-            - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person. 
-            - Many veterans are found in the 1985 Jubilee Award database. Always plan research for them if they fit the birth year range.
-            - Every other person in the tree MUST be IGNORED for the purpose of this research. Do NOT plan search for them.
+            AGE-FILTERING & TOOLS PROTOCOL: 
+            - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930. ONLY these persons are eligible for 'searchPamyatNaroda'.
+            - GLOBAL SEARCH: Use 'searchFamilySearch' for ALL individuals in the tree regardless of age. It is the primary tool for finding birth, marriage, and death records globally.
+            - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person from WWII research. 
+            - Many veterans are found in the 1985 Jubilee Award database. Always plan 'searchPamyatNaroda' for them if they fit the birth year range.
+            - For individuals born BEFORE 1880 or AFTER 1935, focus EXCLUSIVELY on 'searchFamilySearch'.
+            - Use 'generalWebSearch' ONLY for historical context or specific archive URLs.
             
             ANTI-LOOP RULE: 
             - NEVER call 'searchPamyatNaroda' for a person if you have already received a "Skipped" or "Outside range" result for them.
@@ -80,12 +81,10 @@ fun createAutoresearchStrategy(
             Do NOT finish this phase until you have read the content of all relevant guides.
             Once you have all data, build a research plan. DO NOT START specialized searches YET.
             
-            STRICT PLANNING RULE: Your Research Plan MUST ONLY include individuals born between 1890 and 1930.
-            If a person's birth year is missing or outside this range, they MUST be omitted from the plan.
-            NOTE: If a person has a death date after 1945, they should still be included in the 'searchPamyatNaroda' plan to find service records and 1985 Jubilee awards.
-            
-            ARCHIVE-FIRST MANDATE: For EVERY person in the plan, the FIRST and ONLY search step MUST be 'searchPamyatNaroda'.
-            Do NOT plan any other searches (e.g. Find a Grave, Ancestry, General Search) until the archive search for that individual has been planned and executed.
+            STRICT PLANNING RULE: 
+            - For individuals born 1890-1930 (USSR/Russia), your FIRST and ONLY search step MUST be 'searchPamyatNaroda'.
+            - For ALL OTHER individuals, and as a follow-up for the above, use 'searchFamilySearch'.
+            - Do NOT plan any other searches (e.g. Find a Grave, Ancestry, General Search) until these specialized tools are searched.
         """.trimIndent()
                         )
                     }
@@ -103,12 +102,11 @@ fun createAutoresearchStrategy(
             STRICT FORBIDDEN ACTION: Do NOT write tool calls as text. Use the Function Calling API.
             
             TASK: Execute targeted searches for EACH person and location identified in the research plan.
-            - WWII ARCHIVES FILTER: You MUST use 'searchPamyatNaroda' ONLY for individuals from the USSR/Russia born approximately between 1890 and 1930. 
-            - SURVIVOR POLICY: Do NOT skip people who survived the war and died much later. Pamyat Naroda contains 1985 Jubilee awards for millions of surviving veterans. 
-            - For individuals born before 1890 or after 1930, do NOT use this specialized archive tool and do NOT attempt general searches for them.
-            - PRIORITY: Archive searches MUST be performed BEFORE any general web searches. Do NOT use Tavily/generalWebSearch as a substitute if 'searchPamyatNaroda' applies.
-            - FIND A GRAVE PROHIBITION: Do NOT use 'generalWebSearch' to look for burial/Find a Grave/Ancestry records for WWII-eligible candidates (1890-1930) until specialized archives are searched.
-            - If you encounter a person in your plan who is ineligible (outside 1890-1930), SKIP them and log a warning.
+            - WWII ARCHIVES: Use 'searchPamyatNaroda' for individuals from the USSR/Russia born approximately 1890-1930. 
+            - GLOBAL ARCHIVES: Use 'searchFamilySearch' for ALL individuals to find official records (birth, marriage, death).
+            - SURVIVOR POLICY: Do NOT skip people who survived the war for WWII research. 
+            - PRIORITY: Archive tools (Pamyat Naroda, FamilySearch) MUST be performed BEFORE any general web searches.
+            - Do NOT use 'generalWebSearch' as a substitute if specialized tools apply.
             - Use 'searchFamilyTree' to verify local facts.
             - Every NEW fact must be backed by a verbatim 'Evidence Snippet' from the tool output.
             
@@ -177,11 +175,19 @@ fun createAutoresearchStrategy(
                         if (content.contains("Consolidated Military Record") || 
                             content.contains("military records extracted") ||
                             content.contains("NEW fact") ||
+                            content.contains("FamilySearch") ||
+                            content.contains("Pamyat Naroda") ||
                             (content.contains("Birth Date") && content.length > 50)) {
                             
+                            val taggedContent = when {
+                                content.contains("FamilySearch") -> "[FamilySearch] $content"
+                                content.contains("Pamyat Naroda") || content.contains("Consolidated Military Record") -> "[Pamyat Naroda] $content"
+                                else -> content
+                            }
+
                             // Prevent duplicates
-                            if (accumulatedFindings.none { it.take(20) == content.take(20) }) {
-                                accumulatedFindings.add(content)
+                            if (accumulatedFindings.none { it.take(20) == taggedContent.take(20) }) {
+                                accumulatedFindings.add(taggedContent)
                                 onLog("📦 [STORAGE] Stored finding in accumulator (Total: ${accumulatedFindings.size})")
                             }
                         }

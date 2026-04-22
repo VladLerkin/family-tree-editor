@@ -117,11 +117,13 @@ class AgentService(
             
             #### STEP 3: IDENTIFY TARGET ANCESTOR & SOURCES
             - Find the list of recommended sources/links mentioned in the archive guide for that country.
-            - Identify ancestors in the <Family_Tree> born between 1880 and 1930. 
-            - CRITICAL: Do NOT search for anyone born BEFORE 1880 or AFTER 1930. Ignore them entirely.
+            - Identify ancestors in the <Family_Tree>.
+            - For individuals born 1890-1930 (USSR/Russia), prioritize 'searchPamyatNaroda'.
+            - For ALL individuals in the tree, use 'searchFamilySearch' to find official vital records.
             
             #### STEP 4: SEARCH
-            - Use 'searchPamyatNaroda' as THE PRIMARY TOOL for all valid candidates from USSR/Russia.
+            - Use 'searchPamyatNaroda' as THE PRIMARY TOOL for all valid candidates from USSR/Russia (born 1890-1930).
+            - Use 'searchFamilySearch' for EVERYONE ELSE and as a secondary global search for all candidates. It is excellent for birth/marriage/death records.
             - Focus on finding service records, casualty records, and citations.
             - Only use general web search (Tavily) as a final resort or for broad historical context.
             
@@ -151,6 +153,7 @@ class AgentService(
                         aiClient,
                         config,
                         config.pamyatNarodaCookies,
+                        config.familySearchCookies,
                         onLog = { log(it) }
                 )
 

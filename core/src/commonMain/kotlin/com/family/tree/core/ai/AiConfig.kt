@@ -54,7 +54,10 @@ data class AiConfig(
     val autoresearchRepoPath: String = "./autoresearch-genealogy",
     
     // Cookie string for Pamyat Naroda session injection
-    val pamyatNarodaCookies: String = ""
+    val pamyatNarodaCookies: String = "",
+    
+    // Cookie string for FamilySearch session injection
+    val familySearchCookies: String = ""
 ) {
     fun getProvider(): AiProvider = try {
         AiProvider.valueOf(provider)

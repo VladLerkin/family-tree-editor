@@ -323,6 +323,74 @@ class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
                 )
 }
 
+@Serializable
+data class FamilySearchSearchArgs(
+        val firstName: String,
+        val lastName: String,
+        val birthYear: String? = null,
+        val birthPlace: String? = null,
+        val deathYear: String? = null,
+        val deathPlace: String? = null
+)
+
+class FamilySearchSearchTool(private val tools: GenealogyTools) :
+        Tool<FamilySearchSearchArgs, String>(
+                argsType = typeToken<FamilySearchSearchArgs>(),
+                resultType = typeToken<String>(),
+                descriptor =
+                        ToolDescriptor(
+                                name = "searchFamilySearch",
+                                description =
+                                        "Search the FamilySearch database for historical records globally (births, marriages, deaths).",
+                                requiredParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "firstName",
+                                                        "Given name of the person",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "lastName",
+                                                        "Surname of the person",
+                                                        ToolParameterType.String
+                                                )
+                                        ),
+                                optionalParameters =
+                                        listOf(
+                                                ToolParameterDescriptor(
+                                                        "birthYear",
+                                                        "Year of birth",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "birthPlace",
+                                                        "Place of birth",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "deathYear",
+                                                        "Year of death",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "deathPlace",
+                                                        "Place of death",
+                                                        ToolParameterType.String
+                                                )
+                                        )
+                        )
+        ) {
+        override suspend fun execute(args: FamilySearchSearchArgs): String =
+                tools.searchFamilySearch(
+                        firstName = args.firstName,
+                        lastName = args.lastName,
+                        birthYear = args.birthYear,
+                        birthPlace = args.birthPlace,
+                        deathYear = args.deathYear,
+                        deathPlace = args.deathPlace
+                )
+}
+
 /** Extension to provide class-based tools for non-JVM platforms. */
 fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
         listOf(
@@ -336,5 +404,7 @@ fun GenealogyTools.getClassBasedTools(): List<Tool<*, *>> =
                 ReadReferenceGuideTool(this),
                 GetGeographicProfileTool(this),
                 PamyatNarodaSearchTool(this),
+                FamilySearchSearchTool(this),
+                GeneralWebSearchTool(this),
                 SearchFamilyTreeTool(this)
         )

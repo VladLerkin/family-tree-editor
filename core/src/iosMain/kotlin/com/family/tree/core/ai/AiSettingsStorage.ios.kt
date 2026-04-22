@@ -84,6 +84,13 @@ actual class AiSettingsStorage {
             deleteFromKeychain(KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES)
         }
         
+        // Save FamilySearch Cookies to Keychain
+        if (config.familySearchCookies.isNotBlank()) {
+            saveToKeychain(KEYCHAIN_KEY_FAMILYSEARCH_COOKIES, config.familySearchCookies)
+        } else {
+            deleteFromKeychain(KEYCHAIN_KEY_FAMILYSEARCH_COOKIES)
+        }
+        
         defaults.synchronize()
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): saveConfig completed")
@@ -103,6 +110,7 @@ actual class AiSettingsStorage {
         val yandexApiKey = loadFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY) ?: ""
         val tavilyApiKey = loadFromKeychain(KEYCHAIN_KEY_TAVILY_API_KEY) ?: ""
         val pamyatNarodaCookies = loadFromKeychain(KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES) ?: ""
+        val familySearchCookies = loadFromKeychain(KEYCHAIN_KEY_FAMILYSEARCH_COOKIES) ?: ""
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): loadConfig called")
         println("[DEBUG_LOG] AiSettingsStorage (iOS): apiKey from Keychain = ${if (apiKey.isBlank()) "empty" else "present (${apiKey.length} chars)"}")
@@ -138,7 +146,8 @@ actual class AiSettingsStorage {
             yandexFolderId = yandexFolderId,
             tavilyApiKey = tavilyApiKey,
             autoresearchRepoPath = autoresearchRepoPath,
-            pamyatNarodaCookies = pamyatNarodaCookies
+            pamyatNarodaCookies = pamyatNarodaCookies,
+            familySearchCookies = familySearchCookies
         )
     }
     
@@ -162,6 +171,7 @@ actual class AiSettingsStorage {
         deleteFromKeychain(KEYCHAIN_KEY_TAVILY_API_KEY)
         defaults.removeObjectForKey(KEY_AUTORESEARCH_REPO_PATH)
         deleteFromKeychain(KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES)
+        deleteFromKeychain(KEYCHAIN_KEY_FAMILYSEARCH_COOKIES)
         
         defaults.synchronize()
     }
@@ -319,5 +329,6 @@ actual class AiSettingsStorage {
         private const val KEYCHAIN_KEY_TAVILY_API_KEY = "com.family.tree.ai_tavily_api_key"
         private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         private const val KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES = "com.family.tree.ai_pamyat_naroda_cookies"
+        private const val KEYCHAIN_KEY_FAMILYSEARCH_COOKIES = "com.family.tree.ai_familysearch_cookies"
     }
 }

@@ -81,6 +81,7 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 | Android Gradle Plugin | 9.1.1 |
 | Ktor | 3.4.2 |
 | JDK | 25 |
+| Koog | 0.8.0 |
 | Android Target SDK | 36 |
 
 ## 🐛 Troubleshooting

@@ -62,6 +62,7 @@ fun AiConfigDialog(
     var tavilyApiKey by remember { mutableStateOf(initialConfig.tavilyApiKey) }
     var autoresearchRepoPath by remember { mutableStateOf(initialConfig.autoresearchRepoPath) }
     var pamyatNarodaCookies by remember { mutableStateOf(initialConfig.pamyatNarodaCookies) }
+    var familySearchCookies by remember { mutableStateOf(initialConfig.familySearchCookies) }
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -216,6 +217,19 @@ fun AiConfigDialog(
                     label = { Text("Archive Cookies (Pamyat Naroda)") },
                     placeholder = { Text("PHPSESSID=...;") },
                     supportingText = { Text("Paste cookies from your browser log in (F12 -> Application -> Cookies) to bypass login redirects.") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    singleLine = false,
+                    maxLines = 3
+                )
+
+                OutlinedTextField(
+                    value = familySearchCookies,
+                    onValueChange = { familySearchCookies = it },
+                    label = { Text("Archive Cookies (FamilySearch)") },
+                    placeholder = { Text("fssessionid=...;") },
+                    supportingText = { Text("Paste cookies from familysearch.org (F12 -> Application -> Cookies) to use search tool.") },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp),
@@ -428,7 +442,8 @@ fun AiConfigDialog(
                                 yandexFolderId = yandexFolderId,
                                 tavilyApiKey = tavilyApiKey,
                                 autoresearchRepoPath = autoresearchRepoPath,
-                                pamyatNarodaCookies = pamyatNarodaCookies
+                                pamyatNarodaCookies = pamyatNarodaCookies,
+                                familySearchCookies = familySearchCookies
                             )
                             onConfirm(config)
                         },

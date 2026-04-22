@@ -24,10 +24,12 @@ class GenealogyTools(
         private val aiClient: AiClient? = null,
         private val aiConfig: AiConfig? = null,
         private val pamyatNarodaCookies: String? = null,
+        private val familySearchCookies: String? = null,
         private val onLog: (String) -> Unit = {}
 ) {
     private val loader = ResourceLoader()
     private var liveCookies: String? = pamyatNarodaCookies
+    private var liveFamilySearchCookies: String? = familySearchCookies
     private var liveStaticHash: String? = null
 
     @Tool("Read a specific methodology workflow guide (e.g., 'discrepancy-resolution.md').")
@@ -452,6 +454,157 @@ class GenealogyTools(
         } catch (e: Exception) {
             onLog("❌ [PAMYAT NARODA ERROR] ${e.message}")
             "Error searching Pamyat Naroda: ${e.message}"
+        }
+    }
+
+    @Tool(
+        "Search the FamilySearch database for historical records. Requires session cookies in AI Settings. " +
+                "Useful for finding birth, marriage, and death records globally."
+    )
+    suspend fun searchFamilySearch(
+        firstName: String,
+        lastName: String,
+        birthYear: String? = null,
+        birthPlace: String? = null,
+        deathYear: String? = null,
+        deathPlace: String? = null
+    ): String {
+        onLog("🔎 [FAMILYSEARCH] Query: $lastName $firstName (born $birthYear in $birthPlace)")
+
+        if (liveFamilySearchCookies.isNullOrBlank()) {
+            val err = "Error: FamilySearch cookies are not set. Go to AI Settings and paste your cookies."
+            onLog("⚠️ [FAMILYSEARCH] $err")
+            return err
+        }
+
+        val baseUrl = "https://www.familysearch.org/service/search/hr/v2/personas"
+        return try {
+            val response = httpClient.get(baseUrl) {
+                url {
+                    parameters.append("count", "20")
+                    parameters.append("offset", "0")
+                    parameters.append("m.defaultFacets", "on")
+                    parameters.append("m.facetNestCollectionInCategory", "on")
+                    parameters.append("m.queryRequireDefault", "on")
+                    
+                    if (firstName.isNotBlank()) parameters.append("q.givenName", firstName)
+                    if (lastName.isNotBlank()) parameters.append("q.surname", lastName)
+                    
+                    if (!birthYear.isNullOrBlank()) parameters.append("q.birthLikeDate", birthYear)
+                    if (!birthPlace.isNullOrBlank()) parameters.append("q.birthLikePlace", birthPlace)
+                    if (!deathYear.isNullOrBlank()) parameters.append("q.deathLikeDate", deathYear)
+                    if (!deathPlace.isNullOrBlank()) parameters.append("q.deathLikePlace", deathPlace)
+                }
+                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
+                header("Accept", "application/json")
+                header("Cookie", liveFamilySearchCookies?.trim() ?: "")
+            }
+
+            val fullUrl = response.call.request.url.toString()
+            onLog("🔎 [FAMILYSEARCH REQUEST] URL: $fullUrl")
+            val body = response.bodyAsText()
+            onLog(
+                "🔎 [FAMILYSEARCH RESPONSE] Received ${body.length} chars: ${if (body.length > 500) body.take(500) + "..." else body}"
+            )
+
+            if (body.contains("\"error\"") || body.contains("\"errors\"")) {
+                 onLog("⚠️ [FAMILYSEARCH] API returned an error. Cookies might be expired.")
+                 return "Error: FamilySearch API returned an error. Please check your cookies."
+            }
+
+            if (aiClient != null && aiConfig != null) {
+                onLog("🤖 [TOOL SUB-AGENT] Summarizing FamilySearch results...")
+                val cleanedData = try {
+                    cleanFamilySearchData(body)
+                } catch (e: Exception) {
+                    onLog("⚠️ [FAMILYSEARCH] JSON parsing failed: ${e.message}")
+                    body.take(4000)
+                }
+
+                val summaryPrompt = """
+                    Extract genealogical records from this FamilySearch data for $lastName $firstName.
+                    The data below has been cleaned from JSON. 
+                    Include dates, locations, and relationships (parents, spouse) for each record.
+                    If multiple records seem to belong to the same person, group them.
+                    
+                    DATA:
+                    $cleanedData
+                """.trimIndent()
+                val summarized = aiClient.sendPrompt(summaryPrompt, aiConfig)
+                onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
+                summarized
+            } else {
+                body.take(1500)
+            }
+        } catch (e: Exception) {
+            onLog("❌ [FAMILYSEARCH ERROR] ${e.message}")
+            "Error searching FamilySearch: ${e.message}"
+        }
+    }
+
+    private fun cleanFamilySearchData(json: String): String {
+        val root = try { Json.parseToJsonElement(json).jsonObject } catch(e: Exception) { return "Invalid JSON" }
+        val entries = root["entries"]?.jsonArray ?: return "No records found."
+        
+        return buildString {
+            entries.forEachIndexed { index, entry ->
+                val content = entry.jsonObject["content"]?.jsonObject ?: return@forEachIndexed
+                val gedcomx = content["gedcomx"]?.jsonObject ?: return@forEachIndexed
+                val persons = gedcomx["persons"]?.jsonArray ?: return@forEachIndexed
+                
+                // Map to resolve names by ID within this record
+                val personMap = mutableMapOf<String, String>()
+                persons.forEach { person ->
+                    val pObj = person.jsonObject
+                    val id = pObj["id"]?.jsonPrimitive?.content ?: ""
+                    val name = pObj["names"]?.jsonArray?.firstOrNull()?.jsonObject
+                        ?.get("nameForms")?.jsonArray?.firstOrNull()?.jsonObject
+                        ?.get("fullText")?.jsonPrimitive?.content ?: "Unknown"
+                    if (id.isNotBlank()) personMap[id] = name
+                }
+
+                appendLine("--- Record #${index + 1} ---")
+                
+                persons.forEach { person ->
+                    val pObj = person.jsonObject
+                    val isPrincipal = pObj["principal"]?.jsonPrimitive?.booleanOrNull == true
+                    if (isPrincipal) append("[PRINCIPAL] ")
+                    
+                    val id = pObj["id"]?.jsonPrimitive?.content ?: ""
+                    val name = personMap[id] ?: "Unknown"
+                    appendLine("Person: $name")
+                    
+                    // Gender
+                    pObj["gender"]?.jsonObject["type"]?.jsonPrimitive?.content?.let {
+                         appendLine("  Gender: ${it.substringAfterLast("/")}")
+                    }
+
+                    // Facts
+                    pObj["facts"]?.jsonArray?.forEach { fact ->
+                        val type = fact.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast("/") ?: "Fact"
+                        val date = fact.jsonObject["date"]?.jsonObject?.get("original")?.jsonPrimitive?.content ?: ""
+                        val place = fact.jsonObject["place"]?.jsonObject?.get("original")?.jsonPrimitive?.content ?: ""
+                        if (date.isNotBlank() || place.isNotBlank()) {
+                            appendLine("  $type: $date $place")
+                        }
+                    }
+                }
+                
+                // Relationships
+                gedcomx["relationships"]?.jsonArray?.forEach { rel ->
+                    val relType = rel.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast("/") ?: "Relationship"
+                    val p1Id = rel.jsonObject["person1"]?.jsonObject?.get("resource")?.jsonPrimitive?.content?.removePrefix("#") ?: ""
+                    val p2Id = rel.jsonObject["person2"]?.jsonObject?.get("resource")?.jsonPrimitive?.content?.removePrefix("#") ?: ""
+                    
+                    val p1Name = personMap[p1Id] ?: "Unknown"
+                    val p2Name = personMap[p2Id] ?: "Unknown"
+                    
+                    appendLine("Relation: $p1Name ($relType) $p2Name")
+                }
+
+                appendLine()
+                if (length > 40000) return@buildString
+            }
         }
     }
 
