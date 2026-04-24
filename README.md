@@ -2,7 +2,7 @@
 
 > A cross-platform family tree editor built with Kotlin Multiplatform and Compose Multiplatform
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.10.3-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Gradle](https://img.shields.io/badge/Gradle-9.4.1-02303A.svg?logo=gradle)](https://gradle.org)
 
@@ -74,12 +74,12 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 
 | Component | Version |
 |-----------|---------|
-| Kotlin | 2.3.20 |
+| Kotlin | 2.3.21 |
 | Compose Multiplatform | 1.10.3 |
-| Android Compose BOM | 2026.03.01 |
+| Android Compose BOM | 2026.04.01 |
 | Gradle | 9.4.1 |
-| Android Gradle Plugin | 9.1.1 |
-| Ktor | 3.4.2 |
+| Android Gradle Plugin | 9.2.0 |
+| Ktor | 3.4.3 |
 | JDK | 25 |
 | Koog | 0.8.0 |
 | Android Target SDK | 36 |
