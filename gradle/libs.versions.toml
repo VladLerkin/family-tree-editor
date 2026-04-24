@@ -1,20 +1,20 @@
 [versions]
-kotlin = "2.3.20"
+kotlin = "2.3.21"
 compose = "1.10.3"
 agp = "9.2.0"
 android-compileSdk = "36"
 android-minSdk = "26"
 android-targetSdk = "36"
 java = "25"
-app-version = "2.0.10"
-app-versionCode = "65"
-ktor = "3.4.2"
+app-version = "2.0.11"
+app-versionCode = "66"
+ktor = "3.4.3"
 serialization = "1.11.0"
 androidx-security = "1.1.0"
 pdfbox-android = "2.0.27.0"
 androidx-activity-compose = "1.13.0"
 foojay-resolver = "1.0.0"
-compose-bom = "2026.03.01"
+compose-bom = "2026.04.01"
 koin = "4.2.1"
 lifecycle = "2.10.0"
 voyager = "1.1.0-beta03"
@@ -46,6 +46,7 @@ koin-compose-viewmodel = { group = "io.insert-koin", name = "koin-compose-viewmo
 lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 koog-agents = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
+jetbrains-compose-resources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "compose" }
 
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }

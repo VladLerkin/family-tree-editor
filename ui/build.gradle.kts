@@ -62,7 +62,7 @@ kotlin {
             implementation(libs.voyager.screenmodel)
             implementation(libs.voyager.transitions)
             implementation(libs.voyager.koin)
-            implementation("org.jetbrains.compose.components:components-resources:1.10.3")
+            implementation(libs.jetbrains.compose.resources)
         }
         
         val androidMain by getting {
