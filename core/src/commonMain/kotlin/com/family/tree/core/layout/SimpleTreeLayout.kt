@@ -19,30 +19,54 @@ object SimpleTreeLayout {
     fun layout(individuals: List<Individual>, families: List<Family>, params: Params = Params()): Map<IndividualId, Vec2> {
         if (individuals.isEmpty()) return emptyMap()
 
-        // naive generation inference: those who are not children of anyone -> gen 0; their children -> gen 1; etc.
-        val childIds = families.flatMap { it.childrenIds }.toSet()
-        val roots = individuals.filter { it.id !in childIds }
-            .ifEmpty { listOf(individuals.first()) }
+        // 1. Create fast lookups
+        val childIds = mutableSetOf<IndividualId>()
+        val familiesByParent = mutableMapOf<IndividualId, MutableList<Family>>()
+        
+        families.forEach { fam ->
+            childIds.addAll(fam.childrenIds)
+            fam.husbandId?.let { familiesByParent.getOrPut(it) { mutableListOf() }.add(fam) }
+            fam.wifeId?.let { familiesByParent.getOrPut(it) { mutableListOf() }.add(fam) }
+        }
 
+        // 2. Find roots (individuals who are not children in any family)
+        var roots = individuals.map { it.id }.filter { it !in childIds }
+        if (roots.isEmpty()) {
+            roots = listOf(individuals.first().id)
+        }
+
+        // 3. BFS to layout nodes
         val positions = mutableMapOf<IndividualId, Vec2>()
         val visited = mutableSetOf<IndividualId>()
         var y = 0
         var frontier = roots
+
         while (frontier.isNotEmpty()) {
             var x = 0
-            frontier.forEach { ind ->
-                positions[ind.id] = Vec2(x * params.xGap, y * params.yGap)
-                visited += ind.id
-                x++
+            val nextIds = mutableListOf<IndividualId>()
+            
+            for (id in frontier) {
+                if (id !in visited) {
+                    positions[id] = Vec2(x * params.xGap, y * params.yGap)
+                    visited.add(id)
+                    x++
+                    
+                    // Add children to next generation
+                    val parentFamilies = familiesByParent[id] ?: emptyList()
+                    for (fam in parentFamilies) {
+                        for (childId in fam.childrenIds) {
+                            if (childId !in visited) {
+                                nextIds.add(childId)
+                            }
+                        }
+                    }
+                }
             }
-            // next generation: collect children of frontier parents
-            val nextIds = families.flatMap { fam ->
-                val parentInFrontier = listOfNotNull(fam.husbandId, fam.wifeId).any { it in frontier.map { it.id }.toSet() }
-                if (parentInFrontier) fam.childrenIds else emptyList()
-            }.distinct().filter { it !in visited }
-            frontier = nextIds.mapNotNull { id -> individuals.find { it.id == id } }
+            
+            frontier = nextIds.distinct()
             y++
         }
+        
         return positions
     }
 }
