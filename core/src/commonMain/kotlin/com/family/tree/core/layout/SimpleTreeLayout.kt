@@ -20,51 +20,63 @@ object SimpleTreeLayout {
         if (individuals.isEmpty()) return emptyMap()
 
         // 1. Create fast lookups
-        val childIds = mutableSetOf<IndividualId>()
+        val individualsWithParents = mutableSetOf<IndividualId>()
         val familiesByParent = mutableMapOf<IndividualId, MutableList<Family>>()
+        val individualIds = individuals.map { it.id }.toSet()
         
         families.forEach { fam ->
-            childIds.addAll(fam.childrenIds)
+            val hasParentInTree = (fam.husbandId in individualIds) || (fam.wifeId in individualIds)
+            if (hasParentInTree) {
+                individualsWithParents.addAll(fam.childrenIds)
+            }
             fam.husbandId?.let { familiesByParent.getOrPut(it) { mutableListOf() }.add(fam) }
             fam.wifeId?.let { familiesByParent.getOrPut(it) { mutableListOf() }.add(fam) }
         }
 
-        // 2. Find roots (individuals who are not children in any family)
-        var roots = individuals.map { it.id }.filter { it !in childIds }
-        if (roots.isEmpty()) {
-            roots = listOf(individuals.first().id)
-        }
-
-        // 3. BFS to layout nodes
         val positions = mutableMapOf<IndividualId, Vec2>()
         val visited = mutableSetOf<IndividualId>()
-        var y = 0
-        var frontier = roots
+        val currentXByY = mutableMapOf<Int, Int>()
 
-        while (frontier.isNotEmpty()) {
-            var x = 0
-            val nextIds = mutableListOf<IndividualId>()
+        // 2. BFS to layout nodes, ensuring ALL individuals are visited
+        while (visited.size < individuals.size) {
+            val unvisited = individuals.filter { it.id !in visited }
             
-            for (id in frontier) {
-                if (id !in visited) {
-                    positions[id] = Vec2(x * params.xGap, y * params.yGap)
-                    visited.add(id)
-                    x++
-                    
-                    // Add children to next generation
-                    val parentFamilies = familiesByParent[id] ?: emptyList()
-                    for (fam in parentFamilies) {
-                        for (childId in fam.childrenIds) {
-                            if (childId !in visited) {
-                                nextIds.add(childId)
+            // Roots are unvisited individuals who don't have parents present in the tree
+            var roots = unvisited.filter { it.id !in individualsWithParents }.map { it.id }
+            
+            if (roots.isEmpty()) {
+                // Break cycle or handle orphaned components by picking the first unvisited
+                roots = listOf(unvisited.first().id)
+            }
+
+            var y = 0
+            var frontier = roots
+
+            while (frontier.isNotEmpty()) {
+                val nextIds = mutableListOf<IndividualId>()
+                
+                for (id in frontier) {
+                    if (id !in visited) {
+                        val x = currentXByY.getOrPut(y) { 0 }
+                        positions[id] = Vec2(x * params.xGap, y * params.yGap)
+                        currentXByY[y] = x + 1
+                        visited.add(id)
+                        
+                        // Add children to next generation
+                        val parentFamilies = familiesByParent[id] ?: emptyList()
+                        for (fam in parentFamilies) {
+                            for (childId in fam.childrenIds) {
+                                if (childId !in visited) {
+                                    nextIds.add(childId)
+                                }
                             }
                         }
                     }
                 }
+                
+                frontier = nextIds.distinct()
+                y++
             }
-            
-            frontier = nextIds.distinct()
-            y++
         }
         
         return positions

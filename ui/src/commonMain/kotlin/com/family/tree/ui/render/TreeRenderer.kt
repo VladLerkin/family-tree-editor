@@ -755,7 +755,38 @@ fun TreeRenderer(
                                 }
                             }
                         }
-                        else -> Unit
+                        else -> {
+                            // No parents, but we still want to connect siblings if there are multiple
+                            if (fam.childrenIds.size > 1) {
+                                var minChildX = Float.POSITIVE_INFINITY
+                                var maxChildX = Float.NEGATIVE_INFINITY
+                                var minTopY = Float.POSITIVE_INFINITY
+                                val childAnchors = mutableListOf<Pair<Float, Float>>()
+                                
+                                fam.childrenIds.forEach { cid ->
+                                    val c = rectForConnection(cid)
+                                    if (c != null) {
+                                        val cx = c.centerX
+                                        val topY = c.top
+                                        childAnchors.add(Pair(cx, topY))
+                                        if (cx < minChildX) minChildX = cx
+                                        if (cx > maxChildX) maxChildX = cx
+                                        if (topY < minTopY) minTopY = topY
+                                    }
+                                }
+                                
+                                if (childAnchors.size > 1) {
+                                    val childBarY = minTopY - childBarGap
+                                    
+                                    // Horizontal children bar spanning all children
+                                    drawLine(edgeColor, Offset(minChildX, childBarY), Offset(maxChildX, childBarY), strokeWidth = strokeW)
+                                    // Vertical lines from children bar down to each child top
+                                    childAnchors.forEach { (cx, topY) ->
+                                        drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, topY), strokeWidth = strokeW)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
