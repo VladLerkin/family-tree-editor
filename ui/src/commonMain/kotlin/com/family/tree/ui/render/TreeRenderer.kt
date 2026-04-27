@@ -2,7 +2,6 @@ package com.family.tree.ui.render
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -31,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -60,9 +60,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/**
- * Detects if the text contains Cyrillic characters.
- */
+/** Detects if the text contains Cyrillic characters. */
 private fun isCyrillic(text: String?): Boolean {
     if (text.isNullOrEmpty()) return false
     for (c in text) {
@@ -73,9 +71,7 @@ private fun isCyrillic(text: String?): Boolean {
     return false
 }
 
-/**
- * Extracts event date from individual's events by type (e.g., "BIRT", "DEAT").
- */
+/** Extracts event date from individual's events by type (e.g., "BIRT", "DEAT"). */
 private fun extractEventDate(ind: Individual?, type: String?): String? {
     if (ind == null || type == null) return null
     val t = type.trim().uppercase()
@@ -92,12 +88,19 @@ private fun extractEventDate(ind: Individual?, type: String?): String? {
  * Formats birth and death dates according to the requirements:
  * - Both dates: "birthDate - deathDate"
  * - Only birth: "b.:" or "род.:" prefix
- * - Only death: "d.:" or "ум.:" prefix
- * The language is detected from the individual's name.
+ * - Only death: "d.:" or "ум.:" prefix The language is detected from the individual's name.
  */
-private fun formatDates(birthDate: String?, deathDate: String?, firstName: String?, lastName: String?): String? {
-    val hasBirth = !birthDate.isNullOrBlank()
-    val hasDeath = !deathDate.isNullOrBlank()
+private fun formatDates(
+        birthDate: String?,
+        deathDate: String?,
+        firstName: String?,
+        lastName: String?
+): String? {
+    val bClean = birthDate?.replace("(", "")?.replace(")", "")?.trim()
+    val dClean = deathDate?.replace("(", "")?.replace(")", "")?.trim()
+
+    val hasBirth = !bClean.isNullOrBlank()
+    val hasDeath = !dClean.isNullOrBlank()
 
     if (!hasBirth && !hasDeath) {
         return null
@@ -108,68 +111,80 @@ private fun formatDates(birthDate: String?, deathDate: String?, firstName: Strin
 
     return if (hasBirth && hasDeath) {
         // Both dates: show as "birthDate - deathDate"
-        birthDate.trim() + " - " + deathDate.trim()
+        bClean + " - " + dClean
     } else if (hasBirth) {
         // Only birth date
         val prefix = if (isCyrillicText) "род.:" else "b.:"
-        prefix + birthDate.trim()
+        prefix + bClean
     } else {
         // Only death date
         val prefix = if (isCyrillicText) "ум.:" else "d.:"
-        prefix + deathDate!!.trim()
+        prefix + dClean!!
     }
 }
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
 fun TreeRenderer(
-    data: ProjectData,
-    selectedIds: Set<IndividualId>,
-    onSelect: (IndividualId?) -> Unit,
-    onEditPerson: (IndividualId) -> Unit,
-    onCenterOn: (IndividualId) -> Unit,
-    onReset: () -> Unit,
-    onNodeDrag: (IndividualId, Offset) -> Unit,
-    nodeOffsets: Map<IndividualId, Offset>,
-    scale: Float,
-    pan: Offset,
-    setPan: (Offset) -> Unit,
-    onCanvasSize: (IntSize) -> Unit,
-    onAddPerson: (Offset) -> Unit = {},
-    onDeletePerson: (IndividualId) -> Unit = {}
+        data: ProjectData,
+        selectedIds: Set<IndividualId>,
+        onSelect: (IndividualId?) -> Unit,
+        onEditPerson: (IndividualId) -> Unit,
+        onCenterOn: (IndividualId) -> Unit,
+        onReset: () -> Unit,
+        onNodeDrag: (IndividualId, Offset) -> Unit,
+        nodeOffsets: Map<IndividualId, Offset>,
+        scale: Float,
+        pan: Offset,
+        setPan: (Offset) -> Unit,
+        onCanvasSize: (IntSize) -> Unit,
+        onAddPerson: (Offset) -> Unit = {},
+        onDeletePerson: (IndividualId) -> Unit = {}
 ) {
-    println("[DEBUG_LOG] TreeRenderer: recomposing (total data: ${data.individuals.size} individuals, ${data.families.size} families), scale=$scale, pan=$pan")
-    
+    println(
+            "[DEBUG_LOG] TreeRenderer: recomposing (total data: ${data.individuals.size} individuals, ${data.families.size} families), scale=$scale, pan=$pan"
+    )
+
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
-    
+
     // Create a fast lookup map for individuals by ID (avoid repeated find() calls)
-    val individualsMap = remember(data.individuals) {
-        data.individuals.associateBy { it.id }
-    }
-    
+    val individualsMap = remember(data.individuals) { data.individuals.associateBy { it.id } }
+
     // Memoize layout computation - only recompute when data changes
-    val positions = remember(data.individuals, data.families) {
-        SimpleTreeLayout.layout(data.individuals, data.families).also {
-            println("[DEBUG_LOG] TreeRenderer: computed ${it.size} positions")
-        }
-    }
-    
+    val positions =
+            remember(data.individuals, data.families) {
+                SimpleTreeLayout.layout(data.individuals, data.families).also {
+                    println("[DEBUG_LOG] TreeRenderer: computed ${it.size} positions")
+                }
+            }
+
     val density = LocalDensity.current
 
     // Text measurer for dynamic card sizes
     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
 
     data class RectF(val x: Float, val y: Float, val w: Float, val h: Float) {
-        val left get() = x
-        val right get() = x + w
-        val top get() = y
-        val bottom get() = y + h
-        val centerX get() = x + w / 2f
-        val centerY get() = y + h / 2f
+        val left
+            get() = x
+        val right
+            get() = x + w
+        val top
+            get() = y
+        val bottom
+            get() = y + h
+        val centerX
+            get() = x + w / 2f
+        val centerY
+            get() = y + h / 2f
     }
 
     data class NodeMeasure(val w: Float, val h: Float, val baseFsSp: Float)
-    fun measureNodePx(firstName: String, lastName: String, birthDate: String?, deathDate: String?): NodeMeasure {
+    fun measureNodePx(
+            firstName: String,
+            lastName: String,
+            birthDate: String?,
+            deathDate: String?
+    ): NodeMeasure {
         fun lhFactorForScale(s: Float): Float {
             // Aggressive mid-scale compression: ~1.10 at s>=1.0 → ~1.02 at s=0.6 → ~1.00 at s<=0.4
             val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f) // 0 at 1.0, 1 at 0.4
@@ -181,14 +196,18 @@ fun TreeRenderer(
             val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
             return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
         }
-        // Minimum sizes + paddings scale with zoom; measure three lines: first name, last name and dates
-        val baseMinW = if (PlatformEnv.isDesktop) 74.25f else 49.5f  // On mobile reduce by 1.5x
-        val baseMinH = if (PlatformEnv.isDesktop) 50.625f else 33.75f  // Increased for third line (1.5x from old value)
+        // Minimum sizes + paddings scale with zoom; measure three lines: first name, last name and
+        // dates
+        val baseMinW =
+                if (PlatformEnv.isDesktop) 20f else 15f // Reduced so cards shrink to fit text width
+        val baseMinH =
+                if (PlatformEnv.isDesktop) 50.625f
+                else 33.75f // Increased for third line (1.5x from old value)
         val extraFudge = 0f
         val minW = baseMinW * scale
         val minH = baseMinH * scale
-        // Sync with rendering: horizontal padding ~4.5px*scale, vertical ~4.5px*scale with limit
-        val padX = 4.5f * scale
+        // Sync with rendering: horizontal padding ~4.0px*scale, vertical ~4.5px*scale with limit
+        val padX = 4.0f * scale
         val padY = padYpxForScale(scale)
         val lineGap = lineGapPxForScale(scale)
         val first = firstName
@@ -215,44 +234,45 @@ fun TreeRenderer(
             // Preliminary lineHeight value
             val lineHeightSp = effFsSp * lhFactor
 
-            val nameStyle = TextStyle(
-                fontSize = effFsSp,
-                // Use Normal so measurement matches actual rendering
-                fontWeight = FontWeight.Normal,
-                lineHeight = lineHeightSp
-            )
-            val lastStyle = TextStyle(
-                fontSize = effFsSp,
-                lineHeight = lineHeightSp
-            )
-            val dateStyle = TextStyle(
-                fontSize = effFsSp,
-                lineHeight = lineHeightSp
-            )
-            val rFirst = measurer.measure(
-                text = AnnotatedString(first),
-                style = nameStyle,
-                softWrap = false
-            )
+            val nameStyle =
+                    TextStyle(
+                            fontSize = effFsSp,
+                            // Use Normal so measurement matches actual rendering
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = lineHeightSp
+                    )
+            val lastStyle = TextStyle(fontSize = effFsSp, lineHeight = lineHeightSp)
+            val dateStyle = TextStyle(fontSize = effFsSp, lineHeight = lineHeightSp)
+            val rFirst =
+                    measurer.measure(
+                            text = AnnotatedString(first),
+                            style = nameStyle,
+                            softWrap = false
+                    )
             // Always measure last name (even if empty) to reserve space
-            val rLast = measurer.measure(
-                text = AnnotatedString(if (last.isNotBlank()) last else " "),
-                style = lastStyle,
-                softWrap = false
-            )
+            val rLast =
+                    measurer.measure(
+                            text = AnnotatedString(if (last.isNotBlank()) last else " "),
+                            style = lastStyle,
+                            softWrap = false
+                    )
             // Always measure dates (even if empty) to reserve space
-            val rDate = measurer.measure(
-                text = AnnotatedString(if (!dateText.isNullOrEmpty()) dateText else " "),
-                style = dateStyle,
-                softWrap = false
-            )
-            
+            val rDate =
+                    measurer.measure(
+                            text =
+                                    AnnotatedString(
+                                            if (!dateText.isNullOrEmpty()) dateText else " "
+                                    ),
+                            style = dateStyle,
+                            softWrap = false
+                    )
+
             // Calculate content height ALWAYS including all three lines
             var contentHTemp = rFirst.size.height.toFloat()
             contentHTemp += lineGap + rLast.size.height.toFloat()
             contentHTemp += lineGap + rDate.size.height.toFloat()
             contentHTemp += extraFudge
-            
+
             val totalH = contentHTemp + padY * 2
             resFirstHeight = rFirst.size.height
             resFirstWidth = rFirst.size.width
@@ -270,31 +290,34 @@ fun TreeRenderer(
         contentH += lineGap + resLastHeight.toFloat()
         contentH += lineGap + resDateHeight.toFloat()
         contentH += extraFudge
-        // Add extra width buffer (16 * scale) to ensure wide cards don't overlap at medium/large scales
-        val w = max(minW, contentW + padX * 2 + 16f * scale)
+        // Add extra width buffer (8 * scale) to ensure wide cards don't overlap at medium/large
+        // scales, reduced per user request
+        val w = max(minW, contentW + padX * 2 + 8f * scale)
         val h = max(minH, contentH + padY * 2)
         return NodeMeasure(w, h, chosenFsBaseSp)
     }
 
     // Approximate bounds for viewport culling (before expensive text measurement)
-    // Use fixed base size scaled appropriately - good enough for culling, precise measurement happens later
+    // Use fixed base size scaled appropriately - good enough for culling, precise measurement
+    // happens later
     data class ApproxBounds(val x: Float, val y: Float, val w: Float, val h: Float)
-    
+
     // Calculate base positions without nodeOffsets to avoid recalc on drag
-    val baseApproxBounds: Map<IndividualId, ApproxBounds> = remember(data.individuals, positions, scale) {
-        buildMap {
-            data.individuals.forEach { ind ->
-                val p = positions[ind.id] ?: return@forEach
-                val baseX = p.x * scale
-                val baseY = p.y * scale
-                // Use approximate size: min card dimensions scaled (updated for 3 lines)
-                val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
-                val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
-                put(ind.id, ApproxBounds(baseX, baseY, approxW, approxH))
+    val baseApproxBounds: Map<IndividualId, ApproxBounds> =
+            remember(data.individuals, positions, scale) {
+                buildMap {
+                    data.individuals.forEach { ind ->
+                        val p = positions[ind.id] ?: return@forEach
+                        val baseX = p.x * scale
+                        val baseY = p.y * scale
+                        // Use approximate size: min card dimensions scaled (updated for 3 lines)
+                        val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
+                        val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
+                        put(ind.id, ApproxBounds(baseX, baseY, approxW, approxH))
+                    }
+                }
             }
-        }
-    }
-    
+
     // Function to get actual bounds including nodeOffsets (computed on-demand, not cached)
     fun getApproxBounds(id: IndividualId): ApproxBounds? {
         val base = baseApproxBounds[id] ?: return null
@@ -305,7 +328,7 @@ fun TreeRenderer(
             base
         }
     }
-    
+
     // Viewport culling using approximate bounds (cheap operation)
     fun isVisibleApprox(b: ApproxBounds): Boolean {
         val screenLeft = b.x + pan.x
@@ -313,44 +336,55 @@ fun TreeRenderer(
         val screenTop = b.y + pan.y
         val screenBottom = b.y + b.h + pan.y
         val margin = if (PlatformEnv.isDesktop) 200f else 50f
-        return screenRight >= -margin && screenLeft <= canvasSize.width + margin &&
-               screenBottom >= -margin && screenTop <= canvasSize.height + margin
+        return screenRight >= -margin &&
+                screenLeft <= canvasSize.width + margin &&
+                screenBottom >= -margin &&
+                screenTop <= canvasSize.height + margin
     }
-    
+
     // Filter visible individuals BEFORE expensive text measurement
     // Now depends on nodeOffsets to recalc when nodes are dragged, but baseApproxBounds is cached
-    val visibleIndividualIds = remember(baseApproxBounds, nodeOffsets, pan, canvasSize, scale) {
-        data.individuals.mapNotNull { ind ->
-            getApproxBounds(ind.id)?.let { bounds ->
-                if (isVisibleApprox(bounds)) ind.id else null
+    val visibleIndividualIds =
+            remember(baseApproxBounds, nodeOffsets, pan, canvasSize, scale) {
+                data.individuals
+                        .mapNotNull { ind ->
+                            getApproxBounds(ind.id)?.let { bounds ->
+                                if (isVisibleApprox(bounds)) ind.id else null
+                            }
+                        }
+                        .also {
+                            println(
+                                    "[DEBUG_LOG] TreeRenderer: viewport culling reduced ${data.individuals.size} to ${it.size} visible individuals"
+                            )
+                        }
             }
-        }.also {
-            println("[DEBUG_LOG] TreeRenderer: viewport culling reduced ${data.individuals.size} to ${it.size} visible individuals")
-        }
-    }
-    
+
     // Simplified rendering mode for small scales (skip expensive text measurement)
     val useSimplifiedRendering = scale < 0.5f && !PlatformEnv.isDesktop
-    
+
     // NOW measure text only for visible individuals (expensive but limited to visible set)
     // Skip measurement in simplified mode - use fixed sizes instead
-    val measures: Map<IndividualId, NodeMeasure> = remember(visibleIndividualIds, individualsMap, scale, useSimplifiedRendering) {
-        if (useSimplifiedRendering) {
-            // Use fixed approximate size for all nodes in simplified mode
-            val fixedW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
-            val fixedH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
-            visibleIndividualIds.associateWith { NodeMeasure(fixedW, fixedH, 3f) }
-        } else {
-            buildMap {
-                visibleIndividualIds.forEach { id ->
-                    val ind = individualsMap[id] ?: return@forEach
-                    val birthDate = extractEventDate(ind, "BIRT")
-                    val deathDate = extractEventDate(ind, "DEAT")
-                    put(id, measureNodePx(ind.firstName, ind.lastName, birthDate, deathDate))
+    val measures: Map<IndividualId, NodeMeasure> =
+            remember(visibleIndividualIds, individualsMap, scale, useSimplifiedRendering) {
+                if (useSimplifiedRendering) {
+                    // Use fixed approximate size for all nodes in simplified mode
+                    val fixedW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
+                    val fixedH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
+                    visibleIndividualIds.associateWith { NodeMeasure(fixedW, fixedH, 3f) }
+                } else {
+                    buildMap {
+                        visibleIndividualIds.forEach { id ->
+                            val ind = individualsMap[id] ?: return@forEach
+                            val birthDate = extractEventDate(ind, "BIRT")
+                            val deathDate = extractEventDate(ind, "DEAT")
+                            put(
+                                    id,
+                                    measureNodePx(ind.firstName, ind.lastName, birthDate, deathDate)
+                            )
+                        }
+                    }
                 }
             }
-        }
-    }
 
     // Precise rectangles only for visible individuals
     // Use derivedStateOf to track changes inside mutableStateMapOf (nodeOffsets)
@@ -359,12 +393,13 @@ fun TreeRenderer(
             visibleIndividualIds.forEach { id ->
                 val m = measures[id] ?: return@forEach
                 val off = nodeOffsets[id]
-                val (baseX, baseY) = if (off != null) {
-                    Pair(off.x * scale, off.y * scale)
-                } else {
-                    val p = positions[id] ?: return@forEach
-                    Pair(p.x * scale, p.y * scale)
-                }
+                val (baseX, baseY) =
+                        if (off != null) {
+                            Pair(off.x * scale, off.y * scale)
+                        } else {
+                            val p = positions[id] ?: return@forEach
+                            Pair(p.x * scale, p.y * scale)
+                        }
                 put(id, RectF(baseX, baseY, m.w, m.h))
             }
         }
@@ -372,32 +407,34 @@ fun TreeRenderer(
 
     fun rectFor(id: IndividualId): RectF? = rects[id]
     fun textFsFor(id: IndividualId): Float = measures[id]?.baseFsSp ?: 3f
-    
+
     // Calculate rect for any node (even invisible) for line connections
     fun rectForConnection(id: IndividualId): RectF? {
         // First try visible rects
-        rects[id]?.let { return it }
-        
+        rects[id]?.let {
+            return it
+        }
+
         // If not visible, calculate approximate position from layout
         val off = nodeOffsets[id]
-        val (baseX, baseY) = if (off != null) {
-            Pair(off.x * scale, off.y * scale)
-        } else {
-            val p = positions[id] ?: return null
-            Pair(p.x * scale, p.y * scale)
-        }
+        val (baseX, baseY) =
+                if (off != null) {
+                    Pair(off.x * scale, off.y * scale)
+                } else {
+                    val p = positions[id] ?: return null
+                    Pair(p.x * scale, p.y * scale)
+                }
         // Use approximate size for invisible nodes
         val approxW = (if (PlatformEnv.isDesktop) 74.25f else 49.5f) * scale
         val approxH = (if (PlatformEnv.isDesktop) 50.625f else 33.75f) * scale
         return RectF(baseX, baseY, approxW, approxH)
     }
-    
+
     // Convert visible IDs back to Individual objects for rendering (using fast map lookup)
-    val visibleIndividuals = remember(visibleIndividualIds, individualsMap) {
-        visibleIndividualIds.mapNotNull { id ->
-            individualsMap[id]
-        }
-    }
+    val visibleIndividuals =
+            remember(visibleIndividualIds, individualsMap) {
+                visibleIndividualIds.mapNotNull { id -> individualsMap[id] }
+            }
 
     fun marriageBarRect(a: RectF, b: RectF): RectF {
         val left = min(a.centerX, b.centerX)
@@ -412,163 +449,174 @@ fun TreeRenderer(
         val gap = 1.69f * scale
         val topAnchor = Offset(child.centerX, child.top - gap)
         return listOf(
-            from,
-            Offset(from.x, topAnchor.y),
-            topAnchor,
-            Offset(child.centerX, child.top)
+                from,
+                Offset(from.x, topAnchor.y),
+                topAnchor,
+                Offset(child.centerX, child.top)
         )
     }
 
     // Track whether current drag is on a node (to prevent canvas panning when dragging nodes)
     var isDraggingNode by remember { mutableStateOf(false) }
-    
+
     // Canvas context menu state
     var showCanvasMenu by remember { mutableStateOf(false) }
     var canvasMenuPosition by remember { mutableStateOf(Offset.Zero) }
-    
+
     // Wrap pan in remembered State to ensure fresh reads inside pointerInput
     val panState = remember { mutableStateOf(pan) }
     panState.value = pan
 
     Box(
-        Modifier
-            .fillMaxSize()
-            .clipToBounds()  // Clip rendering to green canvas boundaries
-            .background(Color(0xFFD5E8D4))  // Light mint green background matching screenshot
-            .onSizeChanged {
-                canvasSize = it
-                onCanvasSize(it) 
-            }
-            // Context menu on long press on empty canvas space
-            .pointerInput("canvasMenu") {
-                detectTapGestures(
-                    onLongPress = { tapPosition ->
-                        // Check if tap is on a node
-                        val clickedNode = visibleIndividuals.firstOrNull { ind ->
-                            val r = rectFor(ind.id)
-                            if (r != null) {
-                                val screenLeft = r.x + pan.x
-                                val screenTop = r.y + pan.y
-                                val screenRight = screenLeft + r.w
-                                val screenBottom = screenTop + r.h
-                                tapPosition.x >= screenLeft && tapPosition.x <= screenRight &&
-                                tapPosition.y >= screenTop && tapPosition.y <= screenBottom
-                            } else false
-                        }
-                        
-                        // Only show canvas menu if not on a node
-                        if (clickedNode == null) {
-                            canvasMenuPosition = tapPosition
-                            showCanvasMenu = true
-                        }
+            Modifier.fillMaxSize()
+                    .clipToBounds() // Clip rendering to green canvas boundaries
+                    .background(
+                            Color(0xFFD5E8D4)
+                    ) // Light mint green background matching screenshot
+                    .onSizeChanged {
+                        canvasSize = it
+                        onCanvasSize(it)
                     }
-                )
-            }
-            // Canvas panning: drag on empty space to pan the tree (like JavaFX version)
-            // On mobile, pan/zoom is handled by platformWheelZoom in MainScreen via detectTransformGestures
-            // On desktop, we need custom pan handling since platformWheelZoom only handles wheel events
-            .then(
-                if (PlatformEnv.isDesktop) {
-                    Modifier.pointerInput(Unit) {
-                        awaitPointerEventScope {
-                            while (true) {
-                                // Wait for a down event
-                                val down = awaitFirstDown(requireUnconsumed = false)
-                                val downPosition = down.position
-                                
-                                // Capture initial pan at drag start by reading from State (ensures fresh value)
-                                val initialPan = panState.value
-                                
-                                // Check if drag started on a node
-                                val clickedNode = visibleIndividuals.firstOrNull { ind ->
-                                    val r = rectFor(ind.id)
-                                    if (r != null) {
-                                        val screenLeft = r.x + initialPan.x
-                                        val screenTop = r.y + initialPan.y
-                                        val screenRight = screenLeft + r.w
-                                        val screenBottom = screenTop + r.h
-                                        downPosition.x >= screenLeft && downPosition.x <= screenRight &&
-                                        downPosition.y >= screenTop && downPosition.y <= screenBottom
-                                    } else false
-                                }
-                                
-                                if (clickedNode != null) {
-                                    isDraggingNode = true
-                                    // Wait for up/cancel without panning
-                                    waitForUpOrCancellation()
-                                    isDraggingNode = false
-                                } else {
-                                    // Canvas pan: track drag on empty space
-                                    isDraggingNode = false
-                                    var accumulatedDelta = Offset.Zero
-                                    var lastPosition = downPosition
-                                    
-                                    drag(down.id) { change ->
-                                        val delta = change.position - lastPosition
-                                        lastPosition = change.position
-                                        accumulatedDelta += delta
-                                        change.consume()
-                                        // Apply accumulated delta to initial pan (not current pan)
-                                        setPan(initialPan + accumulatedDelta)
+                    // Context menu on long press on empty canvas space
+                    .pointerInput("canvasMenu") {
+                        detectTapGestures(
+                                onLongPress = { tapPosition ->
+                                    // Check if tap is on a node
+                                    val clickedNode =
+                                            visibleIndividuals.firstOrNull { ind ->
+                                                val r = rectFor(ind.id)
+                                                if (r != null) {
+                                                    val screenLeft = r.x + pan.x
+                                                    val screenTop = r.y + pan.y
+                                                    val screenRight = screenLeft + r.w
+                                                    val screenBottom = screenTop + r.h
+                                                    tapPosition.x >= screenLeft &&
+                                                            tapPosition.x <= screenRight &&
+                                                            tapPosition.y >= screenTop &&
+                                                            tapPosition.y <= screenBottom
+                                                } else false
+                                            }
+
+                                    // Only show canvas menu if not on a node
+                                    if (clickedNode == null) {
+                                        canvasMenuPosition = tapPosition
+                                        showCanvasMenu = true
                                     }
-                                    
-                                    isDraggingNode = false
                                 }
-                            }
-                        }
+                        )
                     }
-                } else {
-                    Modifier
-                }
-            )
+                    // Canvas panning: drag on empty space to pan the tree (like JavaFX version)
+                    // On mobile, pan/zoom is handled by platformWheelZoom in MainScreen via
+                    // detectTransformGestures
+                    // On desktop, we need custom pan handling since platformWheelZoom only handles
+                    // wheel events
+                    .then(
+                            if (PlatformEnv.isDesktop) {
+                                Modifier.pointerInput(Unit) {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            // Wait for a down event
+                                            val down = awaitFirstDown(requireUnconsumed = false)
+                                            val downPosition = down.position
+
+                                            // Capture initial pan at drag start by reading from
+                                            // State (ensures fresh value)
+                                            val initialPan = panState.value
+
+                                            // Check if drag started on a node
+                                            val clickedNode =
+                                                    visibleIndividuals.firstOrNull { ind ->
+                                                        val r = rectFor(ind.id)
+                                                        if (r != null) {
+                                                            val screenLeft = r.x + initialPan.x
+                                                            val screenTop = r.y + initialPan.y
+                                                            val screenRight = screenLeft + r.w
+                                                            val screenBottom = screenTop + r.h
+                                                            downPosition.x >= screenLeft &&
+                                                                    downPosition.x <= screenRight &&
+                                                                    downPosition.y >= screenTop &&
+                                                                    downPosition.y <= screenBottom
+                                                        } else false
+                                                    }
+
+                                            if (clickedNode != null) {
+                                                isDraggingNode = true
+                                                // Wait for up/cancel without panning
+                                                waitForUpOrCancellation()
+                                                isDraggingNode = false
+                                            } else {
+                                                // Canvas pan: track drag on empty space
+                                                isDraggingNode = false
+                                                var accumulatedDelta = Offset.Zero
+                                                var lastPosition = downPosition
+
+                                                drag(down.id) { change ->
+                                                    val delta = change.position - lastPosition
+                                                    lastPosition = change.position
+                                                    accumulatedDelta += delta
+                                                    change.consume()
+                                                    // Apply accumulated delta to initial pan (not
+                                                    // current pan)
+                                                    setPan(initialPan + accumulatedDelta)
+                                                }
+
+                                                isDraggingNode = false
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Modifier
+                            }
+                    )
     ) {
         // Pan offset container
-        Box(
-            modifier = Modifier
-                .offset { IntOffset(pan.x.roundToInt(), pan.y.roundToInt()) }
-        ) {
+        Box(modifier = Modifier.offset { IntOffset(pan.x.roundToInt(), pan.y.roundToInt()) }) {
             // Edges (edges first) - only render edges for families with visible participants
             Canvas(Modifier.fillMaxSize()) {
                 val edgeColor = Color(0xFF607D8B)
-                val barGap = 4.5f * scale  // gap below spouse boxes (scaled)
-                val childBarGap = 4.5f * scale  // gap above children (scaled)
+                val barGap = 4.5f * scale // gap below spouse boxes (scaled)
+                val childBarGap = 4.5f * scale // gap above children (scaled)
                 // Minimum line thickness for mobile devices at small scales:
                 // at scale >= 1.0 → 2px, at small scales → minimum 1.2px for visibility
                 val baseStroke = 2f * scale
                 val strokeW = if (PlatformEnv.isDesktop) baseStroke else max(baseStroke, 1.2f)
-                
+
                 // Build set of visible IDs for fast lookup
                 val visibleIds = visibleIndividuals.map { it.id }.toSet()
-                
+
                 // Helper: check if a line segment intersects viewport (considering pan offset)
                 fun lineIntersectsViewport(x1: Float, y1: Float, x2: Float, y2: Float): Boolean {
                     val screenX1 = x1 + pan.x
                     val screenY1 = y1 + pan.y
                     val screenX2 = x2 + pan.x
                     val screenY2 = y2 + pan.y
-                    
+
                     val viewLeft = 0f
                     val viewRight = canvasSize.width.toFloat()
                     val viewTop = 0f
                     val viewBottom = canvasSize.height.toFloat()
-                    
+
                     // Check if line bounding box intersects viewport
                     val lineLeft = min(screenX1, screenX2)
                     val lineRight = max(screenX1, screenX2)
                     val lineTop = min(screenY1, screenY2)
                     val lineBottom = max(screenY1, screenY2)
-                    
-                    return lineRight >= viewLeft && lineLeft <= viewRight &&
-                           lineBottom >= viewTop && lineTop <= viewBottom
+
+                    return lineRight >= viewLeft &&
+                            lineLeft <= viewRight &&
+                            lineBottom >= viewTop &&
+                            lineTop <= viewBottom
                 }
-                
+
                 data.families.forEach { fam ->
                     // Check if any children are visible - if so, always draw lines from parents
                     val hasVisibleChild = fam.childrenIds.any { it in visibleIds }
-                    
+
                     // Skip family only if no children are visible AND no parents are visible
-                    val hasVisibleParent = (fam.husbandId in visibleIds) || (fam.wifeId in visibleIds)
-                    
+                    val hasVisibleParent =
+                            (fam.husbandId in visibleIds) || (fam.wifeId in visibleIds)
+
                     // OPTIMIZATION: Use fast bounding box check instead of detailed segment checks
                     var hasLinesThroughViewport = false
                     if (!hasVisibleChild && !hasVisibleParent) {
@@ -580,7 +628,7 @@ fun TreeRenderer(
                             var maxX = Float.NEGATIVE_INFINITY
                             var minY = Float.POSITIVE_INFINITY
                             var maxY = Float.NEGATIVE_INFINITY
-                            
+
                             allIds.forEach { id ->
                                 val bounds = getApproxBounds(id)
                                 if (bounds != null) {
@@ -590,43 +638,62 @@ fun TreeRenderer(
                                     if (bounds.y + bounds.h > maxY) maxY = bounds.y + bounds.h
                                 }
                             }
-                            
+
                             // Expand bounding box to include connection lines (add gaps)
                             minY -= childBarGap * 2f
                             maxY += barGap * 2f
-                            
+
                             // Check if family bounding box intersects viewport
                             val screenLeft = minX + pan.x
                             val screenRight = maxX + pan.x
                             val screenTop = minY + pan.y
                             val screenBottom = maxY + pan.y
-                            
-                            hasLinesThroughViewport = screenRight >= 0f && screenLeft <= canvasSize.width.toFloat() &&
-                                                     screenBottom >= 0f && screenTop <= canvasSize.height.toFloat()
+
+                            hasLinesThroughViewport =
+                                    screenRight >= 0f &&
+                                            screenLeft <= canvasSize.width.toFloat() &&
+                                            screenBottom >= 0f &&
+                                            screenTop <= canvasSize.height.toFloat()
                         }
                     }
-                    
-                    if (!hasVisibleChild && !hasVisibleParent && !hasLinesThroughViewport) return@forEach
-                    
+
+                    if (!hasVisibleChild && !hasVisibleParent && !hasLinesThroughViewport)
+                            return@forEach
+
                     // Use rectForConnection to get parent positions even if they're off-screen
                     val husband = fam.husbandId?.let { rectForConnection(it) }
                     val wife = fam.wifeId?.let { rectForConnection(it) }
-                    
+
                     when {
                         husband != null && wife != null -> {
                             // Marriage bar y just below lower parent bottom
                             val yBar = max(husband.bottom, wife.bottom) + barGap
                             val xLeft = min(husband.centerX, wife.centerX)
                             val xRight = max(husband.centerX, wife.centerX)
-                            
+
                             // Short vertical stubs from each parent bottom to bar
-                            drawLine(edgeColor, Offset(husband.centerX, husband.bottom), Offset(husband.centerX, yBar), strokeWidth = strokeW)
-                            drawLine(edgeColor, Offset(wife.centerX, wife.bottom), Offset(wife.centerX, yBar), strokeWidth = strokeW)
-                            
+                            drawLine(
+                                    edgeColor,
+                                    Offset(husband.centerX, husband.bottom),
+                                    Offset(husband.centerX, yBar),
+                                    strokeWidth = strokeW
+                            )
+                            drawLine(
+                                    edgeColor,
+                                    Offset(wife.centerX, wife.bottom),
+                                    Offset(wife.centerX, yBar),
+                                    strokeWidth = strokeW
+                            )
+
                             // Marriage bar between parent stubs
-                            drawLine(edgeColor, Offset(xLeft, yBar), Offset(xRight, yBar), strokeWidth = strokeW)
+                            drawLine(
+                                    edgeColor,
+                                    Offset(xLeft, yBar),
+                                    Offset(xRight, yBar),
+                                    strokeWidth = strokeW
+                            )
                             val barMidX = (xLeft + xRight) / 2f
-                            
+
                             // Children routing
                             if (fam.childrenIds.isEmpty()) {
                                 // No children, nothing more to draw
@@ -638,25 +705,46 @@ fun TreeRenderer(
                                     val childBarY = c.top - childBarGap
                                     val midY = (yBar + childBarY) / 2f
                                     val cx = c.centerX
-                                    
+
                                     // Vertical from marriage bar midpoint to intermediate level
-                                    drawLine(edgeColor, Offset(barMidX, yBar), Offset(barMidX, midY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(barMidX, yBar),
+                                            Offset(barMidX, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Horizontal at intermediate level toward child center
                                     val hLeft = min(barMidX, cx)
                                     val hRight = max(barMidX, cx)
-                                    drawLine(edgeColor, Offset(hLeft, midY), Offset(hRight, midY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(hLeft, midY),
+                                            Offset(hRight, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Vertical from child center to child bar level
-                                    drawLine(edgeColor, Offset(cx, midY), Offset(cx, childBarY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(cx, midY),
+                                            Offset(cx, childBarY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Vertical down to child top
-                                    drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, c.top), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(cx, childBarY),
+                                            Offset(cx, c.top),
+                                            strokeWidth = strokeW
+                                    )
                                 }
                             } else {
                                 // Multiple children: use children bar spanning all children
                                 var minChildX = Float.POSITIVE_INFINITY
                                 var maxChildX = Float.NEGATIVE_INFINITY
                                 var minTopY = Float.POSITIVE_INFINITY
-                                val childAnchors = mutableListOf<Pair<Float, Float>>() // centerX, topY
-                                
+                                val childAnchors =
+                                        mutableListOf<Pair<Float, Float>>() // centerX, topY
+
                                 fam.childrenIds.forEach { cid ->
                                     val c = rectForConnection(cid)
                                     if (c != null) {
@@ -668,25 +756,50 @@ fun TreeRenderer(
                                         if (topY < minTopY) minTopY = topY
                                     }
                                 }
-                                
+
                                 if (childAnchors.isNotEmpty()) {
                                     val childBarY = minTopY - childBarGap
                                     val childMidX = (minChildX + maxChildX) / 2f
                                     val midY = (yBar + childBarY) / 2f
-                                    
+
                                     // Vertical from marriage bar midpoint to intermediate level
-                                    drawLine(edgeColor, Offset(barMidX, yBar), Offset(barMidX, midY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(barMidX, yBar),
+                                            Offset(barMidX, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Horizontal at intermediate level toward children range center
                                     val hLeft = min(barMidX, childMidX)
                                     val hRight = max(barMidX, childMidX)
-                                    drawLine(edgeColor, Offset(hLeft, midY), Offset(hRight, midY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(hLeft, midY),
+                                            Offset(hRight, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Vertical from children range center to children bar level
-                                    drawLine(edgeColor, Offset(childMidX, midY), Offset(childMidX, childBarY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(childMidX, midY),
+                                            Offset(childMidX, childBarY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Horizontal children bar spanning all children
-                                    drawLine(edgeColor, Offset(minChildX, childBarY), Offset(maxChildX, childBarY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(minChildX, childBarY),
+                                            Offset(maxChildX, childBarY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Vertical lines from children bar down to each child top
                                     childAnchors.forEach { (cx, topY) ->
-                                        drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, topY), strokeWidth = strokeW)
+                                        drawLine(
+                                                edgeColor,
+                                                Offset(cx, childBarY),
+                                                Offset(cx, topY),
+                                                strokeWidth = strokeW
+                                        )
                                     }
                                 }
                             }
@@ -695,11 +808,16 @@ fun TreeRenderer(
                             // Single parent case
                             val p = husband ?: wife!!
                             val yBar = p.bottom + barGap
-                            
+
                             // Stub from parent to bar
-                            drawLine(edgeColor, Offset(p.centerX, p.bottom), Offset(p.centerX, yBar), strokeWidth = strokeW)
+                            drawLine(
+                                    edgeColor,
+                                    Offset(p.centerX, p.bottom),
+                                    Offset(p.centerX, yBar),
+                                    strokeWidth = strokeW
+                            )
                             val barMidX = p.centerX
-                            
+
                             // Children routing (same logic as two-parent case)
                             if (fam.childrenIds.isEmpty()) {
                                 // No children
@@ -711,13 +829,33 @@ fun TreeRenderer(
                                     val childBarY = c.top - childBarGap
                                     val midY = (yBar + childBarY) / 2f
                                     val cx = c.centerX
-                                    
-                                    drawLine(edgeColor, Offset(barMidX, yBar), Offset(barMidX, midY), strokeWidth = strokeW)
+
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(barMidX, yBar),
+                                            Offset(barMidX, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     val hLeft = min(barMidX, cx)
                                     val hRight = max(barMidX, cx)
-                                    drawLine(edgeColor, Offset(hLeft, midY), Offset(hRight, midY), strokeWidth = strokeW)
-                                    drawLine(edgeColor, Offset(cx, midY), Offset(cx, childBarY), strokeWidth = strokeW)
-                                    drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, c.top), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(hLeft, midY),
+                                            Offset(hRight, midY),
+                                            strokeWidth = strokeW
+                                    )
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(cx, midY),
+                                            Offset(cx, childBarY),
+                                            strokeWidth = strokeW
+                                    )
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(cx, childBarY),
+                                            Offset(cx, c.top),
+                                            strokeWidth = strokeW
+                                    )
                                 }
                             } else {
                                 // Multiple children
@@ -725,7 +863,7 @@ fun TreeRenderer(
                                 var maxChildX = Float.NEGATIVE_INFINITY
                                 var minTopY = Float.POSITIVE_INFINITY
                                 val childAnchors = mutableListOf<Pair<Float, Float>>()
-                                
+
                                 fam.childrenIds.forEach { cid ->
                                     val c = rectForConnection(cid)
                                     if (c != null) {
@@ -737,32 +875,58 @@ fun TreeRenderer(
                                         if (topY < minTopY) minTopY = topY
                                     }
                                 }
-                                
+
                                 if (childAnchors.isNotEmpty()) {
                                     val childBarY = minTopY - childBarGap
                                     val childMidX = (minChildX + maxChildX) / 2f
                                     val midY = (yBar + childBarY) / 2f
-                                    
-                                    drawLine(edgeColor, Offset(barMidX, yBar), Offset(barMidX, midY), strokeWidth = strokeW)
+
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(barMidX, yBar),
+                                            Offset(barMidX, midY),
+                                            strokeWidth = strokeW
+                                    )
                                     val hLeft = min(barMidX, childMidX)
                                     val hRight = max(barMidX, childMidX)
-                                    drawLine(edgeColor, Offset(hLeft, midY), Offset(hRight, midY), strokeWidth = strokeW)
-                                    drawLine(edgeColor, Offset(childMidX, midY), Offset(childMidX, childBarY), strokeWidth = strokeW)
-                                    drawLine(edgeColor, Offset(minChildX, childBarY), Offset(maxChildX, childBarY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(hLeft, midY),
+                                            Offset(hRight, midY),
+                                            strokeWidth = strokeW
+                                    )
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(childMidX, midY),
+                                            Offset(childMidX, childBarY),
+                                            strokeWidth = strokeW
+                                    )
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(minChildX, childBarY),
+                                            Offset(maxChildX, childBarY),
+                                            strokeWidth = strokeW
+                                    )
                                     childAnchors.forEach { (cx, topY) ->
-                                        drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, topY), strokeWidth = strokeW)
+                                        drawLine(
+                                                edgeColor,
+                                                Offset(cx, childBarY),
+                                                Offset(cx, topY),
+                                                strokeWidth = strokeW
+                                        )
                                     }
                                 }
                             }
                         }
                         else -> {
-                            // No parents, but we still want to connect siblings if there are multiple
+                            // No parents, but we still want to connect siblings if there are
+                            // multiple
                             if (fam.childrenIds.size > 1) {
                                 var minChildX = Float.POSITIVE_INFINITY
                                 var maxChildX = Float.NEGATIVE_INFINITY
                                 var minTopY = Float.POSITIVE_INFINITY
                                 val childAnchors = mutableListOf<Pair<Float, Float>>()
-                                
+
                                 fam.childrenIds.forEach { cid ->
                                     val c = rectForConnection(cid)
                                     if (c != null) {
@@ -774,15 +938,25 @@ fun TreeRenderer(
                                         if (topY < minTopY) minTopY = topY
                                     }
                                 }
-                                
+
                                 if (childAnchors.size > 1) {
                                     val childBarY = minTopY - childBarGap
-                                    
+
                                     // Horizontal children bar spanning all children
-                                    drawLine(edgeColor, Offset(minChildX, childBarY), Offset(maxChildX, childBarY), strokeWidth = strokeW)
+                                    drawLine(
+                                            edgeColor,
+                                            Offset(minChildX, childBarY),
+                                            Offset(maxChildX, childBarY),
+                                            strokeWidth = strokeW
+                                    )
                                     // Vertical lines from children bar down to each child top
                                     childAnchors.forEach { (cx, topY) ->
-                                        drawLine(edgeColor, Offset(cx, childBarY), Offset(cx, topY), strokeWidth = strokeW)
+                                        drawLine(
+                                                edgeColor,
+                                                Offset(cx, childBarY),
+                                                Offset(cx, topY),
+                                                strokeWidth = strokeW
+                                        )
                                     }
                                 }
                             }
@@ -801,124 +975,159 @@ fun TreeRenderer(
                     val wDp = with(density) { r.w.toDp() }
                     val hDp = with(density) { r.h.toDp() }
                     var showNodeMenu by remember(ind.id) { mutableStateOf(false) }
-                    
+
                     // Extract birth and death dates from events
                     val birthDate = extractEventDate(ind, "BIRT")
                     val deathDate = extractEventDate(ind, "DEAT")
-                    
+
                     NodeCard(
-                    firstName = ind.firstName,
-                    lastName = ind.lastName,
-                    gender = ind.gender,
-                    birthDate = birthDate,
-                    deathDate = deathDate,
-                    x = leftDp,
-                    y = topDp,
-                    width = wDp,
-                    height = hDp,
-                    selected = selectedIds.contains(ind.id),
-                    fontScale = scale,
-                    lastFsBaseSp = textFsFor(ind.id),
-                    simplified = useSimplifiedRendering,
-                    onClick = { onSelect(ind.id) },
-                    onDrag = { delta -> onNodeDrag(ind.id, delta) },
-                    onLongPress = { showNodeMenu = true },
-                    onDoubleTap = { onEditPerson(ind.id) }
-                ) {
-                    DropdownMenu(expanded = showNodeMenu, onDismissRequest = { showNodeMenu = false }) {
-                        DropdownMenuItem(text = { Text("Edit person…") }, onClick = { showNodeMenu = false; onEditPerson(ind.id) })
-                        DropdownMenuItem(text = { Text("Center on") }, onClick = { showNodeMenu = false; onCenterOn(ind.id) })
-                        DropdownMenuItem(text = { Text("Delete person") }, onClick = { showNodeMenu = false; onDeletePerson(ind.id) })
-                        DropdownMenuItem(text = { Text("Reset") }, onClick = { showNodeMenu = false; onReset() })
+                            firstName = ind.firstName,
+                            lastName = ind.lastName,
+                            gender = ind.gender,
+                            birthDate = birthDate,
+                            deathDate = deathDate,
+                            x = leftDp,
+                            y = topDp,
+                            width = wDp,
+                            height = hDp,
+                            selected = selectedIds.contains(ind.id),
+                            fontScale = scale,
+                            lastFsBaseSp = textFsFor(ind.id),
+                            simplified = useSimplifiedRendering,
+                            onClick = { onSelect(ind.id) },
+                            onDrag = { delta -> onNodeDrag(ind.id, delta) },
+                            onLongPress = { showNodeMenu = true },
+                            onDoubleTap = { onEditPerson(ind.id) }
+                    ) {
+                        DropdownMenu(
+                                expanded = showNodeMenu,
+                                onDismissRequest = { showNodeMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                    text = { Text("Edit person…") },
+                                    onClick = {
+                                        showNodeMenu = false
+                                        onEditPerson(ind.id)
+                                    }
+                            )
+                            DropdownMenuItem(
+                                    text = { Text("Center on") },
+                                    onClick = {
+                                        showNodeMenu = false
+                                        onCenterOn(ind.id)
+                                    }
+                            )
+                            DropdownMenuItem(
+                                    text = { Text("Delete person") },
+                                    onClick = {
+                                        showNodeMenu = false
+                                        onDeletePerson(ind.id)
+                                    }
+                            )
+                            DropdownMenuItem(
+                                    text = { Text("Reset") },
+                                    onClick = {
+                                        showNodeMenu = false
+                                        onReset()
+                                    }
+                            )
+                        }
                     }
-                }
                 }
             }
         }
-        
+
         // Canvas context menu
         val density = LocalDensity.current
-        val menuOffsetDp = with(density) {
-            androidx.compose.ui.unit.DpOffset(
-                x = canvasMenuPosition.x.toDp(),
-                y = canvasMenuPosition.y.toDp()
-            )
-        }
+        val menuOffsetDp =
+                with(density) {
+                    androidx.compose.ui.unit.DpOffset(
+                            x = canvasMenuPosition.x.toDp(),
+                            y = canvasMenuPosition.y.toDp()
+                    )
+                }
         DropdownMenu(
-            expanded = showCanvasMenu,
-            onDismissRequest = { showCanvasMenu = false },
-            offset = menuOffsetDp
+                expanded = showCanvasMenu,
+                onDismissRequest = { showCanvasMenu = false },
+                offset = menuOffsetDp
         ) {
-            DropdownMenuItem(text = { Text("Add person") }, onClick = { showCanvasMenu = false; onAddPerson(canvasMenuPosition) })
+            DropdownMenuItem(
+                    text = { Text("Add person") },
+                    onClick = {
+                        showCanvasMenu = false
+                        onAddPerson(canvasMenuPosition)
+                    }
+            )
         }
     }
 }
 
 @Composable
 private fun NodeCard(
-    firstName: String,
-    lastName: String,
-    gender: Gender?,
-    birthDate: String?,
-    deathDate: String?,
-    x: Dp,
-    y: Dp,
-    width: Dp,
-    height: Dp,
-    selected: Boolean,
-    fontScale: Float,
-    lastFsBaseSp: Float,
-    simplified: Boolean,
-    onClick: () -> Unit,
-    onDrag: (Offset) -> Unit,
-    onLongPress: () -> Unit,
-    onDoubleTap: () -> Unit,
-    menuContent: @Composable () -> Unit
+        firstName: String,
+        lastName: String,
+        gender: Gender?,
+        birthDate: String?,
+        deathDate: String?,
+        x: Dp,
+        y: Dp,
+        width: Dp,
+        height: Dp,
+        selected: Boolean,
+        fontScale: Float,
+        lastFsBaseSp: Float,
+        simplified: Boolean,
+        onClick: () -> Unit,
+        onDrag: (Offset) -> Unit,
+        onLongPress: () -> Unit,
+        onDoubleTap: () -> Unit,
+        menuContent: @Composable () -> Unit
 ) {
     val borderColor = if (selected) Color(0xFF1976D2) else Color(0xFFB0BEC5)
     val borderWidth = if (selected) 3f else 2f
-    
+
     // Gender-based background colors matching the screenshot
-    val backgroundColor = when (gender) {
-        Gender.MALE -> Color(0xFFD0D0FF)      // Light blue/lavender for males
-        Gender.FEMALE -> Color(0xFFFFFFC0)    // Light yellow for females
-        else -> Color(0xFFFAFAFA)                                         // Default light gray for unknown
-    }
-    
+    val backgroundColor =
+            when (gender) {
+                Gender.MALE -> Color(0xFFD0D0FF) // Light blue/lavender for males
+                Gender.FEMALE -> Color(0xFFFFFFC0) // Light yellow for females
+                else -> Color(0xFFFAFAFA) // Default light gray for unknown
+            }
+
     Box(
-        modifier = Modifier
-            .offset(x, y)
-            .size(width, height)
-            .background(backgroundColor)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onTap = { onClick() },
-                    onLongPress = { onLongPress() },
-                    onDoubleTap = { onDoubleTap() }
-                )
-            }
-            .pointerInput("drag") {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    onDrag(dragAmount / fontScale)
-                }
-            }
+            modifier =
+                    Modifier.offset(x, y)
+                            .size(width, height)
+                            .background(backgroundColor)
+                            .pointerInput(Unit) {
+                                detectTapGestures(
+                                        onTap = { onClick() },
+                                        onLongPress = { onLongPress() },
+                                        onDoubleTap = { onDoubleTap() }
+                                )
+                            }
+                            .pointerInput("drag") {
+                                detectDragGestures { change, dragAmount ->
+                                    change.consume()
+                                    onDrag(dragAmount / fontScale)
+                                }
+                            }
     ) {
         Canvas(Modifier.fillMaxSize()) {
             // Rounded border for node card
             drawRoundRect(
-                color = borderColor,
-                style = Stroke(width = borderWidth),
-                cornerRadius = CornerRadius(8f, 8f)
+                    color = borderColor,
+                    style = Stroke(width = borderWidth),
+                    cornerRadius = CornerRadius(8f, 8f)
             )
         }
-        
+
         // Skip text rendering in simplified mode (small scale with many nodes)
         if (!simplified) {
             // Three lines: first name (first), last name (second), dates (third)
             val first = firstName
             val last = lastName
-            
+
             // Use the same formulas as in measureNodePx for full synchronization
             fun lhFactorForScale(s: Float): Float {
                 val u = ((1.0f - s) / 0.6f).coerceIn(0f, 1f)
@@ -928,14 +1137,15 @@ private fun NodeCard(
                 val u = ((1.0f - s) / 0.5f).coerceIn(0f, 1f)
                 return (1.5f - 1.5f * u).coerceIn(0f, 1.5f)
             }
-            
-            val innerPadX = 4.5f * fontScale
+
+            val innerPadX = 4.0f * fontScale
             val innerPadY = 4.5f * fontScale
             val lineGapPx = lineGapPxForScale(fontScale)
             val lhFactor = lhFactorForScale(fontScale)
             val densityLocal = LocalDensity.current
             val innerPadXdp = with(densityLocal) { innerPadX.toDp() }
-            val innerPadYdpClamped = with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
+            val innerPadYdpClamped =
+                    with(densityLocal) { (4.5f * fontScale).coerceIn(1f, 4.5f).toDp() }
             val lineGapDp = with(densityLocal) { lineGapPx.toDp() }
 
             // Base font size from measurer, multiplied by current zoom
@@ -943,56 +1153,59 @@ private fun NodeCard(
             // On mobile devices do NOT apply minimums so cards can actually shrink
             // and text scales proportionally with card, avoiding overlap at small scales
             val effFsSp = baseFsSp
-            
+
             // Line spacing proportional to font size
             val effLineHeightSp = effFsSp * lhFactor
             Column(
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(horizontal = innerPadXdp, vertical = innerPadYdpClamped),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    modifier =
+                            Modifier.align(Alignment.TopCenter)
+                                    .padding(
+                                            horizontal = innerPadXdp,
+                                            vertical = innerPadYdpClamped
+                                    ),
+                    horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // First line: first name (always shown)
                 Text(
-                    first,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
-                    fontSize = effFsSp,
-                    // Draw with normal (not bold) weight so names don't look "bolded" on canvas
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = effLineHeightSp,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    // Minimum line height to avoid 0px on Android with rounding
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                        first,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.95f),
+                        fontSize = effFsSp,
+                        // Draw with normal (not bold) weight so names don't look "bolded" on canvas
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = effLineHeightSp,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        // Minimum line height to avoid 0px on Android with rounding
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
                 // Second line: last name (space always reserved)
                 Spacer(Modifier.height(lineGapDp))
                 Text(
-                    text = last.ifEmpty { "" },
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    fontSize = effFsSp,
-                    lineHeight = effLineHeightSp,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                        text = last.ifEmpty { "" },
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                        fontSize = effFsSp,
+                        lineHeight = effLineHeightSp,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
                 // Third line: dates (space always reserved)
                 val dateText = formatDates(birthDate, deathDate, firstName, lastName) ?: ""
                 Spacer(Modifier.height(lineGapDp))
                 Text(
-                    text = dateText,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-                    fontSize = effFsSp,
-                    lineHeight = effLineHeightSp,
-                    softWrap = false,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
+                        text = dateText,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                        fontSize = effFsSp,
+                        lineHeight = effLineHeightSp,
+                        softWrap = false,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 1.dp)
                 )
             }
         }

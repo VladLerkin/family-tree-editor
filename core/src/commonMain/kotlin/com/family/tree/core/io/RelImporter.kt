@@ -188,8 +188,13 @@ class RelImporter {
                 first = stripParensQuotes(first) ?: first
                 last = stripParensQuotes(last) ?: last
                 
-                if (first.isBlank()) first = "?"
-                if (last.isEmpty()) last = ""
+                if (first.isBlank() && last.isNotBlank()) {
+                    first = last
+                    last = ""
+                } else if (first.isBlank() && last.isBlank()) {
+                    first = "?"
+                }
+                if (last.isBlank()) last = ""
                 
                 // Skip empty/garbage persons if not referenced
                 val nameBlank = (first.isBlank() || first == "?") && last.isBlank()
@@ -775,24 +780,24 @@ class RelImporter {
     }
 
     private fun cleanToken(s: String?): String? {
-        if (s.isNullOrBlank()) return null
+        if (s == null) return null
         var clean = s.trim()
         // Remove common garbage patterns
         clean = clean.replace(Regex("[\\x00-\\x1F]"), "")
-        // Remove burger Unicode characters (≣, ≡, ≢) and block symbols
+        // Remove burger Unicode characters (≣, ≡, ≢, ☰) and block symbols
         clean = clean.replace("\uFEFF", "").replace("\uFFFD", "")
-        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "")
+        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "").replace("\u2630", "")
         clean = clean.replace("\u25A0", "").replace("\u25A1", "").replace("\u25AA", "").replace("\u25AB", "")
-        return if (clean.isBlank()) null else clean
+        return clean
     }
 
     private fun cleanNameValue(s: String?): String? {
-        if (s.isNullOrBlank()) return null
+        if (s == null) return null
         var clean = s
         // Remove stray BOM and replacement characters that appear as black bars
         clean = clean.replace("\uFEFF", "").replace("\uFFFD", "")
         // Remove horizontal bar symbols (≣ U+2263 and similar block characters) that appear as "five-layer burgers"
-        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "") // ≡ ≢ ≣
+        clean = clean.replace("\u2261", "").replace("\u2262", "").replace("\u2263", "").replace("\u2630", "") // ≡ ≢ ≣ ☰
         clean = clean.replace("\u25A0", "").replace("\u25A1", "").replace("\u25AA", "").replace("\u25AB", "") // ■ □ ▪ ▫
         // Remove leading digits and special characters (like "2", "4", "6", "*", etc.) that prefix names in .rel format
         clean = clean.replace(Regex("^[^\\p{L}]+"), "")
@@ -800,12 +805,11 @@ class RelImporter {
         clean = clean.replace(Regex("[^\\p{L}]+$"), "")
         // Remove embedded GEDCOM tags
         clean = clean.replace(Regex("\\b(OBJE|TITL|FILE|NOTE|FORM|SEX|BIRT|DEAT)\\b.*", RegexOption.IGNORE_CASE), "")
-        clean = clean.trim()
-        return if (clean.isBlank()) null else clean
+        return clean.trim()
     }
 
     private fun stripParensQuotes(s: String?): String? {
-        if (s.isNullOrBlank()) return null
+        if (s == null) return null
         var clean = s.trim()
         // Remove parenthetical comments
         clean = clean.replace(Regex("\\([^)]*\\)"), "").trim()
@@ -814,7 +818,7 @@ class RelImporter {
         // Remove GEDCOM surname delimiters (/) that may be leftover - strip leading/trailing slashes and empty "//"
         clean = clean.replace("//", "").trim()
         clean = clean.replace(Regex("^/+|/+$"), "").trim()
-        return if (clean.isBlank()) null else clean
+        return clean
     }
 
     private fun resolveSourRef(sourRef: String, sourNumToId: Map<Int, String>): String? {
