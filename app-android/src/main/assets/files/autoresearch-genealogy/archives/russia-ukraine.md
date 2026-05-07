@@ -4,48 +4,47 @@ Genealogical research in Russia and Ukraine presents significant challenges: Cyr
 
 ## Key Databases
 
-### Geni.com
-- **URL**: https://www.geni.com/
-- **Coverage**: Significant Russian and Ukrainian family trees, often with sourced data. Useful for finding connections and existing research.
-- **Cost**: Free (basic), subscription for full access
-- **AI accessibility**: AI-readable
+### Pamyat Naroda (Memory of the People)
+
+- **URL**: <https://pamyat-naroda.ru/>
+- **Coverage**: WWII Soviet military records. Unit histories, battle reports, award citations, personnel files.
+- **Cost**: Free
+- **Searchable**: Yes (by name, unit, date)
+- **AI accessibility**: AI-readable (in Russian)
 
 ### FamilySearch (Russia/Ukraine collections)
-- **URL**: https://www.familysearch.org/
+
+- **URL**: <https://www.familysearch.org/>
 - **Coverage**: Rapidly growing collection. Metric books (metricheskie knigi) from many guberniyas are being digitized. Includes Orthodox, Catholic, Lutheran, and Jewish records.
 - **Cost**: Free (account required)
 - **Searchable**: Mostly browse-only (images organized by guberniya, uyezd, parish, and year). Some indexed collections.
 - **AI accessibility**: Browser-only for images.
 
+### Geni.com
+
+- **URL**: <https://www.geni.com/>
+- **Coverage**: Significant Russian and Ukrainian family trees, often with sourced data. Useful for finding connections and existing research.
+- **Cost**: Free (basic), subscription for full access
+- **AI accessibility**: AI-readable
+
 ### JewishGen
-- **URL**: https://www.jewishgen.org/
+
+- **URL**: <https://www.jewishgen.org/>
 - **Coverage**: Essential for Jewish families from the Pale of Settlement (western Russia, Ukraine, Belarus, Poland, Lithuania). Town databases, vital records indexes, Yizkor books, Holocaust records, cemetery databases, and community histories.
 - **Cost**: Free
 - **Searchable**: Yes (by surname, town, record type)
 - **AI accessibility**: AI-searchable. Structured results.
 
 ### VGD.ru (All-Russian Genealogical Forum)
-- **URL**: https://forum.vgd.ru/
+
+- **URL**: <https://forum.vgd.ru/>
 - **Coverage**: Russian genealogy forum with volunteer-indexed records, research assistance, and regional guides. The largest Russian-language genealogy community.
 - **Cost**: Free
 - **Searchable**: Yes (forum search)
 - **AI accessibility**: AI-readable (in Russian)
 
-### Pamyat Naroda (Memory of the People)
-- **URL**: https://pamyat-naroda.ru/
-- **Coverage**: WWII Soviet military records. Unit histories, battle reports, award citations, personnel files.
-- **Cost**: Free
-- **Searchable**: Yes (by name, unit, date)
-- **AI accessibility**: AI-readable (in Russian)
-
-### OBD Memorial
-- **URL**: https://obd-memorial.ru/
-- **Coverage**: WWII casualties database. Killed in action, missing in action, prisoner of war records, burial records.
-- **Cost**: Free
-- **Searchable**: Yes (by name, rank, date, place)
-- **AI accessibility**: AI-searchable (in Russian)
-
 ### Ukrainian State Archives (various)
+
 - **Coverage**: The Central State Historical Archive of Ukraine in Kyiv (CDIAK) and Lviv (CDIAuL) hold the most extensive collections. Individual oblast archives hold records for their regions. Some have online catalogs; most require in-person or email research.
 - **Cost**: Research fees may apply
 - **AI accessibility**: Varies; most are in-person only
@@ -61,6 +60,7 @@ The Russian Empire's equivalent of parish registers, maintained by all religious
 3. **Deaths** (ob umershikh): Name, age, cause of death, burial date
 
 Metric books were kept by:
+
 - **Orthodox churches**: Most records in Russian. The largest denomination. Covers the majority of the population.
 - **Catholic churches**: Records in Latin or Polish. Common in western Ukraine, Belarus, and Lithuania.
 - **Lutheran churches**: Records in German. Common in Baltic regions and German colonies.
@@ -93,6 +93,7 @@ After the 1917 Revolution, many church records were confiscated by the Soviet st
 ## Administrative Divisions
 
 The Russian Empire used a hierarchical system:
+
 - **Guberniya** (province): The largest unit. Does not correspond to modern Russian oblasts or Ukrainian oblasts.
 - **Uyezd** (county): Subdivision of a guberniya.
 - **Volost** (township): Subdivision of a uyezd, the smallest administrative unit.
@@ -116,7 +117,9 @@ From 1791 to 1917, Jews in the Russian Empire were required to live within a def
 Russian and Ukrainian names follow the pattern: **Given name + Patronymic + Surname**.
 
 ### Patronymics (Otchestvo)
+
 The patronymic is derived from the father's given name:
+
 - Male: Ivan Petrovich = Ivan, son of Pyotr
 - Female: Maria Petrovna = Maria, daughter of Pyotr
 
@@ -125,12 +128,14 @@ Russian male patronymics end in **-ovich/-evich**. Female patronymics end in **-
 Ukrainian patronymics follow similar patterns but with different endings: **-ovich/-ivna** in Ukrainian vs **-ovich/-ovna** in Russian.
 
 ### Surname Patterns
+
 - **-ov/-ev** (Russian), **-enko** (Ukrainian): Patronymic origin (Petrov = of Pyotr, Petrenko = of Pyotr)
 - **-sky/-skiy**: Place of origin (Volkonsky = from the Volkon river)
 - **-uk/-yuk** (Ukrainian): "Son of" (Petruk)
 - **-ko** (Ukrainian): Diminutive or patronymic (Shevchenko)
 
 ### Jewish Naming in the Russian Empire
+
 Jewish families in the Russian Empire were required to adopt fixed surnames in the early 1800s. Common patterns include place names (Berliner, Vilner), occupational names (Schneider, Reznik), and descriptive names (Klein, Schwartz). These were often in Yiddish or German, not Russian.
 
 ## Search Strategy

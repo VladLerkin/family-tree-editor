@@ -468,24 +468,46 @@ class GenealogyTools(
     }
 
     @Tool(
-        "Search FamilySearch. This tool automatically performs a DUAL search: " +
-        "1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). " +
-        "PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. " +
-        "3. For WOMEN, First Name is EXACT, Surname is FUZZY."
+            "Search FamilySearch. This tool automatically performs a DUAL search: " +
+                    "1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). " +
+                    "PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. " +
+                    "3. For WOMEN, First Name is EXACT, Surname is FUZZY."
     )
     suspend fun queryFamilySearch(
-        firstName: String,
-        lastName: String,
-        birthYear: String? = null,
-        birthPlace: String? = null,
-        deathYear: String? = null,
-        deathPlace: String? = null,
-        gender: String? = null,
-        exactMatch: Boolean = false
+            firstName: String,
+            lastName: String,
+            birthYear: String? = null,
+            birthPlace: String? = null,
+            deathYear: String? = null,
+            deathPlace: String? = null,
+            gender: String? = null,
+            exactMatch: Boolean = false
     ): String {
-        val recordsTask = executeFamilySearchQuery(FamilySearchSearchType.HISTORICAL_RECORDS, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
-        val treeTask = executeFamilySearchQuery(FamilySearchSearchType.FAMILY_TREE, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
-        
+        val recordsTask =
+                executeFamilySearchQuery(
+                        FamilySearchSearchType.HISTORICAL_RECORDS,
+                        firstName,
+                        lastName,
+                        birthYear,
+                        birthPlace,
+                        deathYear,
+                        deathPlace,
+                        gender,
+                        exactMatch
+                )
+        val treeTask =
+                executeFamilySearchQuery(
+                        FamilySearchSearchType.FAMILY_TREE,
+                        firstName,
+                        lastName,
+                        birthYear,
+                        birthPlace,
+                        deathYear,
+                        deathPlace,
+                        gender,
+                        exactMatch
+                )
+
         return """
             ### RESULTS FROM FAMILYSEARCH HISTORICAL RECORDS
             $recordsTask
@@ -496,32 +518,59 @@ class GenealogyTools(
     }
 
     private suspend fun executeFamilySearchQuery(
-        searchType: FamilySearchSearchType,
-        firstName: String,
-        lastName: String,
-        birthYear: String? = null,
-        birthPlace: String? = null,
-        deathYear: String? = null,
-        deathPlace: String? = null,
-        gender: String? = null,
-        exactMatch: Boolean = false
+            searchType: FamilySearchSearchType,
+            firstName: String,
+            lastName: String,
+            birthYear: String? = null,
+            birthPlace: String? = null,
+            deathYear: String? = null,
+            deathPlace: String? = null,
+            gender: String? = null,
+            exactMatch: Boolean = false
     ): String {
-        val label = if (searchType == FamilySearchSearchType.FAMILY_TREE) "FAMILYSEARCH TREE" else "FAMILYSEARCH HISTORICAL RECORDS"
-        
+        val label =
+                if (searchType == FamilySearchSearchType.FAMILY_TREE) "FAMILYSEARCH TREE"
+                else "FAMILYSEARCH HISTORICAL RECORDS"
+
         if (!exactMatch) {
             onLog("🔎 [$label] Trying AUTO-EXACT search first...")
-            val exactResponse = fetchFamilySearchResponse(searchType, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, true)
+            val exactResponse =
+                    fetchFamilySearchResponse(
+                            searchType,
+                            firstName,
+                            lastName,
+                            birthYear,
+                            birthPlace,
+                            deathYear,
+                            deathPlace,
+                            gender,
+                            true
+                    )
             if (exactResponse.results > 0) {
-                onLog("✅ [$label] Found ${exactResponse.results} high-quality exact matches. Skipping fuzzy search.")
+                onLog(
+                        "✅ [$label] Found ${exactResponse.results} high-quality exact matches. Skipping fuzzy search."
+                )
                 return processFamilySearchResponse(exactResponse.body, label, firstName, lastName)
             }
             onLog("ℹ️ [$label] No exact matches found. Proceeding with fuzzy search...")
         }
 
-        val response = fetchFamilySearchResponse(searchType, firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch)
-        
+        val response =
+                fetchFamilySearchResponse(
+                        searchType,
+                        firstName,
+                        lastName,
+                        birthYear,
+                        birthPlace,
+                        deathYear,
+                        deathPlace,
+                        gender,
+                        exactMatch
+                )
+
         if (response.results > 50 && !exactMatch) {
-            val msg = "Too many results found (${response.results}). Please provide more specific parameters."
+            val msg =
+                    "Too many results found (${response.results}). Please provide more specific parameters."
             onLog("⚠️ [$label] $msg")
             return msg
         }
@@ -532,124 +581,158 @@ class GenealogyTools(
     private data class FamilySearchRawResponse(val results: Int, val body: String)
 
     private suspend fun fetchFamilySearchResponse(
-        searchType: FamilySearchSearchType,
-        firstName: String,
-        lastName: String,
-        birthYear: String?,
-        birthPlace: String?,
-        deathYear: String?,
-        deathPlace: String?,
-        gender: String?,
-        exactMatch: Boolean
+            searchType: FamilySearchSearchType,
+            firstName: String,
+            lastName: String,
+            birthYear: String?,
+            birthPlace: String?,
+            deathYear: String?,
+            deathPlace: String?,
+            gender: String?,
+            exactMatch: Boolean
     ): FamilySearchRawResponse {
-        val source = when (searchType) {
-            FamilySearchSearchType.HISTORICAL_RECORDS -> "hr"
-            FamilySearchSearchType.FAMILY_TREE -> "tree"
-        }
+        val source =
+                when (searchType) {
+                    FamilySearchSearchType.HISTORICAL_RECORDS -> "hr"
+                    FamilySearchSearchType.FAMILY_TREE -> "tree"
+                }
 
         val baseUrl = "https://www.familysearch.org/service/search/$source/v2/personas"
-        val response = try {
-            httpClient.get(baseUrl) {
-                url {
-                    parameters.append("count", "20")
-                    parameters.append("offset", "0")
-                    parameters.append("m.defaultFacets", "on")
-                    parameters.append("m.facetNestCollectionInCategory", "on")
-                    parameters.append("m.queryRequireDefault", "on")
-                    
-                    val isMale = gender?.equals("Male", true) == true || gender?.equals("M", true) == true
-                    val isFemale = gender?.equals("Female", true) == true || gender?.equals("F", true) == true
-                    
-                    val nameExact = exactMatch || isMale || isFemale
-                    val surnameExact = exactMatch || isMale
-                    
-                    if (firstName.isNotBlank() || lastName.isNotBlank()) {
-                        val logFields = mutableListOf<String>()
-                        if (firstName.isNotBlank()) logFields.add("name=\"$firstName\"(exact=$nameExact)")
-                        if (lastName.isNotBlank()) logFields.add("surname=\"$lastName\"(exact=$surnameExact)")
-                        if (gender != null) logFields.add("gender=\"$gender\"")
-                        
-                        fun String?.isValid(): Boolean = !this.isNullOrBlank() && 
-                            !this.lowercase().let { it == "unknown" || it == "none" || it == "null" || it == "undefined" }
+        val response =
+                try {
+                    httpClient.get(baseUrl) {
+                        url {
+                            parameters.append("count", "20")
+                            parameters.append("offset", "0")
+                            parameters.append("m.defaultFacets", "on")
+                            parameters.append("m.facetNestCollectionInCategory", "on")
+                            parameters.append("m.queryRequireDefault", "on")
 
-                        if (birthYear.isValid()) logFields.add("birthYear=\"$birthYear\"(exact=$exactMatch)")
-                        if (birthPlace.isValid()) logFields.add("birthPlace=\"$birthPlace\"(exact=$exactMatch)")
-                        if (deathYear.isValid()) logFields.add("deathYear=\"$deathYear\"(exact=$exactMatch)")
-                        if (deathPlace.isValid()) logFields.add("deathPlace=\"$deathPlace\"(exact=$exactMatch)")
-                        
-                        onLog("🌐 [FAMILYSEARCH] Query: ${logFields.joinToString(", ")}")
-                    }
+                            val isMale =
+                                    gender?.equals("Male", true) == true ||
+                                            gender?.equals("M", true) == true
+                            val isFemale =
+                                    gender?.equals("Female", true) == true ||
+                                            gender?.equals("F", true) == true
 
-                    if (firstName.isNotBlank()) {
-                        parameters.append("q.givenName", firstName)
-                        if (nameExact) {
-                            parameters.append("q.givenName.exact", "on")
-                            if (source == "tree") parameters.append("q.givenName.require", "on")
+                            val nameExact = exactMatch || isMale || isFemale
+                            val surnameExact = exactMatch || isMale
+
+                            if (firstName.isNotBlank() || lastName.isNotBlank()) {
+                                val logFields = mutableListOf<String>()
+                                if (firstName.isNotBlank())
+                                        logFields.add("name=\"$firstName\"(exact=$nameExact)")
+                                if (lastName.isNotBlank())
+                                        logFields.add("surname=\"$lastName\"(exact=$surnameExact)")
+                                if (gender != null) logFields.add("gender=\"$gender\"")
+
+                                fun String?.isValid(): Boolean =
+                                        !this.isNullOrBlank() &&
+                                                !this.lowercase().let {
+                                                    it == "unknown" ||
+                                                            it == "none" ||
+                                                            it == "null" ||
+                                                            it == "undefined"
+                                                }
+
+                                if (birthYear.isValid())
+                                        logFields.add("birthYear=\"$birthYear\"(exact=$exactMatch)")
+                                if (birthPlace.isValid())
+                                        logFields.add(
+                                                "birthPlace=\"$birthPlace\"(exact=$exactMatch)"
+                                        )
+                                if (deathYear.isValid())
+                                        logFields.add("deathYear=\"$deathYear\"(exact=$exactMatch)")
+                                if (deathPlace.isValid())
+                                        logFields.add(
+                                                "deathPlace=\"$deathPlace\"(exact=$exactMatch)"
+                                        )
+
+                                onLog("🌐 [FAMILYSEARCH] Query: ${logFields.joinToString(", ")}")
+                            }
+
+                            if (firstName.isNotBlank()) {
+                                parameters.append("q.givenName", firstName)
+                                if (nameExact) {
+                                    parameters.append("q.givenName.exact", "on")
+                                    if (source == "tree")
+                                            parameters.append("q.givenName.require", "on")
+                                }
+                            }
+                            if (lastName.isNotBlank()) {
+                                parameters.append("q.surname", lastName)
+                                if (surnameExact) {
+                                    parameters.append("q.surname.exact", "on")
+                                    if (source == "tree")
+                                            parameters.append("q.surname.require", "on")
+                                }
+                            }
+
+                            if (isMale) {
+                                parameters.append("q.sex", "Male")
+                            } else if (isFemale) {
+                                parameters.append("q.sex", "Female")
+                            }
+
+                            fun String?.isValid(): Boolean =
+                                    !this.isNullOrBlank() &&
+                                            !this.lowercase().let {
+                                                it == "unknown" ||
+                                                        it == "none" ||
+                                                        it == "null" ||
+                                                        it == "undefined"
+                                            }
+
+                            if (birthYear.isValid()) {
+                                val key = if (exactMatch) "q.birthDate" else "q.birthLikeDate"
+                                parameters.append(key, birthYear!!)
+                            }
+                            if (birthPlace.isValid()) {
+                                val key = if (exactMatch) "q.birthPlace" else "q.birthLikePlace"
+                                parameters.append(key, birthPlace!!)
+                                if (exactMatch) parameters.append("$key.exact", "on")
+                            }
+                            if (deathYear.isValid()) {
+                                val key = if (exactMatch) "q.deathDate" else "q.deathLikeDate"
+                                parameters.append(key, deathYear!!)
+                            }
+                            if (deathPlace.isValid()) {
+                                val key = if (exactMatch) "q.deathPlace" else "q.deathLikePlace"
+                                parameters.append(key, deathPlace!!)
+                                if (exactMatch) parameters.append("$key.exact", "on")
+                            }
                         }
+                        header(
+                                "User-Agent",
+                                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+                        )
+                        header("Accept", "application/json")
+                        header("Cookie", liveFamilySearchCookies?.trim() ?: "")
                     }
-                    if (lastName.isNotBlank()) {
-                        parameters.append("q.surname", lastName)
-                        if (surnameExact) {
-                            parameters.append("q.surname.exact", "on")
-                            if (source == "tree") parameters.append("q.surname.require", "on")
-                        }
-                    }
-                    
-                    if (isMale) {
-                        parameters.append("q.sex", "Male")
-                    } else if (isFemale) {
-                        parameters.append("q.sex", "Female")
-                    }
-                    
-                    fun String?.isValid(): Boolean = !this.isNullOrBlank() && 
-                        !this.lowercase().let { it == "unknown" || it == "none" || it == "null" || it == "undefined" }
-
-                    if (birthYear.isValid()) {
-                        val key = if (exactMatch) "q.birthDate" else "q.birthLikeDate"
-                        parameters.append(key, birthYear!!)
-                    }
-                    if (birthPlace.isValid()) {
-                        val key = if (exactMatch) "q.birthPlace" else "q.birthLikePlace"
-                        parameters.append(key, birthPlace!!)
-                        if (exactMatch) parameters.append("$key.exact", "on")
-                    }
-                    if (deathYear.isValid()) {
-                        val key = if (exactMatch) "q.deathDate" else "q.deathLikeDate"
-                        parameters.append(key, deathYear!!)
-                    }
-                    if (deathPlace.isValid()) {
-                        val key = if (exactMatch) "q.deathPlace" else "q.deathLikePlace"
-                        parameters.append(key, deathPlace!!)
-                        if (exactMatch) parameters.append("$key.exact", "on")
-                    }
+                } catch (e: Exception) {
+                    return FamilySearchRawResponse(0, "Network error: ${e.message}")
                 }
-                header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36")
-                header("Accept", "application/json")
-                header("Cookie", liveFamilySearchCookies?.trim() ?: "")
-            }
-        } catch (e: Exception) {
-            return FamilySearchRawResponse(0, "Network error: ${e.message}")
-        }
 
         val body = response.bodyAsText()
-        val resultsCount = try {
-            Json.parseToJsonElement(body).jsonObject["results"]?.jsonPrimitive?.int ?: 0
-        } catch (e: Exception) {
-            0
-        }
-        
+        val resultsCount =
+                try {
+                    Json.parseToJsonElement(body).jsonObject["results"]?.jsonPrimitive?.int ?: 0
+                } catch (e: Exception) {
+                    0
+                }
+
         return FamilySearchRawResponse(resultsCount, body)
     }
 
     private suspend fun processFamilySearchResponse(
-        body: String,
-        label: String,
-        firstName: String,
-        lastName: String
+            body: String,
+            label: String,
+            firstName: String,
+            lastName: String
     ): String {
         if (body.contains("\"error\"") || body.contains("\"errors\"")) {
-             onLog("⚠️ [$label] API returned an error. Cookies might be expired.")
-             return "Error: FamilySearch API returned an error. Please check your cookies."
+            onLog("⚠️ [$label] API returned an error. Cookies might be expired.")
+            return "Error: FamilySearch API returned an error. Please check your cookies."
         }
 
         if (body.contains("\"results\":0") || body.contains("\"entries\":[]")) {
@@ -659,14 +742,16 @@ class GenealogyTools(
 
         if (aiClient != null && aiConfig != null) {
             onLog("🤖 [TOOL SUB-AGENT] Summarizing $label results...")
-            val cleanedData = try {
-                cleanFamilySearchData(body)
-            } catch (e: Exception) {
-                onLog("⚠️ [FAMILYSEARCH] JSON parsing failed: ${e.message}")
-                body.take(4000)
-            }
+            val cleanedData =
+                    try {
+                        cleanFamilySearchData(body)
+                    } catch (e: Exception) {
+                        onLog("⚠️ [FAMILYSEARCH] JSON parsing failed: ${e.message}")
+                        body.take(4000)
+                    }
 
-            val summaryPrompt = """
+            val summaryPrompt =
+                    """
                 Extract genealogical records from this FamilySearch data for $lastName $firstName.
                 The data below has been cleaned from JSON. 
                 Include dates, locations, and relationships (parents, spouse) for each record.
@@ -679,68 +764,111 @@ class GenealogyTools(
             onLog("🤖 [TOOL SUB-AGENT RESULT] $summarized")
             return summarized
         }
-        
+
         return body.take(2000)
     }
 
     private fun cleanFamilySearchData(json: String): String {
-        val root = try { Json.parseToJsonElement(json).jsonObject } catch(e: Exception) { return "Invalid JSON" }
+        val root =
+                try {
+                    Json.parseToJsonElement(json).jsonObject
+                } catch (e: Exception) {
+                    return "Invalid JSON"
+                }
         val entries = root["entries"]?.jsonArray ?: return "No records found."
-        
+
         return buildString {
             // Process only first 10 entries to avoid overwhelming the AI
             entries.take(10).forEachIndexed { index, entry ->
                 val content = entry.jsonObject["content"]?.jsonObject ?: return@forEachIndexed
                 val gedcomx = content["gedcomx"]?.jsonObject ?: return@forEachIndexed
                 val persons = gedcomx["persons"]?.jsonArray ?: return@forEachIndexed
-                
+
                 // Map to resolve names by ID within this record
                 val personMap = mutableMapOf<String, String>()
                 persons.forEach { person ->
                     val pObj = person.jsonObject
                     val id = pObj["id"]?.jsonPrimitive?.content ?: ""
-                    val name = pObj["names"]?.jsonArray?.firstOrNull()?.jsonObject
-                        ?.get("nameForms")?.jsonArray?.firstOrNull()?.jsonObject
-                        ?.get("fullText")?.jsonPrimitive?.content ?: "Unknown"
+                    val name =
+                            pObj["names"]
+                                    ?.jsonArray
+                                    ?.firstOrNull()
+                                    ?.jsonObject
+                                    ?.get("nameForms")
+                                    ?.jsonArray
+                                    ?.firstOrNull()
+                                    ?.jsonObject
+                                    ?.get("fullText")
+                                    ?.jsonPrimitive
+                                    ?.content
+                                    ?: "Unknown"
                     if (id.isNotBlank()) personMap[id] = name
                 }
 
                 appendLine("--- Record #${index + 1} ---")
-                
+
                 persons.forEach { person ->
                     val pObj = person.jsonObject
                     val isPrincipal = pObj["principal"]?.jsonPrimitive?.booleanOrNull == true
                     if (isPrincipal) append("[PRINCIPAL] ")
-                    
+
                     val id = pObj["id"]?.jsonPrimitive?.content ?: ""
                     val name = personMap[id] ?: "Unknown"
                     appendLine("Person: $name")
-                    
+
                     // Gender
                     pObj["gender"]?.jsonObject["type"]?.jsonPrimitive?.content?.let {
-                         appendLine("  Gender: ${it.substringAfterLast("/")}")
+                        appendLine("  Gender: ${it.substringAfterLast("/")}")
                     }
 
                     // Facts
                     pObj["facts"]?.jsonArray?.forEach { fact ->
-                        val type = fact.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast("/") ?: "Fact"
-                        val date = fact.jsonObject["date"]?.jsonObject?.get("original")?.jsonPrimitive?.content ?: ""
-                        val place = fact.jsonObject["place"]?.jsonObject?.get("original")?.jsonPrimitive?.content ?: ""
+                        val type =
+                                fact.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast(
+                                        "/"
+                                )
+                                        ?: "Fact"
+                        val date =
+                                fact.jsonObject["date"]?.jsonObject?.get("original")
+                                        ?.jsonPrimitive
+                                        ?.content
+                                        ?: ""
+                        val place =
+                                fact.jsonObject["place"]?.jsonObject?.get("original")
+                                        ?.jsonPrimitive
+                                        ?.content
+                                        ?: ""
                         if (date.isNotBlank() || place.isNotBlank()) {
                             appendLine("  $type: $date $place")
                         }
                     }
                 }
-                
+
                 // Relationships
                 gedcomx["relationships"]?.jsonArray?.forEach { rel ->
-                    val relType = rel.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast("/") ?: "Relationship"
-                    val p1Id = rel.jsonObject["person1"]?.jsonObject?.get("resource")?.jsonPrimitive?.content?.removePrefix("#") ?: ""
-                    val p2Id = rel.jsonObject["person2"]?.jsonObject?.get("resource")?.jsonPrimitive?.content?.removePrefix("#") ?: ""
-                    
+                    val relType =
+                            rel.jsonObject["type"]?.jsonPrimitive?.content?.substringAfterLast("/")
+                                    ?: "Relationship"
+                    val p1Id =
+                            rel.jsonObject["person1"]
+                                    ?.jsonObject
+                                    ?.get("resource")
+                                    ?.jsonPrimitive
+                                    ?.content
+                                    ?.removePrefix("#")
+                                    ?: ""
+                    val p2Id =
+                            rel.jsonObject["person2"]
+                                    ?.jsonObject
+                                    ?.get("resource")
+                                    ?.jsonPrimitive
+                                    ?.content
+                                    ?.removePrefix("#")
+                                    ?: ""
+
                     val p1Name = personMap[p1Id] ?: "Unknown"
                     val p2Name = personMap[p2Id] ?: "Unknown"
-                    
+
                     appendLine("Relation: $p1Name ($relType) $p2Name")
                 }
 
