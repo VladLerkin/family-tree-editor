@@ -78,11 +78,11 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 | Compose Multiplatform | 1.10.3 |
 | Android Compose BOM | 2026.04.01 |
 | Gradle | 9.4.1 |
-| Android Gradle Plugin | 9.2.0 |
+| Android Gradle Plugin | 9.2.1 |
 | Ktor | 3.4.3 |
 | JDK | 25 |
 | Koog | 0.8.0 |
-| Android Target SDK | 36 |
+| Android Target SDK | 37 |
 
 ## 🐛 Troubleshooting
 
