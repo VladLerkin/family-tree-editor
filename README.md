@@ -76,7 +76,7 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 |-----------|---------|
 | Kotlin | 2.3.21 |
 | Compose Multiplatform | 1.10.3 |
-| Android Compose BOM | 2026.04.01 |
+| Android Compose BOM | 2026.05.00 |
 | Gradle | 9.4.1 |
 | Android Gradle Plugin | 9.2.1 |
 | Ktor | 3.4.3 |
