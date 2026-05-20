@@ -80,10 +80,10 @@ app-web/
 
 ### Технические детали
 - **Kotlin**: 2.3.21
-- **Compose Multiplatform**: 1.10.3
+- **Compose Multiplatform**: 1.11.0
 - **Vite**: 5.4.11
 - **Gradle**: 9.4.1 (с поддержкой wasmJs)
-- **Ktor Client**: 3.4.3 (с поддержкой wasmJs)
+- **Ktor Client**: 3.5.0 (с поддержкой wasmJs)
 - **Target**: wasmJs (WebAssembly для JavaScript)
 
 ## Разработка

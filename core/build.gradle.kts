@@ -16,7 +16,6 @@ kotlin {
     jvm("desktop")
     
     // iOS targets
-    iosX64()
     iosArm64()
     iosSimulatorArm64()
     
