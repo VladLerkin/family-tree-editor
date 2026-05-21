@@ -5,6 +5,7 @@ import ai.koog.agents.core.dsl.builder.*
 import ai.koog.agents.core.dsl.extension.*
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 
 /** Autoresearch Genealogy Strategy implemented as a multi-node Koog Graph. */
 fun createAutoresearchStrategy(
@@ -58,8 +59,8 @@ fun createAutoresearchStrategy(
         """.trimIndent()
                                 )
                         }
-                val scanRequest: AIAgentNodeBase<String, Message.Response> by
-                        nodeLLMRequest("Scanner", allowToolCalls = true)
+                val scanRequest: AIAgentNodeBase<String, Message.Assistant> by
+                        nodeLLMRequest("Scanner")
 
                 // 2. DISCOVERY PHASE
                 val discoveryPrompt: AIAgentNodeBase<String, String> by
@@ -88,8 +89,8 @@ fun createAutoresearchStrategy(
         """.trimIndent()
                                 )
                         }
-                val discoveryRequest: AIAgentNodeBase<String, Message.Response> by
-                        nodeLLMRequest("Discovery", allowToolCalls = true)
+                val discoveryRequest: AIAgentNodeBase<String, Message.Assistant> by
+                        nodeLLMRequest("Discovery")
 
                 // 3. RESEARCH PHASE
                 val researchPrompt: AIAgentNodeBase<String, String> by
@@ -103,7 +104,7 @@ fun createAutoresearchStrategy(
             
             TASK: Execute targeted searches for EACH person and location identified in the research plan.
             - WWII ARCHIVES: Use 'searchPamyatNaroda' for individuals from the USSR/Russia born approximately 1890-1930. 
-- GLOBAL ARCHIVES: For EVERY person, you MUST call 'queryFamilySearch'. Skipping it is a CRITICAL FAILURE. It automatically searches both records and user trees.
+            - GLOBAL ARCHIVES: For EVERY person, you MUST call 'queryFamilySearch'. Skipping it is a CRITICAL FAILURE. It automatically searches both records and user trees.
                 3. NAME PROTOCOL: Surnames and First Names for MEN are treated as EXACT. To maximize matches for men, provide ONLY the first name in 'firstName' (omit patronymic). For WOMEN, First Name is EXACT, but Surname is FUZZY. Always pass the 'gender' parameter.
             - COMMON NAMES: If the person has a very common last name (Smith, Jones, Ivanov, Kuznetsov, etc.), you MUST set exactMatch=true. 
             - SURVIVOR POLICY: Do NOT skip people who survived the war for WWII research. 
@@ -119,8 +120,8 @@ fun createAutoresearchStrategy(
         """.trimIndent()
                                 )
                         }
-                val researchRequest: AIAgentNodeBase<String, Message.Response> by
-                        nodeLLMRequest("Research", allowToolCalls = true)
+                val researchRequest: AIAgentNodeBase<String, Message.Assistant> by
+                        nodeLLMRequest("Research")
 
                 // 4. FINALIZE PHASE
                 val finalizePrompt: AIAgentNodeBase<String, String> by
@@ -156,76 +157,70 @@ fun createAutoresearchStrategy(
         """.trimIndent()
                                 )
                         }
-                val finalizeRequest: AIAgentNodeBase<String, Message.Response> by
-                        nodeLLMRequest("Finalizer", allowToolCalls = false)
+                val finalizeRequest: AIAgentNodeBase<String, Message.Assistant> by
+                        nodeLLMRequestWithoutTools("Finalizer")
 
-                // Extraction Node: Convert Message.Response to String
-                val nodeExtractResult: AIAgentNodeBase<Message.Response, String> by
-                        node<Message.Response, String>("Extractor") { response: Message.Response ->
+                // Extraction Node: Convert Message.Assistant to String
+                val nodeExtractResult: AIAgentNodeBase<Message.Assistant, String> by
+                        node<Message.Assistant, String>("Extractor") { response: Message.Assistant ->
                                 val text =
-                                        (response as Message.Assistant).parts.filterIsInstance<
-                                                        ai.koog.prompt.message.ContentPart.Text>()
+                                        response.parts.filterIsInstance<MessagePart.Text>()
                                                 .joinToString("") { it.text }
                                 onLog("Final extraction result length: ${text.length}")
                                 text
                         }
 
                 // Collector node to capture successful findings from tool results
-                val findingsCollector: AIAgentNodeBase<ReceivedToolResult, ReceivedToolResult> by
-                        node("FindingsCollector") { result: ReceivedToolResult ->
-                                val content = result.content
-                                // Detect if the result contains actual consolidated military data
-                                // or evidence
-                                if (content.contains("Consolidated Military Record") ||
-                                                content.contains("military records extracted") ||
-                                                content.contains("NEW fact") ||
-                                                content.contains("FamilySearch") ||
-                                                content.contains("Pamyat Naroda") ||
-                                                (content.contains("Birth Date") &&
-                                                        content.length > 50)
-                                ) {
-
-                                        val taggedContent =
-                                                when {
-                                                        content.contains("FamilySearch") ->
-                                                                "[FamilySearch] $content"
+                val findingsCollector by
+                        node("FindingsCollector") { result: ai.koog.agents.core.dsl.extension.ReceivedToolResults ->
+                                result.toolResults.forEach { singleResult ->
+                                        val content = singleResult.output
+                                        // Detect if the result contains actual consolidated military data
+                                        // or evidence
+                                        if (content.contains("Consolidated Military Record") ||
+                                                        content.contains("military records extracted") ||
+                                                        content.contains("NEW fact") ||
+                                                        content.contains("FamilySearch") ||
                                                         content.contains("Pamyat Naroda") ||
-                                                                content.contains(
-                                                                        "Consolidated Military Record"
-                                                                ) -> "[Pamyat Naroda] $content"
-                                                        else -> content
-                                                }
-
-                                        // Prevent duplicates
-                                        if (accumulatedFindings.none {
-                                                        it.take(20) == taggedContent.take(20)
-                                                }
+                                                        (content.contains("Birth Date") &&
+                                                                 content.length > 50)
                                         ) {
-                                                accumulatedFindings.add(taggedContent)
-                                                onLog(
-                                                        "📦 [STORAGE] Stored finding in accumulator (Total: ${accumulatedFindings.size})"
-                                                )
+
+                                                val taggedContent =
+                                                        when {
+                                                                content.contains("FamilySearch") ->
+                                                                        "[FamilySearch] $content"
+                                                                content.contains("Pamyat Naroda") ||
+                                                                        content.contains(
+                                                                                "Consolidated Military Record"
+                                                                        ) -> "[Pamyat Naroda] $content"
+                                                                else -> content
+                                                        }
+
+                                                // Prevent duplicates
+                                                if (accumulatedFindings.none {
+                                                                it.take(20) == taggedContent.take(20)
+                                                        }
+                                                ) {
+                                                        accumulatedFindings.add(taggedContent)
+                                                        onLog(
+                                                                "📦 [STORAGE] Stored finding in accumulator (Total: ${accumulatedFindings.size})"
+                                                        )
+                                                }
                                         }
                                 }
                                 result
                         }
 
                 // Phase-specific Tool execution nodes
-                val scanExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by
-                        nodeExecuteTool("ScanToolExecutor")
-                val scanSendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by
-                        nodeLLMSendToolResult("ScanToolResultSender")
+                val scanExecuteTool by nodeExecuteTools("ScanToolExecutor")
+                val scanSendToolResult by nodeLLMSendToolResults("ScanToolResultSender")
 
-                val discoveryExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by
-                        nodeExecuteTool("DiscoveryToolExecutor")
-                val discoverySendToolResult:
-                        AIAgentNodeBase<ReceivedToolResult, Message.Response> by
-                        nodeLLMSendToolResult("DiscoveryToolResultSender")
+                val discoveryExecuteTool by nodeExecuteTools("DiscoveryToolExecutor")
+                val discoverySendToolResult by nodeLLMSendToolResults("DiscoveryToolResultSender")
 
-                val researchExecuteTool: AIAgentNodeBase<Message.Tool.Call, ReceivedToolResult> by
-                        nodeExecuteTool("ResearchToolExecutor")
-                val researchSendToolResult: AIAgentNodeBase<ReceivedToolResult, Message.Response> by
-                        nodeLLMSendToolResult("ResearchToolResultSender")
+                val researchExecuteTool by nodeExecuteTools("ResearchToolExecutor")
+                val researchSendToolResult by nodeLLMSendToolResults("ResearchToolResultSender")
 
                 // --- GRAPH FLOW ---
 
@@ -234,8 +229,8 @@ fun createAutoresearchStrategy(
                 edge(scanPrompt.forwardTo<String>(scanRequest))
 
                 // Scan Loop (Tool calling)
-                edge(scanRequest.forwardTo<Message.Tool.Call>(scanExecuteTool) onToolCall { true })
-                edge(scanExecuteTool.forwardTo<ReceivedToolResult>(scanSendToolResult))
+                edge(scanRequest.forwardTo(scanExecuteTool).onToolCalls { true })
+                edge(scanExecuteTool.forwardTo(scanSendToolResult))
                 edge(
                         scanSendToolResult.forwardTo<String>(scanRequest).transformed {
                                 it.asString()
@@ -245,7 +240,7 @@ fun createAutoresearchStrategy(
                 // Helper to detect if a message looks like a halluncinated tool list instead of a
                 // real
                 // response
-                fun isSubstantiveResponse(it: Message.Response): Boolean {
+                fun isSubstantiveResponse(it: Message.Assistant): Boolean {
                         val text = it.asString().lowercase()
                         // If it starts with a tool-like list but has no other content, it's
                         // probably
@@ -264,18 +259,18 @@ fun createAutoresearchStrategy(
                 edge(
                         scanRequest
                                 .forwardTo<String>(discoveryPrompt)
-                                .onAssistantMessage { isSubstantiveResponse(it) }
+                                .onCondition { isSubstantiveResponse(it) }
                                 .transformed { "### RESULTS FROM SCANNER\n${it.asString()}" }
                 )
                 edge(discoveryPrompt.forwardTo<String>(discoveryRequest))
 
                 // Discovery Loop (Tool calling)
                 edge(
-                        discoveryRequest.forwardTo<Message.Tool.Call>(
+                        discoveryRequest.forwardTo(
                                 discoveryExecuteTool
-                        ) onToolCall { true }
+                        ).onToolCalls { true }
                 )
-                edge(discoveryExecuteTool.forwardTo<ReceivedToolResult>(discoverySendToolResult))
+                edge(discoveryExecuteTool.forwardTo(discoverySendToolResult))
                 // Return to Discovery request, transforming Tool Result Response back to String
                 edge(
                         discoverySendToolResult.forwardTo<String>(discoveryRequest).transformed {
@@ -287,20 +282,19 @@ fun createAutoresearchStrategy(
                 edge(
                         discoveryRequest
                                 .forwardTo<String>(researchPrompt)
-                                .onAssistantMessage { isSubstantiveResponse(it) }
+                                .onCondition { isSubstantiveResponse(it) }
                                 .transformed { "### RESEARCH PLAN TO EXECUTE\n${it.asString()}" }
                 )
                 edge(researchPrompt.forwardTo<String>(researchRequest))
 
                 // Research Loop (Execute -> Collect -> Send Result)
                 edge(
-                        researchRequest.forwardTo<Message.Tool.Call>(researchExecuteTool) onToolCall
-                                {
-                                        true
-                                }
+                        researchRequest.forwardTo(researchExecuteTool).onToolCalls {
+                                true
+                        }
                 )
-                edge(researchExecuteTool.forwardTo<ReceivedToolResult>(findingsCollector))
-                edge(findingsCollector.forwardTo<ReceivedToolResult>(researchSendToolResult))
+                edge(researchExecuteTool.forwardTo(findingsCollector))
+                edge(findingsCollector.forwardTo(researchSendToolResult))
                 edge(
                         researchSendToolResult.forwardTo<String>(researchRequest).transformed {
                                 it.asString()
@@ -311,7 +305,7 @@ fun createAutoresearchStrategy(
                 edge(
                         researchRequest
                                 .forwardTo<String>(finalizePrompt)
-                                .onAssistantMessage { isSubstantiveResponse(it) }
+                                .onCondition { isSubstantiveResponse(it) }
                                 .transformed { "### RESEARCH FINDINGS\n${it.asString()}" }
                 )
                 edge(finalizePrompt.forwardTo<String>(finalizeRequest))
@@ -324,14 +318,13 @@ fun createAutoresearchStrategy(
                 // In Koog, history is preserved.
 
                 // Finalize -> Extract -> Finish
-                edge(finalizeRequest.forwardTo<Message.Response>(nodeExtractResult))
+                edge(finalizeRequest.forwardTo<Message.Assistant>(nodeExtractResult))
                 edge(nodeExtractResult.forwardTo<String>(nodeFinish))
         }
 
 /** Extension to extract text content from a Message.Response or Message. */
 private fun Any?.asString(): String {
-        val message = this as? Message.Response ?: return ""
-        val assistant = message as? Message.Assistant ?: return ""
-        return assistant.parts.filterIsInstance<ai.koog.prompt.message.ContentPart.Text>()
+        val assistant = this as? Message.Assistant ?: return ""
+        return assistant.parts.filterIsInstance<MessagePart.Text>()
                 .joinToString("") { it.text }
 }
