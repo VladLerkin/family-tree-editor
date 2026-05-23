@@ -79,6 +79,8 @@ class OpenAiClient : BaseAiClient() {
             }
         }
         
+        println("[AI-DEBUG] OpenAI Request JSON: " + requestBody.toString())
+        
         var attempt = 0
         val maxAttempts = 6
         var responseText = ""

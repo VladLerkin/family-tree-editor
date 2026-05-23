@@ -231,16 +231,21 @@ fun createAutoresearchStrategy(
                 // Scan Loop (Tool calling)
                 edge(scanRequest.forwardTo(scanExecuteTool).onToolCalls { true })
                 edge(scanExecuteTool.forwardTo(scanSendToolResult))
+                edge(scanSendToolResult.forwardTo(scanExecuteTool).onToolCalls { true })
                 edge(
-                        scanSendToolResult.forwardTo<String>(scanRequest).transformed {
-                                it.asString()
-                        }
+                        scanSendToolResult.forwardTo<String>(scanRequest)
+                                .onCondition { !it.parts.any { it is MessagePart.Tool.Call } }
+                                .transformed { it.asString() }
                 )
 
                 // Helper to detect if a message looks like a halluncinated tool list instead of a
                 // real
                 // response
                 fun isSubstantiveResponse(it: Message.Assistant): Boolean {
+                        // If there are tool calls, we must execute them in the current phase first
+                        if (it.parts.any { it is MessagePart.Tool.Call }) {
+                                return false
+                        }
                         val text = it.asString().lowercase()
                         // If it starts with a tool-like list but has no other content, it's
                         // probably
@@ -271,11 +276,12 @@ fun createAutoresearchStrategy(
                         ).onToolCalls { true }
                 )
                 edge(discoveryExecuteTool.forwardTo(discoverySendToolResult))
+                edge(discoverySendToolResult.forwardTo(discoveryExecuteTool).onToolCalls { true })
                 // Return to Discovery request, transforming Tool Result Response back to String
                 edge(
-                        discoverySendToolResult.forwardTo<String>(discoveryRequest).transformed {
-                                it.asString()
-                        }
+                        discoverySendToolResult.forwardTo<String>(discoveryRequest)
+                                .onCondition { !it.parts.any { it is MessagePart.Tool.Call } }
+                                .transformed { it.asString() }
                 )
 
                 // Discovery Done -> Research (Transform Response -> String)
@@ -295,10 +301,11 @@ fun createAutoresearchStrategy(
                 )
                 edge(researchExecuteTool.forwardTo(findingsCollector))
                 edge(findingsCollector.forwardTo(researchSendToolResult))
+                edge(researchSendToolResult.forwardTo(researchExecuteTool).onToolCalls { true })
                 edge(
-                        researchSendToolResult.forwardTo<String>(researchRequest).transformed {
-                                it.asString()
-                        }
+                        researchSendToolResult.forwardTo<String>(researchRequest)
+                                .onCondition { !it.parts.any { it is MessagePart.Tool.Call } }
+                                .transformed { it.asString() }
                 )
 
                 // Research Done -> Finalize (Transform Response -> String)

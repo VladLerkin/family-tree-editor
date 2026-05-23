@@ -730,6 +730,11 @@ class GenealogyTools(
             firstName: String,
             lastName: String
     ): String {
+        if (body.startsWith("Network error:")) {
+            onLog("⚠️ [$label] Network error occurred during query: $body")
+            return "No records found due to a network connection error: $body"
+        }
+
         if (body.contains("\"error\"") || body.contains("\"errors\"")) {
             onLog("⚠️ [$label] API returned an error. Cookies might be expired.")
             return "Error: FamilySearch API returned an error. Please check your cookies."

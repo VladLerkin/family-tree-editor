@@ -56,6 +56,31 @@ class KoogModelAdapter(
         tools: List<ToolDescriptor>
     ): Message.Assistant {
         onLog("[AI-DEBUG] Building prompt from ${prompt.messages.size} messages...")
+        prompt.messages.forEachIndexed { index, msg ->
+            onLog("  Koog Message $index: class=${msg::class.simpleName}")
+            when (msg) {
+                is Message.System -> {
+                    val texts = msg.parts.filterIsInstance<MessagePart.Text>()
+                    onLog("    System parts: textCount=${texts.size}")
+                }
+                is Message.User -> {
+                    val texts = msg.parts.filterIsInstance<MessagePart.Text>()
+                    val results = msg.parts.filterIsInstance<MessagePart.Tool.Result>()
+                    onLog("    User parts: textCount=${texts.size}, toolResultCount=${results.size}")
+                    results.forEach { res ->
+                        onLog("      ToolResult: id='${res.id}', tool='${res.tool}', isError=${res.isError}, outputLength=${res.output.length}")
+                    }
+                }
+                is Message.Assistant -> {
+                    val texts = msg.parts.filterIsInstance<MessagePart.Text>()
+                    val calls = msg.parts.filterIsInstance<MessagePart.Tool.Call>()
+                    onLog("    Assistant parts: textCount=${texts.size}, toolCallCount=${calls.size}")
+                    calls.forEach { call ->
+                        onLog("      ToolCall: id='${call.id}', tool='${call.tool}', argsLength=${call.args.length}")
+                    }
+                }
+            }
+        }
         
         // Map Koog messages to AiMessage
         val aiMessages = mutableListOf<AiMessage>()
@@ -131,6 +156,7 @@ class KoogModelAdapter(
                             putJsonObject(param.name) {
                                 val jsonType = when (param.type) {
                                     ToolParameterType.String -> "string"
+                                    ToolParameterType.Boolean -> "boolean"
                                     else -> "string" 
                                 }
                                 put("type", jsonType)
