@@ -13,7 +13,7 @@
 - 📝 **Markdown Export** - Export your family tree to an easy-to-read Markdown document
 - 🎨 **Modern UI** - Built with Compose Multiplatform for native look and feel
 - 🔍 **Inspector Panel** - View and edit individual and family details
-- 🤖 **AI Genealogy Agent** - Autonomous research and expansion using professional protocols ([Documentation](core/src/commonMain/composeResources/files/autoresearch-genealogy/README.md))
+- 🤖 **AI Genealogy Agent** - Autonomous research and expansion using professional protocols ([Documentation](ui/src/commonMain/composeResources/files/autoresearch-genealogy/README.md))
 
 ## 📦 Download
 
@@ -81,7 +81,7 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 | Android Gradle Plugin | 9.2.1 |
 | Ktor | 3.5.0 |
 | JDK | 25 |
-| Koog | 0.8.0 |
+| Koog | 1.0.0 |
 | Android Target SDK | 37 |
 
 ## 🐛 Troubleshooting
