@@ -14,6 +14,9 @@ local.properties
 *.ipr
 *.iws
 
+# Vscode
+.vscode/settings.json
+
 # Kotlin/Compose/Codegen
 .kotlinc/
 .ksp/
@@ -51,4 +54,3 @@ Thumbs.db
 
 # Generated/Synced Android Assets
 app-android/src/main/assets/files/
-

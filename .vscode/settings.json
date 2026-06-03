@@ -1,5 +1,0 @@
-{
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.compile.nullAnalysis.mode": "disabled",
-    "kotlin.java.home": "/Users/vlad/.sdkman/candidates/java/21.0.9-tem"
-}
