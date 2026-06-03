@@ -63,12 +63,31 @@ compose.desktop {
             val javaHome = System.getProperty("java.home")
             val jmodsDir = File(javaHome, "jmods")
             
-            if (!jmodsDir.exists()) {
+            val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
+            localRulesFile.parentFile.mkdirs()
+            
+            if (jmodsDir.exists()) {
+                // Current JDK has jmods (like on GitHub Actions), manually include them since the Compose plugin fails to do so on Java 25
+                val jmodsPath = jmodsDir.absolutePath
+                localRulesFile.writeText("""
+                    # Manually include current JDK modules for ProGuard since Compose plugin does not detect JDK 25's structure
+                    -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
+                    -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
+                """.trimIndent())
+                configurationFiles.from(proguardRules, localRulesFile)
+            } else {
+                // Fallback to local JDK in SDKMAN if current JDK lacks jmods (like on local developer machine)
                 val sdkmanJavaDir = File(System.getProperty("user.home"), ".sdkman/candidates/java")
                 val fallbackJdk = sdkmanJavaDir.listFiles()?.firstOrNull { File(it, "jmods").exists() }
                 if (fallbackJdk != null) {
-                    val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
-                    localRulesFile.parentFile.mkdirs()
                     val jmodsPath = File(fallbackJdk, "jmods").absolutePath
                     localRulesFile.writeText("""
                         # Automatically generated fallback for local JDK missing jmods
@@ -87,8 +106,6 @@ compose.desktop {
                 } else {
                     configurationFiles.from(proguardRules)
                 }
-            } else {
-                configurationFiles.from(proguardRules)
             }
             
             isEnabled.set(true)
