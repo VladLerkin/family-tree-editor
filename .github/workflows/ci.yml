@@ -95,13 +95,13 @@ jobs:
         include:
           - os: ubuntu-latest
             artifact-name: linux-desktop
-            task: packageDeb
+            task: packageReleaseDeb
           - os: macos-latest
             artifact-name: macos-desktop
-            task: packageDmg
+            task: packageReleaseDmg
           - os: windows-latest
             artifact-name: windows-desktop
-            task: packageMsi
+            task: packageReleaseMsi
     
     runs-on: ${{ matrix.os }}
     name: Build Desktop (${{ matrix.os }})
@@ -135,7 +135,7 @@ jobs:
         with:
           name: ${{ matrix.artifact-name }}
           path: |
-            app-desktop/build/compose/binaries/main/**
+            app-desktop/build/compose/binaries/main-release/**
             app-desktop/build/libs/**
           retention-days: 7
   
