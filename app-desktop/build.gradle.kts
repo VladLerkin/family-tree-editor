@@ -58,8 +58,8 @@ compose.desktop {
         
         buildTypes.release.proguard {
             configurationFiles.from(project.file("proguard-rules.pro"))
-            isEnabled.set(false) // Temporarily disabled due to Java 25 compatibility issues in ProGuard 7.7
-            optimize.set(false)
+            isEnabled.set(true)
+            optimize.set(true)
         }
     }
 }
