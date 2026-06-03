@@ -60,56 +60,112 @@ compose.desktop {
             version.set("7.8.2")
             
             val proguardRules = files("proguard-rules.pro")
-            val javaHome = System.getProperty("java.home")
-            val jmodsDir = File(javaHome, "jmods")
-            
             val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
             localRulesFile.parentFile.mkdirs()
-            
-            if (jmodsDir.exists()) {
-                // Current JDK has jmods (like on GitHub Actions), manually include them since the Compose plugin fails to do so on Java 25
-                val jmodsPath = jmodsDir.absolutePath
-                localRulesFile.writeText("""
-                    # Manually include current JDK modules for ProGuard since Compose plugin does not detect JDK 25's structure
-                    -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
-                    -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
-                """.trimIndent())
-                configurationFiles.from(proguardRules, localRulesFile)
-            } else {
-                // Fallback to local JDK in SDKMAN if current JDK lacks jmods (like on local developer machine)
-                val sdkmanJavaDir = File(System.getProperty("user.home"), ".sdkman/candidates/java")
-                val fallbackJdk = sdkmanJavaDir.listFiles()?.firstOrNull { File(it, "jmods").exists() }
-                if (fallbackJdk != null) {
-                    val jmodsPath = File(fallbackJdk, "jmods").absolutePath
-                    localRulesFile.writeText("""
-                        # Automatically generated fallback for local JDK missing jmods
-                        -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
-                        -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
-                    """.trimIndent())
-                    configurationFiles.from(proguardRules, localRulesFile)
-                } else {
-                    configurationFiles.from(proguardRules)
-                }
+            if (!localRulesFile.exists()) {
+                localRulesFile.writeText("# Placeholder")
             }
+            
+            configurationFiles.from(proguardRules, localRulesFile)
             
             isEnabled.set(true)
             optimize.set(false)
         }
     }
 }
+
+tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask>().configureEach {
+    val task = this
+    doFirst {
+        val javaHomeVal = task.javaHome.getOrNull()?.toString() ?: System.getProperty("java.home")
+        val jmodsDir = findJmodsDir(javaHomeVal)
+        val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
+        
+        if (jmodsDir != null) {
+            val jmodsPath = jmodsDir.absolutePath
+            println("ProGuard: Using JDK JMODs at $jmodsPath")
+            localRulesFile.writeText("""
+                # Automatically resolved JDK modules for ProGuard
+                -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
+                -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
+                -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
+            """.trimIndent())
+        } else {
+            println("WARNING: ProGuard could not find a JDK JMODs folder! Preverification might fail.")
+            localRulesFile.writeText("# No JDK JMODs found")
+        }
+    }
+}
+
+fun findJmodsDir(currentJavaHome: String): File? {
+    // 1. Try current javaHome
+    val currentJmods = File(currentJavaHome, "jmods")
+    if (currentJmods.exists() && currentJmods.isDirectory) {
+        return currentJmods
+    }
+    
+    // 2. Try standard search paths
+    val searchDirs = mutableListOf<File>()
+    val userHome = System.getProperty("user.home")
+    
+    // SDKMAN
+    searchDirs.add(File(userHome, ".sdkman/candidates/java"))
+    
+    // GitHub Actions Hosted Tool Cache
+    searchDirs.add(File("/opt/hostedtoolcache"))
+    searchDirs.add(File("C:/hostedtoolcache/windows"))
+    searchDirs.add(File(userHome, "hostedtoolcache"))
+    
+    // OS specific defaults
+    val osName = System.getProperty("os.name").lowercase()
+    if (osName.contains("mac")) {
+        searchDirs.add(File("/Library/Java/JavaVirtualMachines"))
+        searchDirs.add(File(userHome, "Library/Java/JavaVirtualMachines"))
+    } else if (osName.contains("win")) {
+        searchDirs.add(File("C:/Program Files/Java"))
+        searchDirs.add(File("C:/Users/runneradmin/.jdks"))
+    } else {
+        searchDirs.add(File("/usr/lib/jvm"))
+    }
+    
+    // Search recursively up to 3 levels deep for any directory named "jmods"
+    for (dir in searchDirs) {
+        if (dir.exists() && dir.isDirectory) {
+            val found = findJmodsRecursively(dir, 0)
+            if (found != null) {
+                return found
+            }
+        }
+    }
+    
+    return null
+}
+
+fun findJmodsRecursively(dir: File, depth: Int): File? {
+    if (depth > 3) return null
+    
+    val jmods = File(dir, "jmods")
+    if (jmods.exists() && jmods.isDirectory && jmods.listFiles()?.any { it.name.endsWith(".jmod") } == true) {
+        return jmods
+    }
+    
+    val subdirs = dir.listFiles { f -> f.isDirectory } ?: return null
+    for (sub in subdirs) {
+        val found = findJmodsRecursively(sub, depth + 1)
+        if (found != null) {
+            return found
+        }
+    }
+    return null
+}
+
+
+
+
