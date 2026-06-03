@@ -55,5 +55,11 @@ compose.desktop {
                 upgradeUuid = "12345678-1234-1234-1234-123456789012" // Fixed UUID for upgrades
             }
         }
+        
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("proguard-rules.pro"))
+            isEnabled.set(false) // Temporarily disabled due to Java 25 compatibility issues in ProGuard 7.7
+            optimize.set(false)
+        }
     }
 }
