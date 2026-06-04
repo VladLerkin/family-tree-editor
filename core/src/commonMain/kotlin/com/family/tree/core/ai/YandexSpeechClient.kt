@@ -122,11 +122,16 @@ class YandexSpeechClient(
                 contentType(ContentType.Application.OctetStream)
                 
                 // Recognition parameters in query string
+                val folderId = config.yandexFolderId.trim()
+                if (folderId.isNotBlank() && folderId != "default" && folderId != "b1guuckqs9tjoc2aiuge") {
+                    parameter("folderId", folderId)
+                }
                 parameter("lang", languageCode)
                 parameter("format", audioFormat)
                 parameter("sampleRateHertz", "16000")
                 parameter("profanityFilter", "false")
-                parameter("model", "general")  // General model
+                parameter("topic", "general")  // General model
+                parameter("model", "general")  // Backward compatibility for older models
                 
                 setBody(finalAudioData)
             }

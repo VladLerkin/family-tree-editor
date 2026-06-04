@@ -207,7 +207,7 @@ actual class AiSettingsStorage {
             googleAiApiKey = decryptedGoogleAiKey,
             yandexApiKey = decryptedYandexKey,
             // If folderId is not saved, use default value
-            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, "").ifBlank { "b1guuckqs9tjoc2aiuge" },
+            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, ""),
             tavilyApiKey = decryptedTavilyKey,
             autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy"),
             pamyatNarodaCookies = decryptedCookies,

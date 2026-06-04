@@ -45,7 +45,7 @@ data class AiConfig(
     val yandexApiKey: String = "",      // API key for Yandex Cloud (SpeechKit)
     
     // Folder ID for Yandex Cloud (optional, can be omitted when using service account API key)
-    val yandexFolderId: String = "b1guuckqs9tjoc2aiuge",
+    val yandexFolderId: String = "",
     
     // Tavily API key for Web Search Agent
     val tavilyApiKey: String = "",
