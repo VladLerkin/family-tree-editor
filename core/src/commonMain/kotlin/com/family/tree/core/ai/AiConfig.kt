@@ -134,9 +134,16 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val YANDEX_GPT_4 = AiConfig(
+    val YANDEX_GPT_PRO = AiConfig(
         provider = "YANDEX",
         model = "yandexgpt",
+        temperature = 0.6,
+        maxTokens = 4000
+    )
+    
+    val YANDEX_GPT_LITE = AiConfig(
+        provider = "YANDEX",
+        model = "yandexgpt-lite",
         temperature = 0.6,
         maxTokens = 4000
     )
@@ -147,7 +154,8 @@ object AiPresets {
         "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
         "Google Gemini 3.1 Flash-Lite" to GOOGLE_GEMINI_3_1_FLASH_LITE,
-        "YandexGPT 4" to YANDEX_GPT_4,
+        "YandexGPT Pro" to YANDEX_GPT_PRO,
+        "YandexGPT Lite" to YANDEX_GPT_LITE,
 
         "Ollama Llama 3.2" to OLLAMA_LLAMA3,
         "Ollama Mistral" to OLLAMA_MISTRAL
