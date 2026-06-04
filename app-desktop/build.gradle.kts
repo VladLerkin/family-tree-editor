@@ -47,6 +47,12 @@ compose.desktop {
                 bundleID = "com.family.tree.desktop"
                 iconFile.set(project.file("src/jvmMain/resources/icon.icns"))
                 dockName = "Family Tree"
+                infoPlist {
+                    extraKeysRawXml = """
+                        <key>NSMicrophoneUsageDescription</key>
+                        <string>Приложение использует микрофон для голосового ввода данных</string>
+                    """.trimIndent()
+                }
             }
             
             windows {
