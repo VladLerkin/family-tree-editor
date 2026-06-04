@@ -111,9 +111,9 @@ object AiPresets {
     
 
     
-    val GOOGLE_GEMINI_2_0_FLASH = AiConfig(
+    val GOOGLE_GEMINI_3_1_FLASH_LITE = AiConfig(
         provider = "GOOGLE",
-        model = "gemini-2.0-flash",
+        model = "gemini-3.1-flash-lite",
         temperature = 0.7,
         maxTokens = 4000
     )
@@ -146,7 +146,7 @@ object AiPresets {
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
-        "Google Gemini 2.0 Flash" to GOOGLE_GEMINI_2_0_FLASH,
+        "Google Gemini 3.1 Flash-Lite" to GOOGLE_GEMINI_3_1_FLASH_LITE,
         "YandexGPT 4" to YANDEX_GPT_4,
 
         "Ollama Llama 3.2" to OLLAMA_LLAMA3,
