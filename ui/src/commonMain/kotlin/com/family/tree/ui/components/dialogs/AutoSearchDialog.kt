@@ -61,6 +61,7 @@ fun AutoSearchDialog(
     
     var selectedPrompt by remember { mutableStateOf<PromptTemplate?>(null) }
     var isRunning by remember { mutableStateOf(false) }
+    var isStopping by remember { mutableStateOf(false) }
     var finalProposal by remember { mutableStateOf<AgentProposal?>(null) }
     
     val logs by agentService.agentLogs.collectAsState()
@@ -183,7 +184,11 @@ fun AutoSearchDialog(
                     if (isRunning) {
                         LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("The AI agent is consulting methodology guides and searching the archives...", style = MaterialTheme.typography.bodySmall)
+                        val statusText = if (isStopping) 
+                            "Stopping research and summarizing results found so far..." 
+                        else 
+                            "The AI agent is consulting methodology guides and searching the archives..."
+                        Text(statusText, style = MaterialTheme.typography.bodySmall)
                     } else {
                         Text("Research completed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                     }
@@ -214,12 +219,21 @@ fun AutoSearchDialog(
                             
                             if (isRunning) {
                                 TextButton(
-                                    onClick = { researchJob?.cancel() },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    onClick = { 
+                                        isStopping = true
+                                        researchJob?.cancel() 
+                                    },
+                                    enabled = !isStopping,
+                                    colors = ButtonDefaults.textButtonColors(
+                                        contentColor = if (isStopping) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.error
+                                    ),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                     modifier = Modifier.height(32.dp)
                                 ) {
-                                    Text("Stop Research", style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        text = if (isStopping) "Stopping..." else "Stop Research",
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
                                 }
                             }
                         }
@@ -412,16 +426,24 @@ fun AutoSearchDialog(
                         onClick = {
                             selectedPrompt?.let { prompt ->
                                 isRunning = true
+                                isStopping = false
                                 hasStarted = true
                                 agentService.clearLogs()
                                 researchJob = scope.launch {
-                                    val proposal = agentService.runAutoresearchPrompt(
-                                        projectData = projectData,
-                                        promptName = prompt.name,
-                                        promptInstructions = prompt.instructions
-                                    )
-                                    finalProposal = proposal
-                                    isRunning = false
+                                    try {
+                                        val proposal = agentService.runAutoresearchPrompt(
+                                            projectData = projectData,
+                                            promptName = prompt.name,
+                                            promptInstructions = prompt.instructions,
+                                            onProposalGenerated = { generatedProposal ->
+                                                finalProposal = generatedProposal
+                                            }
+                                        )
+                                        finalProposal = proposal
+                                    } finally {
+                                        isRunning = false
+                                        isStopping = false
+                                    }
                                 }
                             }
                         },

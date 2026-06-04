@@ -18,12 +18,8 @@ class YandexClient : BaseAiClient() {
             throw IllegalArgumentException("Yandex Cloud API key is required. Please configure it in the AI Settings menu.")
         }
 
-        // Determine model (yandexgpt or yandexgpt-lite)
-        // Note: 'yandexgpt' points to the current version (currently GPT-4 equivalent)
-        val modelName = when {
-            config.model.contains("lite", ignoreCase = true) -> "yandexgpt-lite"
-            else -> "yandexgpt"
-        }
+        // Default to yandexgpt-lite as it's the only supported model now
+        val modelName = "yandexgpt-lite"
         
         // modelUri format: gpt://<folder_id>/<model_name>/latest
         // YandexGPT API requires folder_id in URI

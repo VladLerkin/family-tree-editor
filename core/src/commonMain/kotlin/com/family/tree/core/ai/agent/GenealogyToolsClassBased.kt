@@ -274,7 +274,8 @@ data class PamyatNarodaSearchArgs(
         val firstName: String,
         val lastName: String,
         val patronymic: String? = null,
-        val birthYear: String? = null
+        val birthYear: String? = null,
+        val birthPlace: String? = null
 )
 
 class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
@@ -310,6 +311,11 @@ class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
                                                         "birthYear",
                                                         "Year of birth",
                                                         ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "birthPlace",
+                                                        "Place of birth",
+                                                        ToolParameterType.String
                                                 )
                                         )
                         )
@@ -319,7 +325,8 @@ class PamyatNarodaSearchTool(private val tools: GenealogyTools) :
                         firstName = args.firstName,
                         lastName = args.lastName,
                         patronymic = args.patronymic,
-                        birthYear = args.birthYear
+                        birthYear = args.birthYear,
+                        birthPlace = args.birthPlace
                 )
 }
 
@@ -332,7 +339,9 @@ data class FamilySearchSearchArgs(
         val deathYear: String? = null,
         val deathPlace: String? = null,
         val gender: String? = null,
-        val exactMatch: Boolean = false
+        val exactMatch: Boolean = false,
+        val spouseLastName: String? = null,
+        val spouseFirstName: String? = null
 )
 
 class FamilySearchQueryTool(private val tools: GenealogyTools) :
@@ -388,6 +397,16 @@ class FamilySearchQueryTool(private val tools: GenealogyTools) :
                                                         "exactMatch",
                                                         "Set to true for exact matching",
                                                         ToolParameterType.Boolean
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "spouseLastName",
+                                                        "Spouse's surname (useful for exact/combined searches of women)",
+                                                        ToolParameterType.String
+                                                ),
+                                                ToolParameterDescriptor(
+                                                        "spouseFirstName",
+                                                        "Spouse's first name",
+                                                        ToolParameterType.String
                                                 )
                                         )
                         )
@@ -401,7 +420,9 @@ class FamilySearchQueryTool(private val tools: GenealogyTools) :
                         deathYear = args.deathYear,
                         deathPlace = args.deathPlace,
                         gender = args.gender,
-                        exactMatch = args.exactMatch
+                        exactMatch = args.exactMatch,
+                        spouseLastName = args.spouseLastName,
+                        spouseFirstName = args.spouseFirstName
                 )
         }
 }

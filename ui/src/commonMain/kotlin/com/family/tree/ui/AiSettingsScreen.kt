@@ -19,6 +19,8 @@ import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 import com.family.tree.core.ai.AiSettingsStorage
 import org.koin.compose.koinInject
+import kotlinx.coroutines.launch
+import com.family.tree.core.ai.agent.AgentService
 
 class AiSettingsScreen : Screen {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -333,6 +335,37 @@ class AiSettingsScreen : Screen {
                             placeholder = { Text("4000") },
                             modifier = Modifier.weight(1f),
                             singleLine = true
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    val agentService = koinInject<AgentService>()
+                    val scope = rememberCoroutineScope()
+                    var cacheClearedMessage by remember { mutableStateOf(false) }
+                    
+                    Button(
+                        onClick = {
+                            scope.launch {
+                                agentService.clearCache()
+                                cacheClearedMessage = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Text("Clear Research Search Cache")
+                    }
+                    
+                    if (cacheClearedMessage) {
+                        Text(
+                            text = "Search cache cleared successfully!",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
                     }
                 }

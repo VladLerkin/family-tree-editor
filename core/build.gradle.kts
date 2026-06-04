@@ -58,7 +58,7 @@ kotlin {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.ktor.client.core)
                 api(libs.koin.core)
-                implementation(libs.koog.agents)
+                api(libs.koog.agents)
             }
         }
         

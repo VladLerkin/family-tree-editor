@@ -118,26 +118,27 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val OLLAMA_LLAMA3 = AiConfig(
+    val OLLAMA_LLAMA3_1_8B = AiConfig(
         provider = "OLLAMA",
-        model = "llama3.2",
+        model = "llama3.1:8b",
         baseUrl = "http://localhost:11434",
         temperature = 0.7,
         maxTokens = 4000
     )
     
-    val OLLAMA_MISTRAL = AiConfig(
+    val OLLAMA_GEMMA2_9B = AiConfig(
         provider = "OLLAMA",
-        model = "mistral",
+        model = "gemma2:9b",
         baseUrl = "http://localhost:11434",
         temperature = 0.7,
         maxTokens = 4000
     )
     
-    val YANDEX_GPT_PRO = AiConfig(
-        provider = "YANDEX",
-        model = "yandexgpt",
-        temperature = 0.6,
+    val OLLAMA_QWEN2_5_7B = AiConfig(
+        provider = "OLLAMA",
+        model = "qwen2.5:7b",
+        baseUrl = "http://localhost:11434",
+        temperature = 0.7,
         maxTokens = 4000
     )
     
@@ -154,10 +155,10 @@ object AiPresets {
         "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
         "Google Gemini 3.1 Flash-Lite" to GOOGLE_GEMINI_3_1_FLASH_LITE,
-        "YandexGPT Pro" to YANDEX_GPT_PRO,
         "YandexGPT Lite" to YANDEX_GPT_LITE,
 
-        "Ollama Llama 3.2" to OLLAMA_LLAMA3,
-        "Ollama Mistral" to OLLAMA_MISTRAL
+        "Ollama Llama 3.1 8B" to OLLAMA_LLAMA3_1_8B,
+        "Ollama Gemma 2 9B" to OLLAMA_GEMMA2_9B,
+        "Ollama Qwen 2.5 7B (best for RU)" to OLLAMA_QWEN2_5_7B
     )
 }

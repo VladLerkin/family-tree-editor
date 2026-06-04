@@ -61,11 +61,11 @@ class AgentService(
   "messages": [
     {
       "role": "system",
-      "content": "PROTOCOL:\n- Use 'searchPamyatNaroda' for WWII veterans (1890-1930, USSR/Russia).\n- Use 'queryFamilySearch' for BOTH vital records and relatives (dual search).\n- Always provide evidence snippets."
+      "content": "PROTOCOL:\n- Use 'searchPamyatNaroda' ONLY for WWII veterans (1890-1930, USSR/Russia) born/lived in Soviet regions.\n- Use 'queryFamilySearch' for BOTH vital records and relatives (dual search).\n- Always provide evidence snippets."
     },
     {
       "role": "system",
-      "content": "            You are the SCANNER phase of the Genealogy Research protocol.\n            \n            RESEARCH GOAL:\n            Identify target ancestors in the family tree and search for them.\n            \n            CURRENT FAMILY TREE CONTEXT:\n            <Family_Tree>\n            ## Family Tree Summary\n- Total Individuals: 3\n- Total Families: 1\n- Geographic Scope: New York, USA (1 mentions), Los Angeles, USA (1 mentions), Boston, USA (1 mentions), Chicago, USA (1 mentions)\n\n## Ancestry View\n\nBob Doe (b. 5 MAY 1975, Chicago, USA)\n├── John Doe (b. 1 JAN 1950, d. 15 MAR 2020, New York, USA)\n└── Jane Doe (b. 10 FEB 1952, Boston, USA)\n\n            </Family_Tree>\n            \n            DRACONIAN DIRECTIVE (MANDATORY): \n            1. You MUST call ALL of these three tools in your first turn: 'getGeographicProfile', 'listArchiveGuides', and 'listMethodologyGuides'.\n            2. You are STRICTLY FORBIDDEN from calling the 'searchFamilyTree' tool during this phase. \n            3. Do NOT provide any text analysis until all three tools have returned results.\n            \n            AGE-FILTERING & TOOLS PROTOCOL: \n            - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930. ONLY these persons are eligible for 'searchPamyatNaroda'.\n            - GLOBAL SEARCH: Use 'queryFamilySearch' for ALL individuals. This tool automatically performs a DUAL search (Historical Records + Family Tree).\n            - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person from WWII research. \n            - Many veterans are found in the 1985 Jubilee Award database. Always plan 'searchPamyatNaroda' for them if they fit the birth year range.\n            - For individuals born BEFORE 1880 or AFTER 1935, focus on 'queryFamilySearch'.\n            - Use 'generalWebSearch' ONLY for historical context or specific archive URLs.\n            \n            ANTI-LOOP RULE: \n            - NEVER call 'searchPamyatNaroda' for a person if you have already received a \"Skipped\" or \"Outside range\" result for them.\n            - If the history already contains results from 'listArchiveGuides' and 'listMethodologyGuides', do NOT call them again.\n            - Once you have the profiles and guide lists, synthesize your analysis and finish this phase.\n            \n            If you do not call 'listArchiveGuides', you will not know which sources to search, and the process will fail."
+      "content": "            You are the SCANNER phase of the Genealogy Research protocol.\n            \n            RESEARCH GOAL:\n            Identify target ancestors in the family tree and search for them.\n            \n            CURRENT FAMILY TREE CONTEXT:\n            <Family_Tree>\n            ## Family Tree Summary\n- Total Individuals: 3\n- Total Families: 1\n- Geographic Scope: New York, USA (1 mentions), Los Angeles, USA (1 mentions), Boston, USA (1 mentions), Chicago, USA (1 mentions)\n\n## Ancestry View\n\nBob Doe (b. 5 MAY 1975, Chicago, USA)\n├── John Doe (b. 1 JAN 1950, d. 15 MAR 2020, New York, USA)\n└── Jane Doe (b. 10 FEB 1952, Boston, USA)\n\n            </Family_Tree>\n            \n            DRACONIAN DIRECTIVE (MANDATORY): \n            1. You MUST call ALL of these three tools in your first turn: 'getGeographicProfile', 'listArchiveGuides', and 'listMethodologyGuides'.\n            2. You are STRICTLY FORBIDDEN from calling the 'searchFamilyTree' tool during this phase. \n            3. Do NOT provide any text analysis until all three tools have returned results.\n            \n            AGE-FILTERING & TOOLS PROTOCOL: \n            - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930 WHO were born or lived in the USSR / Russian Empire regions. ONLY these persons are eligible for 'searchPamyatNaroda'. Do NOT call this tool for individuals from America, Western Europe, or other non-Soviet regions.\n            - GLOBAL SEARCH: Use 'queryFamilySearch' for ALL individuals. This tool automatically performs a DUAL search (Historical Records + Family Tree).\n            - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person from WWII research. \n            - Many veterans are found in the 1985 Jubilee Award database. Always plan 'searchPamyatNaroda' for them if they fit the birth year range.\n            - For individuals born BEFORE 1880 or AFTER 1935, focus on 'queryFamilySearch'.\n            - Use 'generalWebSearch' ONLY for historical context or specific archive URLs.\n            \n            ANTI-LOOP RULE: \n            - NEVER call 'searchPamyatNaroda' for a person if you have already received a \"Skipped\" or \"Outside range\" result for them.\n            - If the history already contains results from 'listArchiveGuides' and 'listMethodologyGuides', do NOT call them again.\n            - Once you have the profiles and guide lists, synthesize your analysis and finish this phase.\n            \n            If you do not call 'listArchiveGuides', you will not know which sources to search, and the process will fail."
     },
     {
       "role": "user",
@@ -196,7 +196,7 @@ class AgentService(
       "type": "function",
       "function": {
         "name": "SearchFamilySearchThistoolautomaticallyperfor_1hdc423",
-        "description": "Search FamilySearch. This tool automatically performs a DUAL search: 1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. 3. For WOMEN, First Name is EXACT, Surname is FUZZY.",
+        "description": "Search FamilySearch. This tool automatically performs a DUAL search: 1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. 3. For WOMEN, First Name is EXACT. You can search by maiden name as 'lastName' and husband's surname as 'spouseLastName' with 'exactMatch=true' to get precise results.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -207,7 +207,9 @@ class AgentService(
             "deathYear": { "type": "string" },
             "deathPlace": { "type": "string" },
             "gender": { "type": "string" },
-            "exactMatch": { "type": "string" }
+            "exactMatch": { "type": "string" },
+            "spouseLastName": { "type": "string" },
+            "spouseFirstName": { "type": "string" }
           },
           "required": ["firstName", "lastName", "birthYear", "birthPlace", "deathYear", "deathPlace", "gender", "exactMatch"]
         }
@@ -294,7 +296,8 @@ class AgentService(
             "firstName": { "type": "string" },
             "lastName": { "type": "string" },
             "patronymic": { "type": "string" },
-            "birthYear": { "type": "string" }
+            "birthYear": { "type": "string" },
+            "birthPlace": { "type": "string" }
           },
           "required": ["firstName", "lastName", "patronymic", "birthYear"]
         }
@@ -345,8 +348,10 @@ class AgentService(
         suspend fun runAutoresearchPrompt(
                 projectData: ProjectData,
                 promptName: String,
-                promptInstructions: String
+                promptInstructions: String,
+                onProposalGenerated: (AgentProposal) -> Unit = {}
         ): AgentProposal {
+                val accumulatedFindings = mutableListOf<String>()
                 clearLogs() // CRITICAL: Clear logs for the new run
                 log("Starting research for: $promptName...")
 
@@ -412,16 +417,16 @@ class AgentService(
             #### STEP 3: IDENTIFY TARGET ANCESTOR & SOURCES
             - Find the list of recommended sources/links mentioned in the archive guide for that country.
             - Identify ancestors in the <Family_Tree>.
-            - For individuals born 1890-1930 (USSR/Russia), prioritize 'searchPamyatNaroda'.
-            - For ALL individuals in the tree, you MUST call 'queryFamilySearch' (it automatically searches BOTH Historical Records and Family Tree).
-                2. Skipping 'queryFamilySearch' is a CRITICAL FAILURE as it contains parents/family links.
-            
-            #### STEP 4: SEARCH
-            - Use 'searchPamyatNaroda' as THE PRIMARY TOOL for all valid candidates from USSR/Russia (born 1890-1930).
+             - For individuals born 1890-1930 who were born or lived in the USSR/Russia, prioritize 'searchPamyatNaroda'. Never call it for individuals from America, Western Europe, etc.
+             - For ALL individuals in the tree, you MUST call 'queryFamilySearch' (it automatically searches BOTH Historical Records and Family Tree).
+                 2. Skipping 'queryFamilySearch' is a CRITICAL FAILURE as it contains parents/family links.
+             
+             #### STEP 4: SEARCH
+             - Use 'searchPamyatNaroda' ONLY for candidates from USSR/Russia (born 1890-1930). Do NOT call this tool for individuals from America, Western Europe, or other non-Soviet regions.
             - Use 'queryFamilySearch' for ALL individuals (it automatically queries both Records and Tree in one call). 
                 1. searchType='HISTORICAL_RECORDS': To find official birth/marriage/death records.
                 2. searchType='FAMILY_TREE': To find parents, children, and spouses already linked by other users.
-            - NAME PROTOCOL: Always include the patronymic (if known) in the 'firstName' parameter. Do NOT cut it off. (Example: firstName='Иван Иванович', lastName='Иванов').
+            - NAME PROTOCOL: Always include the patronymic (if known) in the 'firstName' parameter. Do NOT cut it off. For WOMEN, First Name is EXACT. You can search by her maiden name as 'lastName' AND her husband's surname as 'spouseLastName' with 'exactMatch=true' to search by husband's surname variant or maiden name exactly.
             - Focus on finding service records, casualty records, citations, and lineage expansions.
             - Only use general web search (Tavily) as a final resort or for broad historical context.
             
@@ -465,6 +470,7 @@ class AgentService(
                                 instructions = baseInstructions,
                                 familyTreeContext = treeMarkdown,
                                 methodologySkills = methodologySkills,
+                                accumulatedFindings = accumulatedFindings,
                                 onLog = { log(it) }
                         )
 
@@ -482,7 +488,7 @@ class AgentService(
                                                                 system(
                                                                         """
                         PROTOCOL:
-                        - Use 'searchPamyatNaroda' for WWII veterans (1890-1930, USSR/Russia).
+                        - Use 'searchPamyatNaroda' ONLY for WWII veterans (1890-1930, USSR/Russia) who were born or lived in Soviet regions.
                         - Use 'queryFamilySearch' for BOTH vital records and relatives (dual search).
                         - Always provide evidence snippets.
                     """.trimIndent()
@@ -513,12 +519,14 @@ class AgentService(
                                 "Agent execution completed successfully! Result length: ${response.length}"
                         )
 
-                        return AgentProposal(
+                        val proposal = AgentProposal(
                                 promptName = promptName,
                                 taskDescription =
                                         "Processed ${promptName} with Koog Graph Strategy.",
                                 results = response
                         )
+                        onProposalGenerated(proposal)
+                        return proposal
                 } catch (e: Exception) {
                         val message = e.message ?: "Unknown error"
                         val isTimeout = message.contains("given number of steps")
@@ -530,18 +538,33 @@ class AgentService(
                                         else "User cancelled execution"
                                 log("⚠️ [GRACEFUL STOP] $reason. Synthesizing results...")
 
+                                val findingsText = if (accumulatedFindings.isEmpty()) {
+                                        "No specific genealogical records were successfully stored in findings memory."
+                                } else {
+                                        accumulatedFindings.joinToString("\n\n")
+                                }
+
                                 return withContext(NonCancellable) {
                                         val logsContext =
-                                                _agentLogs.value.joinToString("\n").takeLast(10000)
+                                                _agentLogs.value
+                                                        .filter { !it.contains("[AI-DEBUG]") }
+                                                        .joinToString("\n")
+                                                        .takeLast(10000)
                                         val synthesisPrompt =
                                                 """
                         The genealogy research agent was interrupted ($reason).
-                        Based on the following logs of its activities, please summarize the findings, 
-                        extracted facts, and potential sources discovered so far.
-                        If nothing meaningful was found, please state that.
                         
-                        LOGS:
+                        ### ACCUMULATED SEARCH EVIDENCE (INTERNAL MEMORY):
+                        $findingsText
+                        
+                        ### CONSOLE LOGS FOR CONTEXT:
                         $logsContext
+                        
+                        TASK:
+                        Extract all newly discovered genealogical facts (names, birth/death dates, locations, spouses, children) and potential sources from the accumulated research evidence and logs.
+                        Provide the results in a direct, comprehensive report. 
+                        Do NOT describe what the agent did (e.g. do not say "The agent successfully retrieved results"). Instead, write the report listing the actual genealogical facts directly, as a professional genealogist.
+                        If nothing meaningful was found, state that.
                     """.trimIndent()
 
                                         val fallbackResult =
@@ -551,22 +574,30 @@ class AgentService(
                                                         "Research stopped: $reason. Additionally, result synthesis failed: ${ex.message}\n\nCheck the console logs for partial findings."
                                                 }
 
-                                        AgentProposal(
+                                        val proposal = AgentProposal(
                                                 promptName = promptName,
                                                 taskDescription =
                                                         "Research partially completed ($reason)",
                                                 results = fallbackResult
                                         )
+                                        onProposalGenerated(proposal)
+                                        proposal
                                 }
                         }
 
                         log("Agent execution failed: ${e.message}")
-                        return AgentProposal(
+                        val proposal = AgentProposal(
                                 promptName = promptName,
                                 taskDescription = "Execution failed",
                                 results = "Error: ${e.message}"
                         )
+                        onProposalGenerated(proposal)
+                        return proposal
                 }
+        }
+
+        suspend fun clearCache() {
+                GenealogyTools.clearCache()
         }
 }
 

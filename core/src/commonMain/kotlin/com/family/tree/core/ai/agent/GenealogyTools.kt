@@ -14,6 +14,8 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.serialization.json.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class GenealogyTools(
         private val projectData: ProjectData,
@@ -237,6 +239,26 @@ class GenealogyTools(
             region: String? = null,
             targetSite: String? = null
     ): String {
+        val cacheKey = getGeneralWebCacheKey(name, birth_location, life_span, query, region, targetSite)
+        getCachedResult(cacheKey)?.let {
+            onLog("♻️ [CACHE] Returning cached General Web Search result for $name (query: $query)")
+            return it
+        }
+        val result = executeGeneralWebSearch(name, birth_location, life_span, query, region, targetSite)
+        if (!result.startsWith("❌ Tavily API key")) {
+            putCachedResult(cacheKey, result)
+        }
+        return result
+    }
+
+    private suspend fun executeGeneralWebSearch(
+            name: String,
+            birth_location: String?,
+            life_span: String?,
+            query: String?,
+            region: String?,
+            targetSite: String?
+    ): String {
         val baseQuery =
                 if (query.isNullOrBlank()) {
                     buildString {
@@ -308,16 +330,42 @@ class GenealogyTools(
             firstName: String,
             lastName: String,
             patronymic: String? = null,
-            birthYear: String? = null
+            birthYear: String? = null,
+            birthPlace: String? = null
     ): String {
-        onLog("🔎 [PAMYAT NARODA] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear)")
+        val cacheKey = getPamyatNarodaCacheKey(firstName, lastName, patronymic, birthYear, birthPlace)
+        getCachedResult(cacheKey)?.let {
+            onLog("♻️ [CACHE] Returning cached Pamyat Naroda result for $lastName $firstName ${patronymic ?: ""} ($birthYear)")
+            return it
+        }
+        val result = executeSearchPamyatNaroda(firstName, lastName, patronymic, birthYear, birthPlace)
+        if (!result.startsWith("Error:") && !result.startsWith("Skipping Pamyat Naroda search:")) {
+            putCachedResult(cacheKey, result)
+        }
+        return result
+    }
+
+    private suspend fun executeSearchPamyatNaroda(
+            firstName: String,
+            lastName: String,
+            patronymic: String?,
+            birthYear: String?,
+            birthPlace: String?
+    ): String {
+        onLog("🔎 [PAMYAT NARODA] Query: $lastName $firstName ${patronymic ?: ""} ($birthYear, birthPlace=$birthPlace)")
 
         // 0. Age Filter: 1890 - 1930
         val year = birthYear?.toIntOrNull()
-        if (year != null && (year < 1890 || year > 1930)
-        ) { // Slightly expanded range for late starters
+        if (year != null && (year < 1890 || year > 1930)) { // Slightly expanded range for late starters
             val msg =
                     "Skipping Pamyat Naroda search: Year $year is outside the WWII candidate range (1890-1935)."
+            onLog("⚠️ [PAMYAT NARODA] $msg")
+            return msg
+        }
+
+        if (birthPlace != null && isDefinitelyOutsideSovietSphere(birthPlace)) {
+            val msg =
+                    "Skipping Pamyat Naroda search: Birth place '$birthPlace' is outside the Soviet Union / Russia region."
             onLog("⚠️ [PAMYAT NARODA] $msg")
             return msg
         }
@@ -471,7 +519,7 @@ class GenealogyTools(
             "Search FamilySearch. This tool automatically performs a DUAL search: " +
                     "1. HISTORICAL RECORDS (official documents) and 2. FAMILY TREE (relative links). " +
                     "PROTOCOL: 1. Always pass 'gender'. 2. For MEN, both names are EXACT; provide ONLY first name in 'firstName'. " +
-                    "3. For WOMEN, First Name is EXACT, Surname is FUZZY."
+                    "3. For WOMEN, First Name is EXACT. You can search by maiden name as 'lastName' and husband's surname as 'spouseLastName' with 'exactMatch=true' to get precise results."
     )
     suspend fun queryFamilySearch(
             firstName: String,
@@ -481,7 +529,33 @@ class GenealogyTools(
             deathYear: String? = null,
             deathPlace: String? = null,
             gender: String? = null,
-            exactMatch: Boolean = false
+            exactMatch: Boolean = false,
+            spouseLastName: String? = null,
+            spouseFirstName: String? = null
+    ): String {
+        val cacheKey = getFamilySearchCacheKey(firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch, spouseLastName, spouseFirstName)
+        getCachedResult(cacheKey)?.let {
+            onLog("♻️ [CACHE] Returning cached FamilySearch result for $firstName $lastName ($gender, b. $birthYear)")
+            return it
+        }
+        val result = executeQueryFamilySearch(firstName, lastName, birthYear, birthPlace, deathYear, deathPlace, gender, exactMatch, spouseLastName, spouseFirstName)
+        if (!result.contains("Error: FamilySearch API returned an error") && !result.startsWith("Network error:")) {
+            putCachedResult(cacheKey, result)
+        }
+        return result
+    }
+
+    private suspend fun executeQueryFamilySearch(
+            firstName: String,
+            lastName: String,
+            birthYear: String?,
+            birthPlace: String?,
+            deathYear: String?,
+            deathPlace: String?,
+            gender: String?,
+            exactMatch: Boolean,
+            spouseLastName: String? = null,
+            spouseFirstName: String? = null
     ): String {
         val recordsTask =
                 executeFamilySearchQuery(
@@ -493,7 +567,9 @@ class GenealogyTools(
                         deathYear,
                         deathPlace,
                         gender,
-                        exactMatch
+                        exactMatch,
+                        spouseLastName,
+                        spouseFirstName
                 )
         val treeTask =
                 executeFamilySearchQuery(
@@ -505,7 +581,9 @@ class GenealogyTools(
                         deathYear,
                         deathPlace,
                         gender,
-                        exactMatch
+                        exactMatch,
+                        spouseLastName,
+                        spouseFirstName
                 )
 
         return """
@@ -526,7 +604,9 @@ class GenealogyTools(
             deathYear: String? = null,
             deathPlace: String? = null,
             gender: String? = null,
-            exactMatch: Boolean = false
+            exactMatch: Boolean = false,
+            spouseLastName: String? = null,
+            spouseFirstName: String? = null
     ): String {
         val label =
                 if (searchType == FamilySearchSearchType.FAMILY_TREE) "FAMILYSEARCH TREE"
@@ -544,7 +624,9 @@ class GenealogyTools(
                             deathYear,
                             deathPlace,
                             gender,
-                            true
+                            true,
+                            spouseLastName,
+                            spouseFirstName
                     )
             if (exactResponse.results > 0) {
                 onLog(
@@ -565,7 +647,9 @@ class GenealogyTools(
                         deathYear,
                         deathPlace,
                         gender,
-                        exactMatch
+                        exactMatch,
+                        spouseLastName,
+                        spouseFirstName
                 )
 
         if (response.results > 50 && !exactMatch) {
@@ -589,7 +673,9 @@ class GenealogyTools(
             deathYear: String?,
             deathPlace: String?,
             gender: String?,
-            exactMatch: Boolean
+            exactMatch: Boolean,
+            spouseLastName: String? = null,
+            spouseFirstName: String? = null
     ): FamilySearchRawResponse {
         val source =
                 when (searchType) {
@@ -618,13 +704,17 @@ class GenealogyTools(
                             val nameExact = exactMatch || isMale || isFemale
                             val surnameExact = exactMatch || isMale
 
-                            if (firstName.isNotBlank() || lastName.isNotBlank()) {
+                            if (firstName.isNotBlank() || lastName.isNotBlank() || !spouseLastName.isNullOrBlank()) {
                                 val logFields = mutableListOf<String>()
                                 if (firstName.isNotBlank())
                                         logFields.add("name=\"$firstName\"(exact=$nameExact)")
                                 if (lastName.isNotBlank())
                                         logFields.add("surname=\"$lastName\"(exact=$surnameExact)")
                                 if (gender != null) logFields.add("gender=\"$gender\"")
+                                if (!spouseLastName.isNullOrBlank())
+                                        logFields.add("spouseSurname=\"$spouseLastName\"(exact=$exactMatch)")
+                                if (!spouseFirstName.isNullOrBlank())
+                                        logFields.add("spouseGivenName=\"$spouseFirstName\"(exact=$exactMatch)")
 
                                 fun String?.isValid(): Boolean =
                                         !this.isNullOrBlank() &&
@@ -665,6 +755,22 @@ class GenealogyTools(
                                     parameters.append("q.surname.exact", "on")
                                     if (source == "tree")
                                             parameters.append("q.surname.require", "on")
+                                }
+                            }
+                            if (!spouseLastName.isNullOrBlank()) {
+                                parameters.append("q.spouseSurname", spouseLastName)
+                                if (exactMatch) {
+                                    parameters.append("q.spouseSurname.exact", "on")
+                                    if (source == "tree")
+                                            parameters.append("q.spouseSurname.require", "on")
+                                }
+                            }
+                            if (!spouseFirstName.isNullOrBlank()) {
+                                parameters.append("q.spouseGivenName", spouseFirstName)
+                                if (exactMatch) {
+                                    parameters.append("q.spouseGivenName.exact", "on")
+                                    if (source == "tree")
+                                            parameters.append("q.spouseGivenName.require", "on")
                                 }
                             }
 
@@ -1053,6 +1159,96 @@ class GenealogyTools(
             }
         }
                 .ifBlank { "No military records extracted." }
+    }
+
+    companion object {
+        private val searchCache = mutableMapOf<String, String>()
+        private val cacheMutex = Mutex()
+
+        suspend fun clearCache() {
+            cacheMutex.withLock {
+                searchCache.clear()
+            }
+        }
+
+        suspend fun getCachedResult(key: String): String? {
+            return cacheMutex.withLock {
+                searchCache[key]
+            }
+        }
+
+        suspend fun putCachedResult(key: String, value: String) {
+            cacheMutex.withLock {
+                searchCache[key] = value
+            }
+        }
+
+        fun getFamilySearchCacheKey(
+            firstName: String,
+            lastName: String,
+            birthYear: String?,
+            birthPlace: String?,
+            deathYear: String?,
+            deathPlace: String?,
+            gender: String?,
+            exactMatch: Boolean,
+            spouseLastName: String? = null,
+            spouseFirstName: String? = null
+        ): String {
+            val fName = firstName.trim().lowercase()
+            val lName = lastName.trim().lowercase()
+            val bYear = birthYear?.trim()?.lowercase()?.removeSuffix(".0")?.substringBefore("-") ?: ""
+            val bPlace = birthPlace?.trim()?.lowercase() ?: ""
+            val dYear = deathYear?.trim()?.lowercase()?.removeSuffix(".0")?.substringBefore("-") ?: ""
+            val dPlace = deathPlace?.trim()?.lowercase() ?: ""
+            val g = gender?.trim()?.lowercase() ?: ""
+            val sLastName = spouseLastName?.trim()?.lowercase() ?: ""
+            val sFirstName = spouseFirstName?.trim()?.lowercase() ?: ""
+            return "familysearch:$fName|$lName|$bYear|$bPlace|$dYear|$dPlace|$g|$exactMatch|$sLastName|$sFirstName"
+        }
+
+        fun getPamyatNarodaCacheKey(
+            firstName: String,
+            lastName: String,
+            patronymic: String?,
+            birthYear: String?,
+            birthPlace: String? = null
+        ): String {
+            val fName = firstName.trim().lowercase()
+            val lName = lastName.trim().lowercase()
+            val pat = patronymic?.trim()?.lowercase() ?: ""
+            val bYear = birthYear?.trim()?.lowercase()?.removeSuffix(".0")?.substringBefore("-") ?: ""
+            val bPlace = birthPlace?.trim()?.lowercase() ?: ""
+            return "pamyatnaroda:$fName|$lName|$pat|$bYear|$bPlace"
+        }
+
+        fun isDefinitelyOutsideSovietSphere(place: String?): Boolean {
+            if (place.isNullOrBlank()) return false
+            val p = place.lowercase()
+            val nonSovietKeywords = listOf(
+                "usa", "united states", "america", "uk", "united kingdom", "england", "london", 
+                "france", "paris", "germany", "deutschland", "berlin", "canada", "australia", 
+                "austria", "italy", "spain", "sweden", "norway", "netherlands", "holland", "belgium"
+            )
+            return nonSovietKeywords.any { p.contains(it) }
+        }
+
+        fun getGeneralWebCacheKey(
+            name: String,
+            birth_location: String?,
+            life_span: String?,
+            query: String?,
+            region: String?,
+            targetSite: String?
+        ): String {
+            val n = name.trim().lowercase()
+            val loc = birth_location?.trim()?.lowercase() ?: ""
+            val span = life_span?.trim()?.lowercase() ?: ""
+            val q = query?.trim()?.lowercase() ?: ""
+            val reg = region?.trim()?.lowercase() ?: ""
+            val site = targetSite?.trim()?.lowercase() ?: ""
+            return "generalweb:$n|$loc|$span|$q|$reg|$site"
+        }
     }
 }
 

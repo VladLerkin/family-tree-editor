@@ -12,12 +12,12 @@ fun createAutoresearchStrategy(
         instructions: String,
         familyTreeContext: String,
         methodologySkills: String,
+        accumulatedFindings: MutableList<String>,
         onLog: (String) -> Unit = {}
 ) =
         strategy<String, String>("AutoresearchStrategy") {
 
                 // --- SHARED STATE (Scope-local) ---
-                val accumulatedFindings = mutableListOf<String>()
 
                 // --- NODES ---
 
@@ -43,7 +43,7 @@ fun createAutoresearchStrategy(
             3. Do NOT provide any text analysis until all three tools have returned results.
             
             AGE-FILTERING & TOOLS PROTOCOL: 
-            - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930. ONLY these persons are eligible for 'searchPamyatNaroda'.
+            - WWII ARCHIVES: Identify all persons in the tree born between 1890 and 1930 WHO were born or lived in the USSR / Russian Empire regions (e.g., Russia, Ukraine, Belarus, Baltics, Caucasus, Central Asia). ONLY these persons are eligible for 'searchPamyatNaroda'. Do NOT call this tool for individuals born or living in America, Western Europe, or other non-Soviet regions.
             - GLOBAL SEARCH: Use 'queryFamilySearch' for ALL individuals. This tool automatically performs a DUAL search (Historical Records + Family Tree).
             - IMPORTANT: Survival after 1945 or a late peacetime death date (e.g., 1980s) does NOT disqualify a person from WWII research. 
             - Many veterans are found in the 1985 Jubilee Award database. Always plan 'searchPamyatNaroda' for them if they fit the birth year range.
@@ -103,9 +103,9 @@ fun createAutoresearchStrategy(
             STRICT FORBIDDEN ACTION: Do NOT write tool calls as text. Use the Function Calling API.
             
             TASK: Execute targeted searches for EACH person and location identified in the research plan.
-            - WWII ARCHIVES: Use 'searchPamyatNaroda' for individuals from the USSR/Russia born approximately 1890-1930. 
+            - WWII ARCHIVES: Use 'searchPamyatNaroda' ONLY for individuals who were born or lived in the USSR / Russian Empire regions (e.g., Russia, Ukraine, Belarus, Baltics, Caucasus, Central Asia) born approximately 1890-1930. Never call this tool for individuals born or living in America, Western Europe, or other non-Soviet regions. Always pass the 'birthPlace' parameter to the tool.
             - GLOBAL ARCHIVES: For EVERY person, you MUST call 'queryFamilySearch'. Skipping it is a CRITICAL FAILURE. It automatically searches both records and user trees.
-                3. NAME PROTOCOL: Surnames and First Names for MEN are treated as EXACT. To maximize matches for men, provide ONLY the first name in 'firstName' (omit patronymic). For WOMEN, First Name is EXACT, but Surname is FUZZY. Always pass the 'gender' parameter.
+                3. NAME PROTOCOL: Surnames and First Names for MEN are treated as EXACT. To maximize matches for men, provide ONLY the first name in 'firstName' (omit patronymic). For WOMEN, First Name is EXACT. You can search by her maiden name as 'lastName' AND her husband's surname as 'spouseLastName' with 'exactMatch=true' to search by husband's surname variant or maiden name exactly. Always pass the 'gender' parameter.
             - COMMON NAMES: If the person has a very common last name (Smith, Jones, Ivanov, Kuznetsov, etc.), you MUST set exactMatch=true. 
             - SURVIVOR POLICY: Do NOT skip people who survived the war for WWII research. 
             - PRIORITY: Archive tools (Pamyat Naroda, FamilySearch) MUST be performed BEFORE any general web searches.
@@ -116,7 +116,11 @@ fun createAutoresearchStrategy(
             Methodology Skills:
             $methodologySkills
             
-            **AUTO-STOPPING POLICY**: Do NOT stop until you have attempted at least one specific search for EACH geographic region identified in the plan.
+            **ANTI-LOOP & AUTO-STOPPING POLICY**: 
+            1. Attempt a MAXIMUM of 2 searches per person (e.g. one broad, one exact).
+            2. If you find NO records after 2 attempts, ACCEPT the negative result, STOP searching for that person, and move on.
+            3. Do NOT fall into an infinite loop of calling 'generalWebSearch' or 'queryFamilySearch' with slightly tweaked parameters.
+            4. Once all persons have been searched at least once (or skipped if irrelevant), you MUST FINISH this phase by providing a substantive summary WITHOUT making any tool calls.
         """.trimIndent()
                                 )
                         }
@@ -170,47 +174,35 @@ fun createAutoresearchStrategy(
                                 text
                         }
 
-                // Collector node to capture successful findings from tool results
-                val findingsCollector by
-                        node("FindingsCollector") { result: ai.koog.agents.core.dsl.extension.ReceivedToolResults ->
-                                result.toolResults.forEach { singleResult ->
-                                        val content = singleResult.output
-                                        // Detect if the result contains actual consolidated military data
-                                        // or evidence
-                                        if (content.contains("Consolidated Military Record") ||
-                                                        content.contains("military records extracted") ||
-                                                        content.contains("NEW fact") ||
-                                                        content.contains("FamilySearch") ||
-                                                        content.contains("Pamyat Naroda") ||
-                                                        (content.contains("Birth Date") &&
-                                                                 content.length > 50)
-                                        ) {
-
-                                                val taggedContent =
-                                                        when {
-                                                                content.contains("FamilySearch") ->
-                                                                        "[FamilySearch] $content"
-                                                                content.contains("Pamyat Naroda") ||
-                                                                        content.contains(
-                                                                                "Consolidated Military Record"
-                                                                        ) -> "[Pamyat Naroda] $content"
-                                                                else -> content
-                                                        }
-
-                                                // Prevent duplicates
-                                                if (accumulatedFindings.none {
-                                                                it.take(20) == taggedContent.take(20)
-                                                        }
-                                                ) {
-                                                        accumulatedFindings.add(taggedContent)
-                                                        onLog(
-                                                                "📦 [STORAGE] Stored finding in accumulator (Total: ${accumulatedFindings.size})"
-                                                        )
-                                                }
+                // Helper to collect findings from tool results in any phase
+                fun collectFindings(result: ai.koog.agents.core.dsl.extension.ReceivedToolResults): ai.koog.agents.core.dsl.extension.ReceivedToolResults {
+                        result.toolResults.forEach { singleResult ->
+                                val content = singleResult.output
+                                if (content.contains("Consolidated Military Record") ||
+                                                 content.contains("military records extracted") ||
+                                                 content.contains("NEW fact") ||
+                                                 content.contains("FamilySearch") ||
+                                                 content.contains("Pamyat Naroda") ||
+                                                 (content.contains("Birth Date") &&
+                                                          content.length > 50)
+                                ) {
+                                        val taggedContent = when {
+                                                content.contains("FamilySearch") -> "[FamilySearch] $content"
+                                                content.contains("Pamyat Naroda") || content.contains("Consolidated Military Record") -> "[Pamyat Naroda] $content"
+                                                else -> content
+                                        }
+                                        if (accumulatedFindings.none { it.take(20) == taggedContent.take(20) }) {
+                                                accumulatedFindings.add(taggedContent)
+                                                onLog("📦 [STORAGE] Stored finding in accumulator (Total: ${accumulatedFindings.size})")
                                         }
                                 }
-                                result
                         }
+                        return result
+                }
+
+                val scanFindingsCollector by node("ScanFindingsCollector") { r: ai.koog.agents.core.dsl.extension.ReceivedToolResults -> collectFindings(r) }
+                val discoveryFindingsCollector by node("DiscoveryFindingsCollector") { r: ai.koog.agents.core.dsl.extension.ReceivedToolResults -> collectFindings(r) }
+                val researchFindingsCollector by node("ResearchFindingsCollector") { r: ai.koog.agents.core.dsl.extension.ReceivedToolResults -> collectFindings(r) }
 
                 // Phase-specific Tool execution nodes
                 val scanExecuteTool by nodeExecuteTools("ScanToolExecutor")
@@ -230,7 +222,8 @@ fun createAutoresearchStrategy(
 
                 // Scan Loop (Tool calling)
                 edge(scanRequest.forwardTo(scanExecuteTool).onToolCalls { true })
-                edge(scanExecuteTool.forwardTo(scanSendToolResult))
+                edge(scanExecuteTool.forwardTo(scanFindingsCollector))
+                edge(scanFindingsCollector.forwardTo(scanSendToolResult))
                 edge(scanSendToolResult.forwardTo(scanExecuteTool).onToolCalls { true })
                 edge(
                         scanSendToolResult.forwardTo<String>(scanRequest)
@@ -275,7 +268,8 @@ fun createAutoresearchStrategy(
                                 discoveryExecuteTool
                         ).onToolCalls { true }
                 )
-                edge(discoveryExecuteTool.forwardTo(discoverySendToolResult))
+                edge(discoveryExecuteTool.forwardTo(discoveryFindingsCollector))
+                edge(discoveryFindingsCollector.forwardTo(discoverySendToolResult))
                 edge(discoverySendToolResult.forwardTo(discoveryExecuteTool).onToolCalls { true })
                 // Return to Discovery request, transforming Tool Result Response back to String
                 edge(
@@ -299,8 +293,8 @@ fun createAutoresearchStrategy(
                                 true
                         }
                 )
-                edge(researchExecuteTool.forwardTo(findingsCollector))
-                edge(findingsCollector.forwardTo(researchSendToolResult))
+                edge(researchExecuteTool.forwardTo(researchFindingsCollector))
+                edge(researchFindingsCollector.forwardTo(researchSendToolResult))
                 edge(researchSendToolResult.forwardTo(researchExecuteTool).onToolCalls { true })
                 edge(
                         researchSendToolResult.forwardTo<String>(researchRequest)

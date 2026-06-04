@@ -57,28 +57,23 @@ class KoogModelAdapter(
     ): Message.Assistant {
         onLog("[AI-DEBUG] Building prompt from ${prompt.messages.size} messages...")
         prompt.messages.forEachIndexed { index, msg ->
-            onLog("  Koog Message $index: class=${msg::class.simpleName}")
+            // Minimal debug logging to avoid confusing history dumps
             when (msg) {
-                is Message.System -> {
-                    val texts = msg.parts.filterIsInstance<MessagePart.Text>()
-                    onLog("    System parts: textCount=${texts.size}")
-                }
                 is Message.User -> {
                     val texts = msg.parts.filterIsInstance<MessagePart.Text>()
                     val results = msg.parts.filterIsInstance<MessagePart.Tool.Result>()
-                    onLog("    User parts: textCount=${texts.size}, toolResultCount=${results.size}")
-                    results.forEach { res ->
-                        onLog("      ToolResult: id='${res.id}', tool='${res.tool}', isError=${res.isError}, outputLength=${res.output.length}")
+                    if (texts.isNotEmpty() || results.isNotEmpty()) {
+                        // onLog("  Koog Message $index: User (texts=${texts.size}, toolResults=${results.size})")
                     }
                 }
                 is Message.Assistant -> {
                     val texts = msg.parts.filterIsInstance<MessagePart.Text>()
                     val calls = msg.parts.filterIsInstance<MessagePart.Tool.Call>()
-                    onLog("    Assistant parts: textCount=${texts.size}, toolCallCount=${calls.size}")
-                    calls.forEach { call ->
-                        onLog("      ToolCall: id='${call.id}', tool='${call.tool}', argsLength=${call.args.length}")
+                    if (texts.isNotEmpty() || calls.isNotEmpty()) {
+                        // onLog("  Koog Message $index: Assistant (texts=${texts.size}, toolCalls=${calls.size})")
                     }
                 }
+                else -> {}
             }
         }
         
@@ -139,9 +134,18 @@ class KoogModelAdapter(
         }
         
         // Map Koog ToolDescriptors to AiToolDescriptor by building JSON Schema
-        val toolNames = tools.map { it.name }
-        val sanitizedToolNames = tools.map { sanitizeToolName(it.name) }
-        onLog("[AI-DEBUG] Tool descriptors passed: $toolNames (sanitized: $sanitizedToolNames)")
+        // onLog("[AI-DEBUG] Registered Tools:")
+        tools.forEach { tool ->
+            // val required = tool.requiredParameters.map { "${it.name} (${it.type.name})" }
+            // val optional = tool.optionalParameters.map { "${it.name} (${it.type.name})" }
+            // onLog("  - Tool: ${tool.name}")
+            // if (required.isNotEmpty()) {
+            //     onLog("    Required parameters: ${required.joinToString(", ")}")
+            // }
+            // if (optional.isNotEmpty()) {
+            //     onLog("    Optional parameters: ${optional.joinToString(", ")}")
+            // }
+        }
         
         val sanitizedToOriginal = tools.associateBy({ sanitizeToolName(it.name) }, { it.name })
         
@@ -196,6 +200,7 @@ class KoogModelAdapter(
         if (!aiResponse.toolCalls.isNullOrEmpty()) {
             aiResponse.toolCalls.forEach { call ->
                 val originalName = sanitizedToOriginal[call.function.name] ?: call.function.name
+                onLog("📢 [TOOL CALL] $originalName with arguments: ${call.function.arguments}")
                 resultParts.add(
                     MessagePart.Tool.Call(
                         id = call.id,
