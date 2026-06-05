@@ -19,7 +19,9 @@ koin = "4.2.1"
 lifecycle = "2.10.0"
 voyager = "1.1.0-beta03"
 koog = "1.0.0"
-
+vosk = "0.3.38"
+vosk-android = "0.3.75"
+jna = "5.19.0"
 [libraries]
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "voyager" }
@@ -47,7 +49,9 @@ lifecycle-viewmodel-compose = { group = "org.jetbrains.androidx.lifecycle", name
 koog-agents = { group = "ai.koog", name = "koog-agents", version.ref = "koog" }
 kotlin-reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 jetbrains-compose-resources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "compose" }
-
+vosk-android = { group = "com.alphacephei", name = "vosk-android", version.ref = "vosk-android" }
+vosk-jvm = { group = "com.alphacephei", name = "vosk", version.ref = "vosk" }
+jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

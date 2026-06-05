@@ -1,23 +1,27 @@
 package com.family.tree.core.ai
 
-import io.ktor.client.*
-import io.ktor.client.plugins.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
 import kotlinx.serialization.json.*
 
 /**
  * Клиент для работы с пользовательскими OpenAI-совместимыми API.
  * Поддерживает любые сервисы, совместимые с OpenAI Chat Completions API.
  */
-class CustomClient : AiClient {
-    private val json = Json {
-        ignoreUnknownKeys = true
-        isLenient = true
-    }
+class CustomClient : BaseAiClient() {
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String {
+        val message = sendChat(
+            messages = listOf(AiMessage(role = "user", content = prompt)),
+            config = config
+        )
+        return message.content ?: ""
+    }
+
+    override suspend fun sendChat(
+        messages: List<AiMessage>,
+        config: AiConfig,
+        tools: List<AiToolDescriptor>
+    ): AiMessage {
         if (config.baseUrl.isBlank()) {
             throw IllegalArgumentException("Base URL is required for custom API")
         }
@@ -29,48 +33,89 @@ class CustomClient : AiClient {
             put("temperature", config.temperature)
             put("max_tokens", config.maxTokens)
             putJsonArray("messages") {
-                addJsonObject {
-                    put("role", "user")
-                    put("content", prompt)
+                messages.forEach { msg ->
+                    addJsonObject {
+                        put("role", msg.role)
+                        val content = msg.content ?: if (msg.role == "assistant" || msg.role == "tool") "" else null
+                        content?.let { put("content", it) }
+                        
+                        msg.toolCallId?.let { put("tool_call_id", it) }
+                        msg.toolCalls?.let { calls ->
+                            putJsonArray("tool_calls") {
+                                calls.forEach { call ->
+                                    addJsonObject {
+                                        put("id", call.id)
+                                        put("type", call.type)
+                                        putJsonObject("function") {
+                                            put("name", call.function.name)
+                                            put("arguments", call.function.arguments)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (tools.isNotEmpty()) {
+                putJsonArray("tools") {
+                    tools.forEach { tool ->
+                        addJsonObject {
+                            put("type", "function")
+                            putJsonObject("function") {
+                                put("name", tool.name)
+                                put("description", tool.description)
+                                put("parameters", tool.parameters)
+                            }
+                        }
+                    }
                 }
             }
         }
         
-        val client = HttpClient {
-            install(HttpTimeout) {
-                requestTimeoutMillis = 120_000 // 120 seconds for LLM processing
-                connectTimeoutMillis = 30_000  // 30 seconds for connection
-                socketTimeoutMillis = 120_000  // 120 seconds for socket
-            }
-        }
+        println("[AI-DEBUG] Custom API Request JSON: " + requestBody.toString())
+        
         try {
-            val response = client.post(url) {
-                contentType(ContentType.Application.Json)
-                // API key может быть необязательным для локальных сервисов
-                val apiKey = config.getApiKeyForProvider()
+            val apiKey = config.getApiKeyForProvider()
+            val responseText = executeRequest(url, requestBody.toString()) {
                 if (apiKey.isNotBlank()) {
                     header("Authorization", "Bearer $apiKey")
                 }
-                setBody(requestBody.toString())
             }
             
-            val responseText = response.bodyAsText()
             val responseJson = json.parseToJsonElement(responseText).jsonObject
             
-            // Используем формат OpenAI для парсинга ответа
             val choices = responseJson["choices"]?.jsonArray
             if (choices == null || choices.isEmpty()) {
                 throw Exception("No choices in API response")
             }
             
-            val message = choices[0].jsonObject["message"]?.jsonObject
-            val content = message?.get("content")?.jsonPrimitive?.content
+            val messageObj = choices[0].jsonObject["message"]?.jsonObject
+                ?: throw Exception("No message in API response")
+                
+            val role = messageObj["role"]?.jsonPrimitive?.content ?: "assistant"
+            val content = messageObj["content"]?.jsonPrimitive?.contentOrNull
             
-            if (content == null) {
-                throw Exception("No content in API response")
+            val toolCalls = messageObj["tool_calls"]?.jsonArray?.map { callElement ->
+                val callObj = callElement.jsonObject
+                val funcObj = callObj["function"]?.jsonObject ?: throw Exception("No function in tool call")
+                AiToolCall(
+                    id = callObj["id"]?.jsonPrimitive?.content ?: "",
+                    type = callObj["type"]?.jsonPrimitive?.content ?: "function",
+                    function = AiFunctionCall(
+                        name = funcObj["name"]?.jsonPrimitive?.content ?: "",
+                        arguments = funcObj["arguments"]?.jsonPrimitive?.content ?: "{}"
+                    )
+                )
             }
             
-            return content
+            return AiMessage(
+                role = role,
+                content = content,
+                toolCalls = toolCalls
+            )
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             throw Exception(
                 "Failed to connect to custom API at ${config.baseUrl}. " +
@@ -78,8 +123,6 @@ class CustomClient : AiClient {
                 "Original error: ${e.message}",
                 e
             )
-        } finally {
-            client.close()
         }
     }
 }

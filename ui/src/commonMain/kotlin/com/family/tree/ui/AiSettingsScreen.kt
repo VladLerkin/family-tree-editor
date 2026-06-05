@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import cafe.adriel.voyager.core.screen.Screen
 import cafe.adriel.voyager.navigator.LocalNavigator
@@ -181,12 +184,21 @@ class AiSettingsScreen : Screen {
                             )
                         }
                         "OLLAMA", "CUSTOM" -> {
-                            Text(
-                                text = "API key is not required for local models",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                                val ollamaCommand = "ollama run ${if (model.isNotBlank()) model else "qwen2.5:7b"}"
+                                Text(
+                                    text = "API key is not required for local models\nTo download the selected model run: $ollamaCommand",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                val clipboardManager = LocalClipboardManager.current
+                                IconButton(onClick = {
+                                    clipboardManager.setText(AnnotatedString(ollamaCommand))
+                                }) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Command", modifier = Modifier.size(16.dp))
+                                }
+                            }
                         }
                     }
                     

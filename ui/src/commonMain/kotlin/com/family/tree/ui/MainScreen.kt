@@ -197,17 +197,11 @@ fun MainScreen() {
 
     // Auto-fit view after import when positions are ready
     LaunchedEffect(cachedPositions, shouldAutoFit, canvasSize) {
-        println("[DEBUG_LOG] MainScreen: LaunchedEffect block running - shouldAutoFit=$shouldAutoFit, positions=${cachedPositions.size}, canvasSize=$canvasSize")
         if (shouldAutoFit && cachedPositions.isNotEmpty() && canvasSize != IntSize.Zero) {
-            println("[DEBUG_LOG] MainScreen: Conditions met, calling fitToView()")
             // Add a small delay to ensure canvas is fully initialized
             delay(50)
-            println("[DEBUG_LOG] MainScreen: After delay, calling fitToView() with ${cachedPositions.size} positions, canvasSize=$canvasSize")
             fitToView()
             viewModel.markAutoFitConsumed()
-            println("[DEBUG_LOG] MainScreen: fitToView() completed, shouldAutoFit set to false")
-        } else {
-            println("[DEBUG_LOG] MainScreen: Conditions NOT met - skipping fitToView()")
         }
     }
 

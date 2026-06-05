@@ -148,21 +148,14 @@ Return ONLY the JSON object, no explanations.
      * LLMs often wrap JSON in ```json ... ``` blocks, which breaks parsing.
      */
     private fun cleanJsonFromMarkdown(text: String): String {
-        var cleaned = text.trim()
+        val startIndex = text.indexOf('{')
+        val endIndex = text.lastIndexOf('}')
         
-        // Remove ```json opening tag
-        if (cleaned.startsWith("```json")) {
-            cleaned = cleaned.removePrefix("```json").trimStart()
-        } else if (cleaned.startsWith("```")) {
-            cleaned = cleaned.removePrefix("```").trimStart()
+        if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
+            return text.substring(startIndex, endIndex + 1)
         }
         
-        // Remove closing ``` tag
-        if (cleaned.endsWith("```")) {
-            cleaned = cleaned.removeSuffix("```").trimEnd()
-        }
-        
-        return cleaned.trim()
+        return text.trim()
     }
     
     /**

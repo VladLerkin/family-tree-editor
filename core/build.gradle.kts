@@ -68,12 +68,15 @@ kotlin {
             implementation(libs.pdfbox.android)
             api(libs.koin.android)
             implementation(libs.kotlin.reflect)
+            implementation(libs.vosk.android)
         }
         
         val desktopMain by getting {
             dependencies {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.kotlin.reflect)
+                implementation(libs.vosk.jvm)
+                implementation(libs.jna)
             }
         }
         

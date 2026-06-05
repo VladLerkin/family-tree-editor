@@ -19,7 +19,8 @@ enum class AiProvider {
 enum class TranscriptionProvider {
     OPENAI_WHISPER,    // OpenAI Whisper API
     GOOGLE_SPEECH,     // Google Cloud Speech-to-Text
-    YANDEX_SPEECHKIT   // Yandex SpeechKit
+    YANDEX_SPEECHKIT,  // Yandex SpeechKit
+    VOSK_LOCAL         // Local offline STT via Vosk
 }
 
 /**
@@ -94,6 +95,7 @@ data class AiConfig(
             TranscriptionProvider.OPENAI_WHISPER -> openaiApiKey.ifBlank { apiKey }
             TranscriptionProvider.GOOGLE_SPEECH -> googleAiApiKey.ifBlank { googleApiKey }
             TranscriptionProvider.YANDEX_SPEECHKIT -> yandexApiKey.ifBlank { apiKey }
+            TranscriptionProvider.VOSK_LOCAL -> ""
         }
     }
 }
@@ -118,22 +120,7 @@ object AiPresets {
         maxTokens = 4000
     )
     
-    val OLLAMA_LLAMA3_1_8B = AiConfig(
-        provider = "OLLAMA",
-        model = "llama3.1:8b",
-        baseUrl = "http://localhost:11434",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
-    val OLLAMA_GEMMA2_9B = AiConfig(
-        provider = "OLLAMA",
-        model = "gemma2:9b",
-        baseUrl = "http://localhost:11434",
-        temperature = 0.7,
-        maxTokens = 4000
-    )
-    
+
     val OLLAMA_QWEN2_5_7B = AiConfig(
         provider = "OLLAMA",
         model = "qwen2.5:7b",
@@ -141,6 +128,15 @@ object AiPresets {
         temperature = 0.7,
         maxTokens = 4000
     )
+
+    val OLLAMA_QWEN2_5_3B = AiConfig(
+        provider = "OLLAMA",
+        model = "qwen2.5:3b",
+        baseUrl = "http://localhost:11434",
+        temperature = 0.7,
+        maxTokens = 4000
+    )
+
     
     val YANDEX_GPT_LITE = AiConfig(
         provider = "YANDEX",
@@ -151,14 +147,15 @@ object AiPresets {
 
 
     
+    
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
         "Google Gemini 3.1 Flash-Lite" to GOOGLE_GEMINI_3_1_FLASH_LITE,
         "YandexGPT Lite" to YANDEX_GPT_LITE,
 
-        "Ollama Llama 3.1 8B" to OLLAMA_LLAMA3_1_8B,
-        "Ollama Gemma 2 9B" to OLLAMA_GEMMA2_9B,
-        "Ollama Qwen 2.5 7B (best for RU)" to OLLAMA_QWEN2_5_7B
+
+        "Ollama Qwen 2.5 7B (offline and free)" to OLLAMA_QWEN2_5_7B,
+        "Ollama Qwen 2.5 3B (fast & offline)" to OLLAMA_QWEN2_5_3B
     )
 }

@@ -275,7 +275,14 @@ fun AutoSearchDialog(
                     
                     LaunchedEffect(logs.size) {
                         if (logs.isNotEmpty() && logSearchQuery.isBlank()) {
-                            listState.animateScrollToItem(logs.size - 1)
+                            val layoutInfo = listState.layoutInfo
+                            val totalItems = layoutInfo.totalItemsCount
+                            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                            
+                            // Auto-scroll only if we are near the bottom, avoiding UI freeze when manually scrolled up
+                            if (totalItems < 10 || lastVisible >= totalItems - 5) {
+                                listState.scrollToItem(logs.size - 1)
+                            }
                         }
                     }
                     

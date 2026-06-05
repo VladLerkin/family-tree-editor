@@ -45,6 +45,8 @@ val coreModule = module {
             ignoreUnknownKeys = true
             isLenient = true
             encodeDefaults = true
+            coerceInputValues = true
+            explicitNulls = false
         }
     }
 

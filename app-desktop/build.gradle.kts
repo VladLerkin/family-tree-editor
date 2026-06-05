@@ -15,6 +15,7 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.ktor.client.core)
     implementation(libs.kotlinx.serialization.json)
+    implementation("org.slf4j:slf4j-nop:2.0.12")
 }
 
 kotlin {
@@ -30,6 +31,7 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "com.family.tree.desktop.MainKt"
+        jvmArgs += listOf("--enable-native-access=ALL-UNNAMED")
         
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

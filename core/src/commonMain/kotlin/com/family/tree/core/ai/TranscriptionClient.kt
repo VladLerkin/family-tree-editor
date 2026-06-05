@@ -20,7 +20,8 @@ interface TranscriptionClient {
 class TranscriptionClientFactory(
     private val openAiWhisperClient: OpenAiWhisperClient,
     private val googleSpeechClient: GoogleSpeechClient,
-    private val yandexSpeechClient: YandexSpeechClient
+    private val yandexSpeechClient: YandexSpeechClient,
+    private val voskTranscriptionClient: VoskTranscriptionClient = VoskTranscriptionClient()
 ) {
     /**
      * Creates a transcription client based on configuration.
@@ -30,6 +31,7 @@ class TranscriptionClientFactory(
             TranscriptionProvider.OPENAI_WHISPER -> openAiWhisperClient
             TranscriptionProvider.GOOGLE_SPEECH -> googleSpeechClient
             TranscriptionProvider.YANDEX_SPEECHKIT -> yandexSpeechClient
+            TranscriptionProvider.VOSK_LOCAL -> voskTranscriptionClient
         }
     }
 }

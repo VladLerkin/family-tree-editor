@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -21,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
-
-
+import com.family.tree.core.ai.VoskRecognizerManager
+import kotlinx.coroutines.launch
 
 
 /**
@@ -64,6 +66,9 @@ fun AiConfigDialog(
     var pamyatNarodaCookies by remember { mutableStateOf(initialConfig.pamyatNarodaCookies) }
     var familySearchCookies by remember { mutableStateOf(initialConfig.familySearchCookies) }
     
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val tabs = listOf("Models & APIs", "Archives & Agents")
+    
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             modifier = Modifier
@@ -75,7 +80,6 @@ fun AiConfigDialog(
             Column(
                 modifier = Modifier
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
             ) {
                 Text(
                     text = "AI Settings for Text Import",
@@ -84,333 +88,449 @@ fun AiConfigDialog(
                 )
                 
                 Text(
-                    text = "Select an AI model to analyze text and extract information about people and relationships.",
+                    text = "Configure AI models and agents for automated genealogy research.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                // Preset selector
-                Text(
-                    text = "Presets:",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                    presets.forEachIndexed { index, (name, preset) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = selectedPresetIndex == index,
-                                onClick = {
-                                    selectedPresetIndex = index
-                                    provider = preset.provider
-                                    model = preset.model
-                                    baseUrl = preset.baseUrl
-                                    temperature = preset.temperature.toString()
-                                    maxTokens = preset.maxTokens.toString()
-                                }
-                            )
-                            Text(
-                                text = name,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        }
+                TabRow(selectedTabIndex = selectedTabIndex) {
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(title) }
+                        )
                     }
                 }
                 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 
-                // Show API key field depending on the selected provider
-                when (provider) {
-                    "OPENAI" -> {
-                        ApiKeyTextField(
-                            value = openAiKey,
-                            onValueChange = { openAiKey = it },
-                            label = "OpenAI API Key",
-                            placeholder = "sk-...",
-                            supportingText = "Provided key is stored in memory and masked in logs.",
-                            modifier = Modifier.fillMaxWidth()
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    if (selectedTabIndex == 0) {
+                        // Preset selector
+                        Text(
+                            text = "Presets:",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(bottom = 8.dp)
                         )
-                    }
-
-                    "GOOGLE" -> {
-                        ApiKeyTextField(
-                            value = googleKey,
-                            onValueChange = { googleKey = it },
-                            label = "Google AI API Key",
-                            placeholder = "AIza...",
-                            supportingText = "Provided key is stored in memory and masked in logs.",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    "YANDEX" -> {
-                        ApiKeyTextField(
-                            value = yandexKey,
-                            onValueChange = { yandexKey = it },
-                            label = "YandexGPT API Key",
-                            placeholder = "AQVN...",
-                            supportingText = "Provided key is stored in memory and masked in logs.",
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        
+                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
+                            presets.forEachIndexed { index, (name, preset) ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    RadioButton(
+                                        selected = selectedPresetIndex == index,
+                                        onClick = {
+                                            selectedPresetIndex = index
+                                            provider = preset.provider
+                                            model = preset.model
+                                            baseUrl = preset.baseUrl
+                                            temperature = preset.temperature.toString()
+                                            maxTokens = preset.maxTokens.toString()
+                                        }
+                                    )
+                                    Text(
+                                        text = name,
+                                        modifier = Modifier.padding(start = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                        
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+                        
+                        // Show API key field depending on the selected provider
+                        when (provider) {
+                            "OPENAI" -> {
+                                ApiKeyTextField(
+                                    value = openAiKey,
+                                    onValueChange = { openAiKey = it },
+                                    label = "OpenAI API Key",
+                                    placeholder = "sk-...",
+                                    supportingText = "Provided key is stored in memory and masked in logs.",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+        
+                            "GOOGLE" -> {
+                                ApiKeyTextField(
+                                    value = googleKey,
+                                    onValueChange = { googleKey = it },
+                                    label = "Google AI API Key",
+                                    placeholder = "AIza...",
+                                    supportingText = "Provided key is stored in memory and masked in logs.",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            "YANDEX" -> {
+                                ApiKeyTextField(
+                                    value = yandexKey,
+                                    onValueChange = { yandexKey = it },
+                                    label = "YandexGPT API Key",
+                                    placeholder = "AQVN...",
+                                    supportingText = "Provided key is stored in memory and masked in logs.",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = yandexFolderId,
+                                    onValueChange = { yandexFolderId = it },
+                                    label = { Text("Folder ID (optional)") },
+                                    placeholder = { Text("default or b1g...") },
+                                    supportingText = { Text("Yandex Cloud Folder ID. Leave as 'default' for automatic detection when using a service account API key.") },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(bottom = 12.dp),
+                                    singleLine = true
+                                )
+                            }
+                            "OLLAMA", "CUSTOM" -> {
+                                // For Ollama and Custom, no API key is required or baseUrl is used
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                                    val ollamaCommand = "ollama run ${if (model.isNotBlank()) model else "qwen2.5:7b"}"
+                                    Text(
+                                        text = "API key is not required for local models\nTo download the selected model run: $ollamaCommand",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    val clipboardManager = LocalClipboardManager.current
+                                    IconButton(onClick = {
+                                        clipboardManager.setText(AnnotatedString(ollamaCommand))
+                                    }) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "Copy Command", modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Custom URL (for Ollama and Custom)
+                        if (provider == "OLLAMA" || provider == "CUSTOM") {
+                            OutlinedTextField(
+                                value = baseUrl,
+                                onValueChange = { baseUrl = it },
+                                label = { Text("Base URL") },
+                                placeholder = { 
+                                    Text(
+                                        when (provider) {
+                                            "OLLAMA" -> "http://localhost:11434"
+                                            else -> "https://your-api.com/v1"
+                                        }
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 12.dp),
+                                singleLine = true
+                            )
+                        }
+                        
+                        // Model
                         OutlinedTextField(
-                            value = yandexFolderId,
-                            onValueChange = { yandexFolderId = it },
-                            label = { Text("Folder ID (optional)") },
-                            placeholder = { Text("default or b1g...") },
-                            supportingText = { Text("Yandex Cloud Folder ID. Leave as 'default' for automatic detection when using a service account API key.") },
+                            value = model,
+                            onValueChange = { model = it },
+                            label = { Text("Model") },
+                            placeholder = { Text("gpt-4o-mini") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),
                             singleLine = true
                         )
-                    }
-                    "OLLAMA", "CUSTOM" -> {
-                        // For Ollama and Custom, no API key is required or baseUrl is used
-                        Text(
-                            text = "API key is not required for local models",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 12.dp)
+                        
+                        // Language for voice transcription
+                        OutlinedTextField(
+                            value = language,
+                            onValueChange = { language = it },
+                            label = { Text("Transcription Language (ISO-639-1)") },
+                            placeholder = { Text("ka, ru, en, etc.") },
+                            supportingText = { Text("Language code for transcription (e.g., 'ka' for Georgian, 'ru' for Russian). Leave empty for auto-detection.") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            singleLine = true
                         )
-                    }
-                }
-                
-                HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-
-                // Autonomous Agent Settings
-                Text(
-                    text = "Autoresearch Genealogy Agent:",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                ApiKeyTextField(
-                    value = tavilyApiKey,
-                    onValueChange = { tavilyApiKey = it },
-                    label = "Tavily API Key (web search)",
-                    placeholder = "tvly-...",
-                    supportingText = "Required for autonomous web research agent. Get it at tavily.com",
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = autoresearchRepoPath,
-                    onValueChange = { autoresearchRepoPath = it },
-                    label = { Text("Methodology Repository Path") },
-                    placeholder = { Text("./autoresearch-genealogy") },
-                    supportingText = { Text("Absolute or relative path to the autoresearch-genealogy repository.") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    singleLine = true
-                )
-
-                OutlinedTextField(
-                    value = pamyatNarodaCookies,
-                    onValueChange = { pamyatNarodaCookies = it },
-                    label = { Text("Archive Cookies (Pamyat Naroda)") },
-                    placeholder = { Text("PHPSESSID=...;") },
-                    supportingText = { Text("Paste cookies from your browser log in (F12 -> Application -> Cookies) to bypass login redirects.") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    singleLine = false,
-                    maxLines = 3
-                )
-
-                OutlinedTextField(
-                    value = familySearchCookies,
-                    onValueChange = { familySearchCookies = it },
-                    label = { Text("Archive Cookies (FamilySearch)") },
-                    placeholder = { Text("fssessionid=...;") },
-                    supportingText = { Text("Paste cookies from familysearch.org (F12 -> Application -> Cookies) to use search tool.") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    singleLine = false,
-                    maxLines = 3
-                )
-                
-                // Custom URL (for Ollama and Custom)
-                if (provider == "OLLAMA" || provider == "CUSTOM") {
-                    OutlinedTextField(
-                        value = baseUrl,
-                        onValueChange = { baseUrl = it },
-                        label = { Text("Base URL") },
-                        placeholder = { 
-                            Text(
-                                when (provider) {
-                                    "OLLAMA" -> "http://localhost:11434"
-                                    else -> "https://your-api.com/v1"
-                                }
+                        
+                        // Transcription provider selection
+                        Text(
+                            text = "Speech Recognition Provider:",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                        )
+                        
+                        Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = transcriptionProvider == "OPENAI_WHISPER",
+                                    onClick = { transcriptionProvider = "OPENAI_WHISPER" }
+                                )
+                                Text(
+                                    text = "OpenAI Whisper",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = transcriptionProvider == "GOOGLE_SPEECH",
+                                    onClick = { transcriptionProvider = "GOOGLE_SPEECH" }
+                                )
+                                Text(
+                                    text = "Google Speech-to-Text (best for Georgian)",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = transcriptionProvider == "YANDEX_SPEECHKIT",
+                                    onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
+                                )
+                                Text(
+                                    text = "Yandex SpeechKit (best for Russian and CIS languages)",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = transcriptionProvider == "VOSK_LOCAL",
+                                    onClick = { transcriptionProvider = "VOSK_LOCAL" }
+                                )
+                                Text(
+                                    text = "Vosk Local (Offline & Free)",
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        }
+                        
+                        // OpenAI API Key (shown only when OpenAI Whisper is selected)
+                        if (transcriptionProvider == "OPENAI_WHISPER") {
+                            ApiKeyTextField(
+                                value = openAiKey,
+                                onValueChange = { openAiKey = it },
+                                label = "OpenAI API Key (Whisper)",
+                                placeholder = "sk-...",
+                                supportingText = "API key for OpenAI Whisper transcription. Uses the same key as for GPT models.",
+                                modifier = Modifier.fillMaxWidth()
                             )
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 12.dp),
-                        singleLine = true
-                    )
-                }
-                
-                // Model
-                OutlinedTextField(
-                    value = model,
-                    onValueChange = { model = it },
-                    label = { Text("Model") },
-                    placeholder = { Text("gpt-4o-mini") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    singleLine = true
-                )
-                
-                // Language for voice transcription
-                OutlinedTextField(
-                    value = language,
-                    onValueChange = { language = it },
-                    label = { Text("Transcription Language (ISO-639-1)") },
-                    placeholder = { Text("ka, ru, en, etc.") },
-                    supportingText = { Text("Language code for transcription (e.g., 'ka' for Georgian, 'ru' for Russian). Leave empty for auto-detection.") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    singleLine = true
-                )
-                
-                // Transcription provider selection
-                Text(
-                    text = "Speech Recognition Provider:",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-                
-                Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = transcriptionProvider == "OPENAI_WHISPER",
-                            onClick = { transcriptionProvider = "OPENAI_WHISPER" }
-                        )
+                        }
+                        
+                        // Google AI API Key (shown only when Google Speech is selected)
+                        if (transcriptionProvider == "GOOGLE_SPEECH") {
+                            ApiKeyTextField(
+                                value = googleKey,
+                                onValueChange = { googleKey = it },
+                                label = "Google AI API Key (Speech-to-Text)",
+                                placeholder = "AIza...",
+                                supportingText = "API key for Google Speech-to-Text. Uses the same key as for Gemini models.",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        
+                        // Yandex API Key (shown only when Yandex SpeechKit is selected)
+                        if (transcriptionProvider == "YANDEX_SPEECHKIT") {
+                            ApiKeyTextField(
+                                value = yandexKey,
+                                onValueChange = { yandexKey = it },
+                                label = "Yandex Cloud API Key (SpeechKit)",
+                                placeholder = "AQVN...",
+                                supportingText = "API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        
+                        // Vosk Download Manager
+                        if (transcriptionProvider == "VOSK_LOCAL") {
+                            val scope = rememberCoroutineScope()
+                            val voskManager = remember { VoskRecognizerManager() }
+                            val currentLang = if (language.isBlank()) "ru" else language
+                            var isDownloaded by remember(currentLang) { mutableStateOf(voskManager.isModelDownloaded(currentLang)) }
+                            var downloadProgress by remember { mutableStateOf(-1f) }
+                            var downloadError by remember { mutableStateOf<String?>(null) }
+                            
+                            if (isDownloaded) {
+                                Text(
+                                    text = "✓ Model for '$currentLang' is downloaded and ready.",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            } else {
+                                Column(modifier = Modifier.padding(vertical = 8.dp)) {
+                                    Text(
+                                        text = "Vosk requires a ~45MB language model to be downloaded for offline use.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    
+                                    if (downloadProgress >= 0f && downloadProgress <= 1f) {
+                                        LinearProgressIndicator(
+                                            progress = { downloadProgress },
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                                        )
+                                        Text("${(downloadProgress * 100).toInt()}% downloaded", style = MaterialTheme.typography.bodySmall)
+                                    } else {
+                                        Button(onClick = {
+                                            scope.launch {
+                                                try {
+                                                    downloadProgress = 0f
+                                                    downloadError = null
+                                                    voskManager.downloadModel(currentLang) { progress ->
+                                                        downloadProgress = progress
+                                                    }
+                                                    isDownloaded = true
+                                                    downloadProgress = -1f
+                                                } catch (e: Exception) {
+                                                    downloadError = e.message ?: "Unknown error"
+                                                    downloadProgress = -1f
+                                                }
+                                            }
+                                        }) {
+                                            Text("Download Model")
+                                        }
+                                    }
+                                    
+                                    if (downloadError != null) {
+                                        Text(
+                                            text = "Error: $downloadError",
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(top = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Advanced settings
                         Text(
-                            text = "OpenAI Whisper",
-                            modifier = Modifier.padding(start = 8.dp)
+                            text = "Advanced Settings:",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = temperature,
+                                onValueChange = { temperature = it },
+                                label = { Text("Temperature") },
+                                placeholder = { Text("0.7") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            
+                            OutlinedTextField(
+                                value = maxTokens,
+                                onValueChange = { maxTokens = it },
+                                label = { Text("Max Tokens") },
+                                placeholder = { Text("4000") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                        
+                        // Help text
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)) {
+                            val ollamaCommand = "ollama run ${if (model.isNotBlank()) model else "qwen2.5:7b"}"
+                            Text(
+                                text = "OpenAI requires an API key. For Ollama, ensure the server is running (ollama serve).\nTo download the selected model run: $ollamaCommand",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f)
+                            )
+                            val clipboardManager = LocalClipboardManager.current
+                            IconButton(onClick = {
+                                clipboardManager.setText(AnnotatedString(ollamaCommand))
+                            }) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy Command", modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    } else {
+                        // Autonomous Agent Settings
+                        Text(
+                            text = "Autoresearch Genealogy Agent:",
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
+                        )
+        
+                        ApiKeyTextField(
+                            value = tavilyApiKey,
+                            onValueChange = { tavilyApiKey = it },
+                            label = "Tavily API Key (web search)",
+                            placeholder = "tvly-...",
+                            supportingText = "Required for autonomous web research agent. Get it at tavily.com",
+                            modifier = Modifier.fillMaxWidth()
+                        )
+        
+                        OutlinedTextField(
+                            value = autoresearchRepoPath,
+                            onValueChange = { autoresearchRepoPath = it },
+                            label = { Text("Methodology Repository Path") },
+                            placeholder = { Text("./autoresearch-genealogy") },
+                            supportingText = { Text("Absolute or relative path to the autoresearch-genealogy repository.") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            singleLine = true
+                        )
+        
+                        OutlinedTextField(
+                            value = pamyatNarodaCookies,
+                            onValueChange = { pamyatNarodaCookies = it },
+                            label = { Text("Archive Cookies (Pamyat Naroda)") },
+                            placeholder = { Text("PHPSESSID=...;") },
+                            supportingText = { Text("Paste cookies from your browser log in (F12 -> Application -> Cookies) to bypass login redirects.") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            singleLine = false,
+                            maxLines = 3
+                        )
+        
+                        OutlinedTextField(
+                            value = familySearchCookies,
+                            onValueChange = { familySearchCookies = it },
+                            label = { Text("Archive Cookies (FamilySearch)") },
+                            placeholder = { Text("fssessionid=...;") },
+                            supportingText = { Text("Paste cookies from familysearch.org (F12 -> Application -> Cookies) to use search tool.") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp),
+                            singleLine = false,
+                            maxLines = 3
                         )
                     }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = transcriptionProvider == "GOOGLE_SPEECH",
-                            onClick = { transcriptionProvider = "GOOGLE_SPEECH" }
-                        )
-                        Text(
-                            text = "Google Speech-to-Text (best for Georgian)",
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = transcriptionProvider == "YANDEX_SPEECHKIT",
-                            onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
-                        )
-                        Text(
-                            text = "Yandex SpeechKit (best for Russian and CIS languages)",
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
                 }
                 
-                // OpenAI API Key (shown only when OpenAI Whisper is selected)
-                if (transcriptionProvider == "OPENAI_WHISPER") {
-                    ApiKeyTextField(
-                        value = openAiKey,
-                        onValueChange = { openAiKey = it },
-                        label = "OpenAI API Key (Whisper)",
-                        placeholder = "sk-...",
-                        supportingText = "API key for OpenAI Whisper transcription. Uses the same key as for GPT models.",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                // Google AI API Key (shown only when Google Speech is selected)
-                if (transcriptionProvider == "GOOGLE_SPEECH") {
-                    ApiKeyTextField(
-                        value = googleKey,
-                        onValueChange = { googleKey = it },
-                        label = "Google AI API Key (Speech-to-Text)",
-                        placeholder = "AIza...",
-                        supportingText = "API key for Google Speech-to-Text. Uses the same key as for Gemini models.",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                // Yandex API Key (shown only when Yandex SpeechKit is selected)
-                if (transcriptionProvider == "YANDEX_SPEECHKIT") {
-                    ApiKeyTextField(
-                        value = yandexKey,
-                        onValueChange = { yandexKey = it },
-                        label = "Yandex Cloud API Key (SpeechKit)",
-                        placeholder = "AQVN...",
-                        supportingText = "API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.",
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                // Advanced settings
-                Text(
-                    text = "Advanced Settings:",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    OutlinedTextField(
-                        value = temperature,
-                        onValueChange = { temperature = it },
-                        label = { Text("Temperature") },
-                        placeholder = { Text("0.7") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                    
-                    OutlinedTextField(
-                        value = maxTokens,
-                        onValueChange = { maxTokens = it },
-                        label = { Text("Max Tokens") },
-                        placeholder = { Text("4000") },
-                        modifier = Modifier.weight(1f),
-                        singleLine = true
-                    )
-                }
-                
-                // Help text
-                Text(
-                    text = "OpenAI requires an API key. For Ollama, ensure the server is running (ollama serve).",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
                 
                 // Buttons
                 Row(
