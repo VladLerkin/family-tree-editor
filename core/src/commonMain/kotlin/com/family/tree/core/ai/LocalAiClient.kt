@@ -13,7 +13,7 @@ class LocalAiClient(
     // Cache the instance to avoid reloading the 4GB file on every request
     private var currentModelPath: String? = null
     
-    override suspend fun sendPrompt(prompt: String, config: AiConfig): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+    override suspend fun sendPrompt(prompt: String, config: AiConfig): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
         try {
             // MUST be called BEFORE ensureModelLoaded so that gpuLayers=99 and useMmap=true are applied during llama_model_load!
             LlamaBridge.updateGenerateParams(
