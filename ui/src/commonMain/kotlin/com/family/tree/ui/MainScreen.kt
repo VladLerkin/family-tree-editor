@@ -356,6 +356,10 @@ fun MainScreen() {
     AppActions.zoomIn = { setScaleAnimated(scale * 1.1f) }
     AppActions.zoomOut = { setScaleAnimated(scale * 0.9f) }
     AppActions.reset = { fitToView() }
+    AppActions.autoLayout = {
+        val newLayout = com.family.tree.core.layout.calculateAutoLayout(project)
+        viewModel.loadProject(LoadedProject(project, newLayout, project.metadata), autoFit = true)
+    }
     AppActions.manageSources = { viewModel.openDialog(AppDialog.SourcesManager) }
     AppActions.showAbout = { viewModel.openDialog(AppDialog.About) }
     AppActions.showAiSettings = { viewModel.openDialog(AppDialog.AiSettings) }

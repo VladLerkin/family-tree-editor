@@ -9,6 +9,8 @@ java = "25"
 app-version = "2.0.40"
 app-versionCode = "95"
 ktor = "3.5.0"
+okio = "3.9.0"
+llamatik = "1.7.0"
 serialization = "1.11.0"
 androidx-security = "1.1.0"
 pdfbox-android = "2.0.27.0"
@@ -33,6 +35,8 @@ ktor-client-okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.r
 ktor-client-cio = { group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
 ktor-client-darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 ktor-client-js = { group = "io.ktor", name = "ktor-client-js", version.ref = "ktor" }
+okio = { group = "com.squareup.okio", name = "okio", version.ref = "okio" }
+llamatik = { group = "com.llamatik", name = "library", version.ref = "llamatik" }
 androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "androidx-security" }
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfbox-android" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity-compose" }

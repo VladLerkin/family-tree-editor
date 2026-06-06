@@ -27,7 +27,9 @@ val coreModule = module {
     single { YandexClient() }
     single { OllamaClient() }
     single { CustomClient() }
-    single { AiClientFactory(get(), get(), get(), get(), get()) }
+    single { LocalAiClient(get()) }
+    single { LocalModelManager(get(), get()) }
+    single { AiClientFactory(get(), get(), get(), get(), get(), get()) }
 
     // Transcription Clients
     single { OpenAiWhisperClient(get(), get()) }

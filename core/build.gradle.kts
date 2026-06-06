@@ -57,6 +57,8 @@ kotlin {
             dependencies {
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.ktor.client.core)
+                implementation(libs.okio)
+                implementation(libs.llamatik)
                 api(libs.koin.core)
                 api(libs.koog.agents)
             }

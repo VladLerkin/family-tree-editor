@@ -27,6 +27,7 @@ object AppActions {
     private var _zoomIn: () -> Unit = {}
     private var _zoomOut: () -> Unit = {}
     private var _reset: () -> Unit = {}
+    private var _autoLayout: () -> Unit = {}
 
     // Edit - backing fields
     private var _manageSources: () -> Unit = {}
@@ -102,6 +103,10 @@ object AppActions {
     var reset: () -> Unit
         get() = { _reset() }
         set(value) { _reset = value }
+        
+    var autoLayout: () -> Unit
+        get() = { _autoLayout() }
+        set(value) { _autoLayout = value }
 
     // Edit - public setters and call methods
     var manageSources: () -> Unit

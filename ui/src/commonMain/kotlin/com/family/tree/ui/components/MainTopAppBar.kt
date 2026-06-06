@@ -47,6 +47,7 @@ fun MainTopAppBar(
                     DropdownMenuItem(text = { Text("Export Markdown Tree") }, onClick = { showMenu = false; AppActions.exportMarkdownTree() })
                     DropdownMenuItem(text = { Text("Export SVG (Current)") }, onClick = { showMenu = false; AppActions.exportSvgCurrent() })
                     DropdownMenuItem(text = { Text("Export SVG (Fit)") }, onClick = { showMenu = false; AppActions.exportSvgFit() })
+                    DropdownMenuItem(text = { Text("Auto Layout") }, onClick = { showMenu = false; AppActions.autoLayout() })
                     DropdownMenuItem(text = { Text("Manage Sources...") }, onClick = { showMenu = false; AppActions.manageSources() })
                     DropdownMenuItem(text = { Text("AI Settings...") }, onClick = { showMenu = false; AppActions.showAiSettings() })
                     DropdownMenuItem(text = { Text("Autoresearch Agent...") }, onClick = { showMenu = false; AppActions.showAutoSearch() })

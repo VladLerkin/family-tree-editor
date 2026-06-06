@@ -46,6 +46,8 @@ fun main() {
                 Item("Zoom In") { AppActions.zoomIn() }
                 Item("Zoom Out") { AppActions.zoomOut() }
                 Item("Reset / Fit") { AppActions.reset() }
+                Separator()
+                Item("Auto Layout") { AppActions.autoLayout() }
             }
             Menu("AI Tools") {
                 Item("Import AI Text") { AppActions.importAiText() }

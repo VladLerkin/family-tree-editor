@@ -118,9 +118,11 @@ Return ONLY the JSON object, no explanations.
     private suspend fun callAiApi(prompt: String): String {
         println("[DEBUG_LOG] AiTextImporter.callAiApi: Sending prompt to AI (length=${prompt.length})")
         println("[DEBUG_LOG] AiTextImporter.callAiApi: Prompt preview (first 500 chars): ${prompt.take(500)}")
-        val result = aiClient.sendPrompt(prompt, config)
-        println("[DEBUG_LOG] AiTextImporter.callAiApi: Received response (length=${result.length})")
-        return result
+        val message = AiMessage(role = "user", content = prompt)
+        val result = aiClient.sendChat(listOf(message), config)
+        val responseText = result.content ?: ""
+        println("[DEBUG_LOG] AiTextImporter.callAiApi: Received response (length=${responseText.length})")
+        return responseText
     }
     
     /**
@@ -148,14 +150,52 @@ Return ONLY the JSON object, no explanations.
      * LLMs often wrap JSON in ```json ... ``` blocks, which breaks parsing.
      */
     private fun cleanJsonFromMarkdown(text: String): String {
-        val startIndex = text.indexOf('{')
-        val endIndex = text.lastIndexOf('}')
+        // Try to extract content inside ```json ... ``` blocks
+        val codeBlockRegex = Regex("```(?:json)?\\s*([\\s\\S]*?)\\s*```")
+        val match = codeBlockRegex.find(text)
         
-        if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
-            return text.substring(startIndex, endIndex + 1)
+        val jsonText = if (match != null) {
+            match.groupValues[1]
+        } else {
+            text
         }
         
-        return text.trim()
+        // Find the outermost JSON object (the first complete one)
+        val startIndex = jsonText.indexOf('{')
+        var endIndex = -1
+        
+        if (startIndex != -1) {
+            var bracketCount = 0
+            for (i in startIndex until jsonText.length) {
+                if (jsonText[i] == '{') bracketCount++
+                else if (jsonText[i] == '}') bracketCount--
+                
+                if (bracketCount == 0) {
+                    endIndex = i
+                    break
+                }
+            }
+        }
+        
+        var parsedJson = if (startIndex != -1 && endIndex != -1) {
+            jsonText.substring(startIndex, endIndex + 1)
+        } else {
+            jsonText.trim()
+        }
+        
+        // --- Heuristics for small LLMs (like Gemma 2B) which might output malformed JSON ---
+        // Fix missing closing quote on keys (e.g., "lastName: null -> "lastName": null)
+        parsedJson = parsedJson.replace(Regex("([\\{\\[,]\\s*)\"(\\w+):\\s*"), "$1\"$2\": ")
+        
+        // Fix unquoted enum values
+        parsedJson = parsedJson.replace(Regex(":\\s*UNKNOWN\\b"), ": \"UNKNOWN\"")
+        parsedJson = parsedJson.replace(Regex(":\\s*MALE\\b"), ": \"MALE\"")
+        parsedJson = parsedJson.replace(Regex(":\\s*FEMALE\\b"), ": \"FEMALE\"")
+        parsedJson = parsedJson.replace(Regex(":\\s*PARENT\\b"), ": \"PARENT\"")
+        parsedJson = parsedJson.replace(Regex(":\\s*CHILD\\b"), ": \"CHILD\"")
+        parsedJson = parsedJson.replace(Regex(":\\s*SPOUSE\\b"), ": \"SPOUSE\"")
+        
+        return parsedJson
     }
     
     /**
@@ -260,7 +300,7 @@ Return ONLY the JSON object, no explanations.
         
         return LoadedProject(
             data = projectData,
-            layout = null,
+            layout = com.family.tree.core.layout.calculateAutoLayout(projectData),
             meta = projectData.metadata
         )
     }

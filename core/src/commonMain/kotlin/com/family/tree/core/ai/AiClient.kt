@@ -92,7 +92,8 @@ class AiClientFactory(
     private val googleClient: GoogleClient,
     private val yandexClient: YandexClient,
     private val ollamaClient: OllamaClient,
-    private val customClient: CustomClient
+    private val customClient: CustomClient,
+    private val localAiClient: LocalAiClient
 ) {
     /**
      * Creates a client for the specified provider.
@@ -104,6 +105,7 @@ class AiClientFactory(
             AiProvider.YANDEX -> yandexClient
             AiProvider.OLLAMA -> ollamaClient
             AiProvider.CUSTOM -> customClient
+            AiProvider.LOCAL_LLAMATIK -> localAiClient
         }
     }
     
