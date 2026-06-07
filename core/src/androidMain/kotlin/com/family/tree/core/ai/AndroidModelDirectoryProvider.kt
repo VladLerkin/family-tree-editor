@@ -6,4 +6,5 @@ class AndroidModelDirectoryProvider(private val context: Context) : ModelDirecto
     override fun getDirectory(): String {
         return context.filesDir.absolutePath + "/models"
     }
+    override val isAndroid: Boolean = true
 }

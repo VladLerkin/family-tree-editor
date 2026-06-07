@@ -67,7 +67,7 @@ fun AiConfigDialog(
     var familySearchCookies by remember { mutableStateOf(initialConfig.familySearchCookies) }
     
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Models & APIs", "Archives & Agents")
+    val tabs = listOf("Models & APIs", "Archives")
     
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -81,19 +81,7 @@ fun AiConfigDialog(
                 modifier = Modifier
                     .padding(24.dp)
             ) {
-                Text(
-                    text = "AI Settings for Text Import",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
-                Text(
-                    text = "Configure AI models and agents for automated genealogy research.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                
+
                 TabRow(selectedTabIndex = selectedTabIndex) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
@@ -113,22 +101,29 @@ fun AiConfigDialog(
                 ) {
                     if (selectedTabIndex == 0) {
                         // Preset selector
+                        var presetsExpanded by remember { mutableStateOf(false) }
+                        
                         Text(
                             text = "Presets:",
                             style = MaterialTheme.typography.labelLarge,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
                         
-                        Column(modifier = Modifier.padding(bottom = 16.dp)) {
-                            presets.forEachIndexed { index, (name, preset) ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    RadioButton(
-                                        selected = selectedPresetIndex == index,
+                        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                            OutlinedButton(
+                                onClick = { presetsExpanded = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(presets.getOrNull(selectedPresetIndex)?.first ?: "Select Preset")
+                            }
+                            DropdownMenu(
+                                expanded = presetsExpanded,
+                                onDismissRequest = { presetsExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                presets.forEachIndexed { index, (name, preset) ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
                                         onClick = {
                                             selectedPresetIndex = index
                                             provider = preset.provider
@@ -136,11 +131,8 @@ fun AiConfigDialog(
                                             baseUrl = preset.baseUrl
                                             temperature = preset.temperature.toString()
                                             maxTokens = preset.maxTokens.toString()
+                                            presetsExpanded = false
                                         }
-                                    )
-                                    Text(
-                                        text = name,
-                                        modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                             }
@@ -326,6 +318,14 @@ fun AiConfigDialog(
                             singleLine = true
                         )
                         
+                        var transcriptionExpanded by remember { mutableStateOf(false) }
+                        val transcriptionProviders = listOf(
+                            "OPENAI_WHISPER" to "OpenAI Whisper",
+                            "GOOGLE_SPEECH" to "Google Speech-to-Text (best for Georgian)",
+                            "YANDEX_SPEECHKIT" to "Yandex SpeechKit (best for Russian and CIS languages)",
+                            "VOSK_LOCAL" to "Vosk Local (Offline & Free)"
+                        )
+                        
                         // Transcription provider selection
                         Text(
                             text = "Speech Recognition Provider:",
@@ -333,66 +333,27 @@ fun AiConfigDialog(
                             modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
                         )
                         
-                        Column(modifier = Modifier.padding(bottom = 12.dp)) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                        Box(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                            OutlinedButton(
+                                onClick = { transcriptionExpanded = true },
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                RadioButton(
-                                    selected = transcriptionProvider == "OPENAI_WHISPER",
-                                    onClick = { transcriptionProvider = "OPENAI_WHISPER" }
-                                )
-                                Text(
-                                    text = "OpenAI Whisper",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
+                                Text(transcriptionProviders.find { it.first == transcriptionProvider }?.second ?: "Select Provider")
                             }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            DropdownMenu(
+                                expanded = transcriptionExpanded,
+                                onDismissRequest = { transcriptionExpanded = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
                             ) {
-                                RadioButton(
-                                    selected = transcriptionProvider == "GOOGLE_SPEECH",
-                                    onClick = { transcriptionProvider = "GOOGLE_SPEECH" }
-                                )
-                                Text(
-                                    text = "Google Speech-to-Text (best for Georgian)",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = transcriptionProvider == "YANDEX_SPEECHKIT",
-                                    onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
-                                )
-                                Text(
-                                    text = "Yandex SpeechKit (best for Russian and CIS languages)",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                RadioButton(
-                                    selected = transcriptionProvider == "VOSK_LOCAL",
-                                    onClick = { transcriptionProvider = "VOSK_LOCAL" }
-                                )
-                                Text(
-                                    text = "Vosk Local (Offline & Free)",
-                                    modifier = Modifier.padding(start = 8.dp)
-                                )
+                                transcriptionProviders.forEach { (id, name) ->
+                                    DropdownMenuItem(
+                                        text = { Text(name) },
+                                        onClick = {
+                                            transcriptionProvider = id
+                                            transcriptionExpanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
                         

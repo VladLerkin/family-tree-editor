@@ -15,6 +15,7 @@ class LocalAiClient(
     
     override suspend fun sendPrompt(prompt: String, config: AiConfig): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
         try {
+            val ctxLen = if (directoryProvider.isAndroid) 8192 else 16384
             // MUST be called BEFORE ensureModelLoaded so that gpuLayers=99 and useMmap=true are applied during llama_model_load!
             LlamaBridge.updateGenerateParams(
                 temperature = 0.1f, // Force low temperature for structured JSON extraction
@@ -22,7 +23,7 @@ class LocalAiClient(
                 topP = 0.9f,
                 topK = 40,
                 repeatPenalty = 1.1f,
-                contextLength = 16384, // Increased from 4096 to support large agent prompts
+                contextLength = ctxLen, // Reduced for Android to save RAM and avoid slow prompt evaluation
                 numThreads = 4, // 4 threads is optimal for Apple Silicon (avoids CPU/GPU lock contention)
                 useMmap = true,
                 flashAttention = true, // Enable Flash Attention for speedup

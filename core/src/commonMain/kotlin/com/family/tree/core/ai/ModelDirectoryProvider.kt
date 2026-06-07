@@ -8,4 +8,5 @@ interface ModelDirectoryProvider {
      * Returns the absolute path to the directory for local models.
      */
     fun getDirectory(): String
+    val isAndroid: Boolean get() = false
 }

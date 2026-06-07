@@ -161,6 +161,14 @@ object AiPresets {
         maxTokens = 4000
     )
 
+    val LOCAL_GEMMA_4_E2B = AiConfig(
+        provider = "LOCAL_LLAMATIK",
+        model = "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf",
+        baseUrl = "https://huggingface.co/unsloth/gemma-4-E2B-it-qat-GGUF/resolve/main/gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf",
+        temperature = 0.7,
+        maxTokens = 4000
+    )
+
     val OLLAMA_QWEN2_5_7B = AiConfig(
         provider = "OLLAMA",
         model = "qwen2.5:7b",
@@ -210,6 +218,7 @@ object AiPresets {
         "Local Qwen 2.5 3B (High quality, ~2GB)" to LOCAL_QWEN_3B,
         "Local Llama 3.2 3B (High quality, ~2GB)" to LOCAL_LLAMA_3_2_3B,
         "Local Gemma 2 2B (Fast & High quality, ~1.6GB)" to LOCAL_GEMMA_2_2B,
-        "Local Gemma 4 E4B QAT (Compression, ~4GB)" to LOCAL_GEMMA_4_E4B
+        "Local Gemma 4 E4B QAT (Compression, ~4GB)" to LOCAL_GEMMA_4_E4B,
+        "Local Gemma 4 E2B QAT (Compression, ~2GB)" to LOCAL_GEMMA_4_E2B
     )
 }
