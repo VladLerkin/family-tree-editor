@@ -23,9 +23,12 @@ Get the latest version for your platform:
 
 <div align="center">
 
-### [⬇️ Download from Releases](https://github.com/VladLerkin/family-tree-editor/releases)
+## [⬇️ Download Latest Release](https://github.com/VladLerkin/family-tree-editor/releases)
 
-### [📄 View Release Notes (Changelog)](https://github.com/VladLerkin/family-tree-editor/blob/main/RELEASE_NOTES.md)
+<br/>
+
+*Looking for what's new?* <br/>
+**[📄 View Release Notes (Changelog)](https://github.com/VladLerkin/family-tree-editor/blob/main/RELEASE_NOTES.md)**
 
 </div>
 
@@ -112,6 +115,12 @@ sdk.dir=/Users/<you>/Library/Android/sdk
 <summary><b>iOS Build Issues</b></summary>
 
 See [iOS Troubleshooting Guide](docs/iOS_TROUBLESHOOTING.md)
+</details>
+
+<details>
+<summary><b>AI & Agents Issues</b></summary>
+
+See [AI Troubleshooting Guide](docs/AI_TROUBLESHOOTING.md)
 </details>
 
 ## 📝 License
