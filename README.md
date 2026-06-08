@@ -25,6 +25,8 @@ Get the latest version for your platform:
 
 ### [⬇️ Download from Releases](https://github.com/VladLerkin/family-tree-editor/releases)
 
+### [📄 View Release Notes (Changelog)](https://github.com/VladLerkin/family-tree-editor/blob/main/RELEASE_NOTES.md)
+
 </div>
 
 **Available platforms:**
