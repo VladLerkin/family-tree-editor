@@ -126,7 +126,7 @@ fun MainScreenDialogs(
         
         is AppDialog.AiProgress -> {
             androidx.compose.ui.window.Dialog(
-                onDismissRequest = { /* Cannot dismiss during import */ }
+                onDismissRequest = onCloseDialog
             ) {
                 Surface(
                     modifier = Modifier.width(400.dp).wrapContentHeight(),
@@ -148,6 +148,12 @@ fun MainScreenDialogs(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        TextButton(
+                            onClick = onCloseDialog,
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
+                            Text("Cancel")
+                        }
                     }
                 }
             }
