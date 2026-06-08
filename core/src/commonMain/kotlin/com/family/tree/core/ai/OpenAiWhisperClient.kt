@@ -28,18 +28,9 @@ class OpenAiWhisperClient(
         // .caf файлы начинаются с "caff" (0x63616666)
         // .amr файлы начинаются с "#!AMR" (0x2321414D52) для AMR-NB или "#!AMR-WB" для AMR-WB
         // .m4a файлы содержат "ftyp" на позиции 4-8
-        val isCAF = audioData.size >= 4 && 
-                    audioData[0] == 0x63.toByte() && 
-                    audioData[1] == 0x61.toByte() && 
-                    audioData[2] == 0x66.toByte() && 
-                    audioData[3] == 0x66.toByte()
+        val isCAF = audioData.size >= 4 && audioData.decodeToString(0, 4) == "caff"
         
-        val isAMR = audioData.size >= 6 && 
-                    audioData[0] == 0x23.toByte() &&  // '#'
-                    audioData[1] == 0x21.toByte() &&  // '!'
-                    audioData[2] == 0x41.toByte() &&  // 'A'
-                    audioData[3] == 0x4D.toByte() &&  // 'M'
-                    audioData[4] == 0x52.toByte()     // 'R'
+        val isAMR = audioData.size >= 6 && audioData.decodeToString(0, 5) == "#!AMR"
         
         // Если это CAF или AMR файл, конвертируем его в WAV для Whisper API
         val (finalData, contentType, fileName) = when {
@@ -117,7 +108,7 @@ class OpenAiWhisperClient(
         var i = 8 // Пропускаем "caff" + version + flags
         while (i < cafData.size - 12) {
             // Читаем тип chunk (4 байта)
-            val chunkType = cafData.sliceArray(i until i + 4).map { it.toInt().toChar() }.toCharArray().concatToString()
+            val chunkType = cafData.decodeToString(startIndex = i, endIndex = i + 4)
             
             // Читаем размер chunk (8 байт, big-endian long)
             val chunkSize = readBigEndianLong(cafData, i + 4).toInt()
@@ -132,18 +123,14 @@ class OpenAiWhisperClient(
         }
         
         if (dataOffset == -1 || dataSize <= 0) {
-            println("[DEBUG_LOG] OpenAiWhisperClient: Failed to find data chunk in CAF, using original data")
-            // Если не нашли data chunk, пробуем просто взять данные после заголовка
-            dataOffset = 4096.coerceAtMost(cafData.size / 2)
-            dataSize = cafData.size - dataOffset
+            println("[DEBUG_LOG] OpenAiWhisperClient: Failed to find data chunk in CAF")
+            throw IllegalArgumentException("Invalid CAF file format: 'data' chunk not found.")
         }
         
-        val pcmData = cafData.sliceArray(dataOffset until (dataOffset + dataSize).coerceAtMost(cafData.size))
+        println("[DEBUG_LOG] OpenAiWhisperClient: Found PCM data in CAF: offset=$dataOffset, size=$dataSize")
         
-        println("[DEBUG_LOG] OpenAiWhisperClient: Extracted PCM data from CAF: offset=$dataOffset, size=${pcmData.size}")
-        
-        // Создаем WAV заголовок для Linear PCM 16-bit mono 16kHz
-        return createWavFile(pcmData, sampleRate = 16000, channels = 1, bitsPerSample = 16)
+        // Создаем WAV заголовок для Linear PCM 16-bit mono 16kHz напрямую из исходного массива
+        return createWavFile(cafData, dataOffset, dataSize, sampleRate = 16000, channels = 1, bitsPerSample = 16)
     }
     
     /**
@@ -161,15 +148,15 @@ class OpenAiWhisperClient(
     }
     
     /**
-     * Создает WAV файл из PCM данных.
+     * Создает WAV файл из PCM данных без промежуточных аллокаций.
      */
-    private fun createWavFile(pcmData: ByteArray, sampleRate: Int, channels: Int, bitsPerSample: Int): ByteArray {
+    private fun createWavFile(sourceData: ByteArray, dataOffset: Int, dataSize: Int, sampleRate: Int, channels: Int, bitsPerSample: Int): ByteArray {
         val byteRate = sampleRate * channels * bitsPerSample / 8
         val blockAlign = channels * bitsPerSample / 8
-        val dataSize = pcmData.size
-        val fileSize = 36 + dataSize
+        val actualDataSize = dataSize.coerceAtMost(sourceData.size - dataOffset)
+        val fileSize = 36 + actualDataSize
         
-        val wav = ByteArray(44 + dataSize)
+        val wav = ByteArray(44 + actualDataSize)
         var offset = 0
         
         // RIFF заголовок
@@ -229,11 +216,16 @@ class OpenAiWhisperClient(
         wav[offset++] = 'a'.code.toByte()
         
         // data chunk size
-        writeInt32LE(wav, offset, dataSize)
+        writeInt32LE(wav, offset, actualDataSize)
         offset += 4
         
-        // Копируем PCM данные
-        pcmData.copyInto(wav, offset)
+        // Копируем PCM данные напрямую из исходного массива
+        sourceData.copyInto(
+            destination = wav,
+            destinationOffset = offset,
+            startIndex = dataOffset,
+            endIndex = dataOffset + actualDataSize
+        )
         
         return wav
     }

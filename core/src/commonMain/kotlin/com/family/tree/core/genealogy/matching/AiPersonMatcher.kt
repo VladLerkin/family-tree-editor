@@ -183,6 +183,17 @@ $externalPersonsText
     }
     
     /**
+     * Очистка ответа от Markdown форматирования (```json ... ```)
+     */
+    private fun cleanJsonResponse(response: String): String {
+        return response.trim()
+            .removePrefix("```json")
+            .removePrefix("```")
+            .removeSuffix("```")
+            .trim()
+    }
+
+    /**
      * Парсинг ответа AI для одной персоны.
      */
     private fun parseAiMatchingResponse(
@@ -190,7 +201,8 @@ $externalPersonsText
         localPerson: Individual,
         externalPerson: ExternalPerson
     ): PersonMatchResult {
-        val jsonResponse = json.parseToJsonElement(response).jsonObject
+        val cleanedResponse = cleanJsonResponse(response)
+        val jsonResponse = json.parseToJsonElement(cleanedResponse).jsonObject
         
         val aiResult = json.decodeFromJsonElement(AiMatchingResponse.serializer(), jsonResponse)
         
@@ -233,7 +245,8 @@ $externalPersonsText
         localPerson: Individual,
         externalPersons: List<ExternalPerson>
     ): List<PersonMatchResult> {
-        val jsonResponse = json.parseToJsonElement(response).jsonObject
+        val cleanedResponse = cleanJsonResponse(response)
+        val jsonResponse = json.parseToJsonElement(cleanedResponse).jsonObject
         val aiResult = json.decodeFromJsonElement(AiBatchMatchingResponse.serializer(), jsonResponse)
         
         return aiResult.matches.map { match ->

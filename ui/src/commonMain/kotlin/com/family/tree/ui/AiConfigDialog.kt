@@ -14,6 +14,7 @@ import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TextFieldValue
@@ -537,6 +538,13 @@ fun AiConfigDialog(
                             label = { Text("Archive Cookies (Pamyat Naroda)") },
                             placeholder = { Text("PHPSESSID=...;") },
                             supportingText = { Text("Paste cookies from your browser log in (F12 -> Application -> Cookies) to bypass login redirects.") },
+                            trailingIcon = {
+                                if (pamyatNarodaCookies.isNotEmpty()) {
+                                    IconButton(onClick = { pamyatNarodaCookies = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear cookies")
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),
@@ -550,6 +558,13 @@ fun AiConfigDialog(
                             label = { Text("Archive Cookies (FamilySearch)") },
                             placeholder = { Text("fssessionid=...;") },
                             supportingText = { Text("Paste cookies from familysearch.org (F12 -> Application -> Cookies) to use search tool.") },
+                            trailingIcon = {
+                                if (familySearchCookies.isNotEmpty()) {
+                                    IconButton(onClick = { familySearchCookies = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Clear cookies")
+                                    }
+                                }
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),

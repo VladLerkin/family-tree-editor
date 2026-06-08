@@ -248,25 +248,31 @@ class BasicPersonMatcher : PersonMatcher {
     }
     
     /**
-     * Расстояние Левенштейна.
+     * Расстояние Левенштейна (оптимизированное по памяти).
      */
     private fun levenshteinDistance(s1: String, s2: String): Int {
-        val dp = Array(s1.length + 1) { IntArray(s2.length + 1) }
-        
-        for (i in 0..s1.length) dp[i][0] = i
-        for (j in 0..s2.length) dp[0][j] = j
-        
-        for (i in 1..s1.length) {
-            for (j in 1..s2.length) {
-                val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
-                dp[i][j] = minOf(
-                    dp[i - 1][j] + 1,      // deletion
-                    dp[i][j - 1] + 1,      // insertion
-                    dp[i - 1][j - 1] + cost // substitution
+        if (s1 == s2) return 0
+        if (s1.isEmpty()) return s2.length
+        if (s2.isEmpty()) return s1.length
+
+        var v0 = IntArray(s2.length + 1) { it }
+        var v1 = IntArray(s2.length + 1)
+
+        for (i in 0 until s1.length) {
+            v1[0] = i + 1
+            for (j in 0 until s2.length) {
+                val cost = if (s1[i] == s2[j]) 0 else 1
+                v1[j + 1] = minOf(
+                    v1[j] + 1,        // insertion
+                    v0[j + 1] + 1,    // deletion
+                    v0[j] + cost      // substitution
                 )
             }
+            val temp = v0
+            v0 = v1
+            v1 = temp
         }
-        
-        return dp[s1.length][s2.length]
+
+        return v0[s2.length]
     }
 }
