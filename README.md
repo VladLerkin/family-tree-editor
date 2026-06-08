@@ -70,6 +70,8 @@ Get the latest version for your platform:
     └── libs.versions.toml  # Centralized Dependency Management (Version Catalog)
 ```
 
+> 📐 **Full Technical Overview:** [Technical Implementation](https://github.com/VladLerkin/family-tree-editor/blob/main/docs/TECHNICAL_OVERVIEW.md)
+
 ## 🛠️ Tech Stack & Dependencies
 
 The project uses **Gradle Version Catalog** for centralized dependency management. All versions are defined in `gradle/libs.versions.toml`.
