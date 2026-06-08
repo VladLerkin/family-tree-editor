@@ -1,231 +1,147 @@
 # iOS Support Troubleshooting
 
-This document addresses known issues with iOS support in the Family Tree KMP project and provides solutions.
+This document addresses known issues, common compilation errors, and setup problems with iOS support in the Family Tree KMP project.
 
 ## Current Status
 
-iOS support has been **structurally implemented** but requires additional configuration to build successfully:
+✅ **iOS support is fully implemented and building successfully.**
 
-✅ **Completed:**
-- iOS targets added to `core` and `ui` modules (iosX64, iosArm64, iosSimulatorArm64)
-- `app-ios` module created with proper structure
-- iOS entry point (`MainViewController`) implemented
-- iOS source directories created
-- Comprehensive documentation (BUILD_IOS.md)
+With the upgrade to **Kotlin 2.4.0**, **Compose Multiplatform 1.11.1**, and **Gradle 9.x / Java 25**, the previous build configuration issues (such as `DefaultArtifactPublicationSet` ClassNotFoundException) have been fully resolved. 
 
-❌ **Known Issue:**
-Build fails with `ClassNotFoundException: org.gradle.api.internal.plugins.DefaultArtifactPublicationSet` when iOS targets are enabled.
-
-## The Problem
-
-When building the project with iOS targets enabled, Gradle fails during configuration phase:
-
-```
-FAILURE: Build failed with an exception.
-* Where:
-Build file '/Users/yav/IdeaProjects/rel/core/build.gradle.kts' line: 12
-* What went wrong:
-org/gradle/api/internal/plugins/DefaultArtifactPublicationSet
-> org.gradle.api.internal.plugins.DefaultArtifactPublicationSet
-```
-
-This error occurs at the line where iOS targets are declared (e.g., `iosX64()`).
-
-### Root Cause
-
-The issue is likely caused by one or more of the following:
-
-1. **Kotlin/Native distribution not downloaded:** First-time iOS target configuration requires Kotlin/Native toolchain download, which may fail or be incomplete.
-
-2. **Version compatibility:** The current combination of:
-   - Gradle 9.1.1
-   - Kotlin 2.3.20
-   - Compose Multiplatform 1.10.3
-   
-   May have compatibility issues with iOS targets. Kotlin/Native support for iOS in Compose Multiplatform was still maturing in these versions.
-
-3. **Gradle internal API change:** The `DefaultArtifactPublicationSet` class is an internal Gradle API that may have been refactored between versions.
-
-## Solutions
-
-### Solution 1: Update to Latest Stable Versions (Recommended)
-
-Update `settings.gradle.kts` and `gradle.properties` to use newer, more stable versions:
-
-**settings.gradle.kts:**
-```kotlin
-plugins {
-    id("org.jetbrains.kotlin.multiplatform") version "2.3.0" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.3.0" apply false
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0" apply false
-    id("org.jetbrains.compose") version "1.9.3" apply false
-    id("com.android.application") version "8.7.3" apply false
-    id("com.android.library") version "8.7.3" apply false
-}
-```
-
-**gradle.properties:**
-```properties
-kotlin.version=2.3.0
-compose.version=1.7.1
-agp.version=8.7.3
-```
-
-Then clean and rebuild:
-```bash
-# Navigate to project root (already there)
-./gradlew --stop
-./gradlew clean
-./gradlew projects
-```
-
-### Solution 2: Manually Download Kotlin/Native
-
-If the issue is due to incomplete Kotlin/Native download:
-
-```bash
-# Navigate to project root (already there)
-./gradlew --stop
-
-# Trigger Kotlin/Native download
-./gradlew :core:tasks --dry-run
-
-# Try building again
-./gradlew projects
-```
-
-### Solution 3: Downgrade Gradle (If Needed)
-
-If the issue persists, try Gradle 9.2 (known to work well with Kotlin 2.3.x):
-
-**gradle/wrapper/gradle-wrapper.properties:**
-```properties
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.10-bin.zip
-```
-
-Then:
-```bash
-# Navigate to project root (already there)
-./gradlew wrapper --gradle-version=8.10
-./gradlew --stop
-./gradlew clean projects
-```
-
-### Solution 4: Use Official Compose Multiplatform Template
-
-For a guaranteed working iOS setup, reference the official JetBrains template:
-
-```bash
-# Clone the official template in a separate directory
-git clone https://github.com/JetBrains/compose-multiplatform-template.git
-
-# Compare build configurations
-diff compose-multiplatform-template/build.gradle.kts build.gradle.kts
-diff compose-multiplatform-template/settings.gradle.kts settings.gradle.kts
-```
-
-Key differences to look for:
-- Kotlin and Compose versions
-- Plugin application order
-- iOS target configuration patterns
-- Framework export settings
-
-### Solution 5: Temporarily Disable iOS for Desktop/Android Development
-
-If you need to continue development on Desktop/Android while investigating iOS:
-
-**Comment out iOS targets in `core/build.gradle.kts`:**
-```kotlin
-kotlin {
-    androidTarget()
-    jvm("desktop")
-    
-    // iOS targets (temporarily disabled)
-    // iosX64()
-    // iosArm64()
-    // iosSimulatorArm64()
-
-    sourceSets {
-        val commonMain by getting { /* ... */ }
-        val androidMain by getting
-        val desktopMain by getting
-        
-        // Comment out iOS source sets
-        // val iosMain by creating { /* ... */ }
-    }
-}
-```
-
-Repeat for `ui/build.gradle.kts` and comment out `:app-ios` in `settings.gradle.kts`:
-```kotlin
-include(":core")
-include(":ui")
-include(":app-desktop")
-include(":app-android")
-// include(":app-ios")  // Temporarily disabled
-```
-
-## Verification Steps
-
-Once you've applied a solution, verify iOS support works:
-
-### 1. Check Gradle Configuration
-```bash
-# Navigate to project root (already there)
-./gradlew projects
-```
-Should show all 5 modules including `:app-ios`.
-
-### 2. Build iOS Framework
+The iOS targets (`iosArm64`, `iosSimulatorArm64`) compile and link successfully:
 ```bash
 ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
 ```
-Should complete successfully and create framework at:
-```
-app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework
-```
 
-### 3. Verify All Targets
-```bash
-./gradlew :core:build :ui:build
-```
-Should compile for all targets (Android, Desktop, iOS x3).
+---
 
-### 4. Run on iOS Simulator (via IntelliJ IDEA)
-1. Install **Kotlin Multiplatform Mobile** plugin
-2. Open Run Configuration
-3. Select iOS Simulator
-4. Run the app
+## 1. Common KMP iOS Build Issues & Solutions
+
+### A. Kotlin/Native Compiler Daemon / Download Issues
+
+**Symptom:** Gradle build freezes or fails during compiler download/execution.
+
+**Root Cause:** The first time an iOS target is built, Gradle downloads the Kotlin/Native toolchain. If this download is interrupted, it can leave the environment in a corrupt state.
+
+**Solutions:**
+1. **Force download toolchain:**
+   ```bash
+   ./gradlew --stop
+   ./gradlew :core:downloadKotlinNativeDistribution
+   ```
+2. **Disable Kotlin Native Compiler Daemon temporarily (if it freezes):**
+   Ensure this property is present in `gradle.properties`:
+   ```properties
+   kotlin.native.disableCompilerDaemon=true
+   ```
+3. **Clear Konan Cache (Nuclear Option):**
+   If the toolchain is corrupted:
+   ```bash
+   rm -rf ~/.konan/
+   ./gradlew --stop
+   ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
+   ```
+
+---
+
+### B. Simulator Architecture Mismatch
+
+**Symptom:** Xcode build fails with errors like:
+`building for iOS Simulator-x86_64 but attempting to link with file built for iOS Simulator-arm64` or vice versa.
+
+**Root Cause:**
+- **Apple Silicon Mac (M1/M2/M3):** Simulators run natively on `arm64`.
+- **Intel Mac:** Simulators run on `x86_64`.
+- You built the debug framework for one architecture (e.g., `iosSimulatorArm64`), but Xcode is trying to build for another.
+
+**Solutions:**
+1. Verify your machine architecture:
+   ```bash
+   uname -m
+   ```
+2. Match the Gradle build target:
+   - For **Apple Silicon (M1/M2/M3)**:
+     ```bash
+     ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
+     ```
+   - For **Intel Mac**:
+     ```bash
+     ./gradlew :app-ios:linkDebugFrameworkIosX64
+     ```
+3. Verify Xcode is running natively (not via Rosetta) if on Apple Silicon.
+
+---
+
+### C. "No such module 'FamilyTreeApp'" in Xcode Swift Code
+
+**Symptom:** Xcode fails compiling SwiftUI/Swift code with: `No such module 'FamilyTreeApp'`.
+
+**Solutions:**
+1. **Build the framework first:**
+   Ensure the framework has been compiled by Gradle.
+   - Run `./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64`
+2. **Verify Framework Search Paths in Xcode:**
+   - Go to your Xcode target settings -> **Build Settings** -> search for **Framework Search Paths**.
+   - Ensure the path points to the correct build output:
+     `$(PROJECT_DIR)/../app-ios/build/bin/iosSimulatorArm64/debugFramework`
+   - Make sure it is set to **recursive**.
+3. **Verify General Framework Linkage:**
+   - In Xcode target settings -> **General** tab -> scroll to **Frameworks, Libraries, and Embedded Content**.
+   - Make sure `FamilyTreeApp.framework` is added and marked as **Embed & Sign** (or **Embed Without Signing**).
+
+---
+
+### D. Xcode Command Line Tools / Simulator Not Found
+
+**Symptom:** Error running `./gradlew projects` or other tasks suggesting Xcode is not configured, or no simulators are available.
+
+**Solutions:**
+1. Ensure Command Line Tools are active:
+   ```bash
+   xcode-select -p
+   ```
+   If it returns a path that is not `/Applications/Xcode.app/...`, reset it:
+   ```bash
+   sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+   ```
+2. Check available simulators:
+   ```bash
+   xcrun simctl list devices available
+   ```
+   If no devices are listed, open Xcode, go to `Settings > Platforms`, and download the latest iOS simulator platform.
+
+---
+
+## 2. Resolved Historical Issues
+
+### `ClassNotFoundException: org.gradle.api.internal.plugins.DefaultArtifactPublicationSet`
+
+**Problem:** When configuring iOS targets, the build crashed during the configuration phase on older Gradle/Kotlin combinations.
+**Status:** **Resolved.** Fixed by upgrading Gradle to 9.5.x, Kotlin to 2.4.x, and Compose Multiplatform to 1.11.x.
+
+---
+
+## 3. Verification & Validation Steps
+
+To verify your iOS build environment is fully functional:
+
+1. **Gradle Clean and Configuration:**
+   ```bash
+   ./gradlew clean projects
+   ```
+2. **Compile and Link Framework:**
+   ```bash
+   ./gradlew :app-ios:linkDebugFrameworkIosSimulatorArm64
+   ```
+3. **Verify Output Path:**
+   Check that `FamilyTreeApp.framework` is generated under:
+   `app-ios/build/bin/iosSimulatorArm64/debugFramework/FamilyTreeApp.framework`
+
+---
 
 ## Additional Resources
 
-- [Kotlin Multiplatform iOS Documentation](https://kotlinlang.org/docs/multiplatform-ios.html)
-- [Compose Multiplatform Releases](https://github.com/JetBrains/compose-multiplatform/releases)
-- [Kotlin/Native FAQ](https://kotlinlang.org/docs/native-faq.html)
-- [iOS Troubleshooting (Official)](https://kotlinlang.org/docs/native-ios-troubleshooting.html)
-
-## Reporting Issues
-
-If none of these solutions work:
-
-1. Capture full stack trace:
-   ```bash
-   ./gradlew projects --stacktrace > gradle_error.log 2>&1
-   ```
-
-2. Check environment:
-   ```bash
-   ./gradlew --version
-   xcode-select -p
-   xcrun --sdk iphoneos --show-sdk-version
-   ```
-
-3. Report to JetBrains:
-   - [Compose Multiplatform Issue Tracker](https://github.com/JetBrains/compose-multiplatform/issues)
-   - [Kotlin Issue Tracker](https://youtrack.jetbrains.com/issues/KT)
-
-## Summary
-
-iOS support is **architecturally ready** but requires resolving a Gradle/Kotlin/Native compatibility issue. The most likely solution is updating to Kotlin 2.3.0+ and Compose Multiplatform 1.9.3+, which have more mature iOS support.
-
-The iOS module structure, entry points, and documentation are already in place and will work once the build configuration is resolved.
+- [Building and Running the iOS App (docs/BUILD_IOS.md)](BUILD_IOS.md)
+- [Xcode Setup Reference (docs/XCODE_SETUP.md)](XCODE_SETUP.md)
+- [Xcode Code Signing Guide (docs/XCODE_CODE_SIGNING.md)](XCODE_CODE_SIGNING.md)
+- [Official Kotlin Multiplatform iOS Documentation](https://kotlinlang.org/docs/multiplatform-ios.html)

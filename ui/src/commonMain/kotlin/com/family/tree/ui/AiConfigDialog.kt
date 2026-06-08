@@ -25,6 +25,9 @@ import androidx.compose.ui.window.Dialog
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 import com.family.tree.core.ai.VoskRecognizerManager
+import com.family.tree.core.ai.AiClientFactory
+import com.family.tree.core.ai.sendPromptSafe
+import com.family.tree.core.ai.AiResult
 import kotlinx.coroutines.launch
 
 
@@ -37,6 +40,7 @@ fun AiConfigDialog(
     onDismiss: () -> Unit,
     onConfirm: (AiConfig) -> Unit
 ) {
+    val aiClientFactory = org.koin.compose.koinInject<AiClientFactory>()
     val presets = AiPresets.getAllPresets()
     
     // Find the preset index that matches initialConfig.model
@@ -575,6 +579,108 @@ fun AiConfigDialog(
                 }
                 
                 Spacer(modifier = Modifier.height(16.dp))
+                
+                var testConnectionResult by remember { mutableStateOf<String?>(null) }
+                var isTestingConnection by remember { mutableStateOf(false) }
+                var testConnectionSuccess by remember { mutableStateOf(false) }
+                val scope = rememberCoroutineScope()
+                
+                Button(
+                    onClick = {
+                        if (isTestingConnection) return@Button
+                        isTestingConnection = true
+                        testConnectionResult = "Testing connection..."
+                        
+                        scope.launch {
+                            try {
+                                @Suppress("DEPRECATION")
+                                val currentConfig = AiConfig(
+                                    provider = provider,
+                                    apiKey = apiKey,
+                                    model = model,
+                                    baseUrl = baseUrl,
+                                    temperature = temperature.toDoubleOrNull() ?: 0.7,
+                                    maxTokens = maxTokens.toIntOrNull() ?: 4000,
+                                    language = language,
+                                    transcriptionProvider = transcriptionProvider,
+                                    googleApiKey = googleApiKey,
+                                    openaiApiKey = openAiKey,
+                                    googleAiApiKey = googleKey,
+                                    yandexApiKey = yandexKey,
+                                    yandexFolderId = yandexFolderId,
+                                    tavilyApiKey = tavilyApiKey,
+                                    autoresearchRepoPath = autoresearchRepoPath,
+                                    pamyatNarodaCookies = pamyatNarodaCookies,
+                                    familySearchCookies = familySearchCookies
+                                )
+                                val client = aiClientFactory.createClient(currentConfig)
+                                val llmResult = client.sendPromptSafe("Hello, are you there?", currentConfig)
+                                
+                                val llmMessage = when (llmResult) {
+                                    is AiResult.Success -> "LLM ($provider): Success"
+                                    is AiResult.Error -> "LLM ($provider): Failed - ${llmResult.message}"
+                                }
+                                val llmSuccess = llmResult is AiResult.Success
+
+                                var sttMessage = "STT ($transcriptionProvider): Ready (Offline)"
+                                var sttSuccess = true
+
+                                // Test STT connection using the equivalent LLM ping since the API keys are the same
+                                val sttEquivalentProvider = when (transcriptionProvider) {
+                                    "OPENAI_WHISPER" -> "OPENAI"
+                                    "GOOGLE_SPEECH" -> "GOOGLE"
+                                    "YANDEX_SPEECHKIT" -> "YANDEX"
+                                    else -> null
+                                }
+                                
+                                if (sttEquivalentProvider != null) {
+                                    val sttConfig = currentConfig.copy(provider = sttEquivalentProvider)
+                                    val sttClient = aiClientFactory.createClient(sttConfig)
+                                    val sttResult = sttClient.sendPromptSafe("Hello?", sttConfig)
+                                    
+                                    sttMessage = when (sttResult) {
+                                        is AiResult.Success -> "STT ($transcriptionProvider): Success"
+                                        is AiResult.Error -> "STT ($transcriptionProvider): Failed - ${sttResult.message}"
+                                    }
+                                    sttSuccess = sttResult is AiResult.Success
+                                }
+                                
+                                testConnectionSuccess = llmSuccess && sttSuccess
+                                testConnectionResult = "$llmMessage\n$sttMessage"
+                            } catch (e: Exception) {
+                                testConnectionSuccess = false
+                                testConnectionResult = "Error: ${e.message}"
+                            } finally {
+                                isTestingConnection = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    if (isTestingConnection) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(end = 8.dp), color = MaterialTheme.colorScheme.onSecondaryContainer, strokeWidth = 2.dp)
+                    }
+                    Text("Test AI Connection")
+                }
+                
+                if (testConnectionResult != null) {
+                    Surface(
+                        color = if (testConnectionSuccess) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            text = testConnectionResult!!,
+                            color = if (testConnectionSuccess) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(12.dp)
+                        )
+                    }
+                }
                 
                 // Buttons
                 Row(

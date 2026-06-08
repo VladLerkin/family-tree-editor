@@ -21,6 +21,9 @@ import cafe.adriel.voyager.navigator.currentOrThrow
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
 import com.family.tree.core.ai.AiSettingsStorage
+import com.family.tree.core.ai.AiClientFactory
+import com.family.tree.core.ai.sendPromptSafe
+import com.family.tree.core.ai.AiResult
 import org.koin.compose.koinInject
 import kotlinx.coroutines.launch
 import com.family.tree.core.ai.agent.AgentService
@@ -31,6 +34,7 @@ class AiSettingsScreen : Screen {
     override fun Content() {
         val navigator = LocalNavigator.currentOrThrow
         val storage = koinInject<AiSettingsStorage>()
+        val aiClientFactory = koinInject<AiClientFactory>()
         val initialConfig = remember { storage.loadConfig() }
         
         val presets = AiPresets.getAllPresets()
@@ -379,6 +383,84 @@ class AiSettingsScreen : Screen {
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(bottom = 16.dp)
                         )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    var testConnectionResult by remember { mutableStateOf<String?>(null) }
+                    var isTestingConnection by remember { mutableStateOf(false) }
+                    var testConnectionSuccess by remember { mutableStateOf(false) }
+                    
+                    Button(
+                        onClick = {
+                            if (isTestingConnection) return@Button
+                            isTestingConnection = true
+                            testConnectionResult = "Testing connection..."
+                            
+                            scope.launch {
+                                try {
+                                    @Suppress("DEPRECATION")
+                                    val currentConfig = AiConfig(
+                                        provider = provider,
+                                        apiKey = apiKey,
+                                        model = model,
+                                        baseUrl = baseUrl,
+                                        temperature = temperature.toDoubleOrNull() ?: 0.7,
+                                        maxTokens = maxTokens.toIntOrNull() ?: 4000,
+                                        language = language,
+                                        transcriptionProvider = transcriptionProvider,
+                                        googleApiKey = googleApiKey,
+                                        openaiApiKey = openAiKey,
+                                        googleAiApiKey = googleKey,
+                                        yandexApiKey = yandexKey,
+                                        yandexFolderId = yandexFolderId
+                                    )
+                                    val client = aiClientFactory.createClient(currentConfig)
+                                    val result = client.sendPromptSafe("Hello, are you there?", currentConfig)
+                                    
+                                    when (result) {
+                                        is AiResult.Success -> {
+                                            testConnectionSuccess = true
+                                            testConnectionResult = "Connection successful!\nResponse: ${result.text.take(100)}"
+                                        }
+                                        is AiResult.Error -> {
+                                            testConnectionSuccess = false
+                                            testConnectionResult = "Connection failed:\n${result.message}"
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    testConnectionSuccess = false
+                                    testConnectionResult = "Error: ${e.message}"
+                                } finally {
+                                    isTestingConnection = false
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        ),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    ) {
+                        if (isTestingConnection) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp).padding(end = 8.dp), color = MaterialTheme.colorScheme.onSecondaryContainer, strokeWidth = 2.dp)
+                        }
+                        Text("Test AI Connection")
+                    }
+                    
+                    if (testConnectionResult != null) {
+                        Surface(
+                            color = if (testConnectionSuccess) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        ) {
+                            Text(
+                                text = testConnectionResult!!,
+                                color = if (testConnectionSuccess) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
                 }
             }
