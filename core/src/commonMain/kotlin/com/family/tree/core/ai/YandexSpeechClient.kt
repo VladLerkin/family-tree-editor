@@ -138,7 +138,8 @@ class YandexSpeechClient(
             
             println("[DEBUG_LOG] YandexSpeechClient: Response status: ${response.status}")
             
-            val responseText = response.bodyAsText()
+            // Explicitly read as bytes and decode as UTF-8 to avoid platform encoding issues
+            val responseText = response.bodyAsBytes().decodeToString()
             println("[DEBUG_LOG] YandexSpeechClient: Full response body: $responseText")
             
             // Check for errors

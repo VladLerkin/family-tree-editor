@@ -115,7 +115,18 @@ actual class VoskRecognizerManager actual constructor() {
         val model = Model(finalDir.absolutePath)
         val recognizer = Recognizer(model, 16000f)
         
-        recognizer.acceptWaveForm(audioData, audioData.size)
+        // Strip WAV header if present (44 bytes)
+        val rawData = if (audioData.size > 44 && 
+            audioData[0] == 'R'.code.toByte() && 
+            audioData[1] == 'I'.code.toByte() && 
+            audioData[2] == 'F'.code.toByte() && 
+            audioData[3] == 'F'.code.toByte()) {
+            audioData.copyOfRange(44, audioData.size)
+        } else {
+            audioData
+        }
+        
+        recognizer.acceptWaveForm(rawData, rawData.size)
         val result = recognizer.finalResult
         
         recognizer.close()

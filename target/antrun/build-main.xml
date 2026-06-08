@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="maven-antrun-" default="main">
+  <target name="main">
+    <exec executable="C:\Users\Vladlerkin\.sdkman\candidates\java\current/bin/jpackage">
+      <arg value="--type" />
+      <arg value="msi" />
+      <arg value="--name" />
+      <arg value="Family Tree Editor" />
+      <arg value="--app-version" />
+      <arg value="1.2.0" />
+      <arg value="--vendor" />
+      <arg value="FamilyTree" />
+      <arg value="--dest" />
+      <arg value="C:\Users\Vladlerkin\IdeaProjects\rel\target/dist" />
+      <arg value="--input" />
+      <arg value="C:\Users\Vladlerkin\IdeaProjects\rel\target/jpackage/input" />
+      <arg value="--main-jar" />
+      <arg value="family-tree-editor-1.2.0-SNAPSHOT.jar" />
+      <arg value="--main-class" />
+      <arg value="com.pedigree.app.MainApplication" />
+      <arg value="--module-path" />
+      <arg value="C:\Users\Vladlerkin\IdeaProjects\rel\target/jpackage/input" />
+      <arg value="--add-modules" />
+      <arg value="javafx.controls,javafx.swing" />
+      <arg value="--win-menu" />
+      <arg value="--win-menu-group" />
+      <arg value="FamilyTree" />
+      <arg value="--win-dir-chooser" />
+      <arg value="--win-shortcut" />
+    </exec>
+  </target>
+</project>

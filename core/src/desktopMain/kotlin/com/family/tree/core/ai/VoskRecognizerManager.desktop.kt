@@ -98,6 +98,9 @@ actual class VoskRecognizerManager actual constructor() {
         return@withContext finalDir.absolutePath
     }
 
+    private var cachedModel: Model? = null
+    private var cachedModelPath: String? = null
+
     actual suspend fun transcribeAudio(audioData: ByteArray, language: String): String = withContext(Dispatchers.IO) {
         val dirName = getModelDirName(language)
         val finalDir = File(modelsDir, dirName)
@@ -107,18 +110,59 @@ actual class VoskRecognizerManager actual constructor() {
         
         // Vosk requires 16kHz 16-bit mono PCM. 
         // We assume audioData is already in this format, or the app handles it.
-        val model = Model(finalDir.absolutePath)
-        val recognizer = Recognizer(model, 16000f)
         
-        recognizer.acceptWaveForm(audioData, audioData.size)
+        // Cache the model to avoid slow reloads
+        if (cachedModel == null || cachedModelPath != finalDir.absolutePath) {
+            cachedModel?.close()
+            cachedModel = Model(finalDir.absolutePath)
+            cachedModelPath = finalDir.absolutePath
+        }
+        
+        val recognizer = Recognizer(cachedModel, 16000f)
+        
+        // Strip WAV header if present (44 bytes)
+        val rawData = if (audioData.size > 44 && 
+            audioData[0] == 'R'.code.toByte() && 
+            audioData[1] == 'I'.code.toByte() && 
+            audioData[2] == 'F'.code.toByte() && 
+            audioData[3] == 'F'.code.toByte()) {
+            audioData.copyOfRange(44, audioData.size)
+        } else {
+            audioData
+        }
+        
+        recognizer.acceptWaveForm(rawData, rawData.size)
         val result = recognizer.finalResult
         
         recognizer.close()
-        model.close()
+        // Do not close model here as it is cached
+        
+        // Fix for encoding issues on Windows where Vosk JNI might return UTF-8 bytes 
+        // incorrectly decoded as system default charset (e.g. CP1251)
+        val fixedResult = try {
+            // If the string contains characters typical for UTF-8-as-CP1251 mojibake
+            // (like Cyrillic capital Er 'Р' (U+0420) instead of UTF-8 lead byte 0xD0)
+            if (result.contains("\u0420") || result.contains("\u0421") || result.contains("\u00D0") || result.contains("\u00D1")) {
+                // Try to recover by encoding back to CP1251 and decoding as UTF-8
+                // We try windows-1251 first as it's the most common for Russian mojibake
+                val bytes = try {
+                    result.toByteArray(java.nio.charset.Charset.forName("windows-1251"))
+                } catch (e: Exception) {
+                    result.toByteArray(java.nio.charset.Charset.defaultCharset())
+                }
+                val decoded = String(bytes, Charsets.UTF_8)
+                // If it looks like valid JSON now, use it
+                if (decoded.contains("\"text\"")) decoded else result
+            } else {
+                result
+            }
+        } catch (e: Exception) {
+            result
+        }
         
         // Vosk returns JSON like { "text": "распознанный текст" }
         // We can parse it manually since we only need the text.
-        val textMatch = "\"text\"\\s*:\\s*\"(.*?)\"".toRegex().find(result)
+        val textMatch = "\"text\"\\s*:\\s*\"(.*?)\"".toRegex().find(fixedResult)
         return@withContext textMatch?.groupValues?.get(1) ?: ""
     }
 }

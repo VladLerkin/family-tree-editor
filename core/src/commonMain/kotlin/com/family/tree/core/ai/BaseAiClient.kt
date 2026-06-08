@@ -42,6 +42,7 @@ abstract class BaseAiClient : AiClient, KoinComponent {
             configureBlock()
         }
         
-        return response.bodyAsText()
+        // Explicitly read as bytes and decode as UTF-8 to avoid platform encoding issues
+        return response.bodyAsBytes().decodeToString()
     }
 }
