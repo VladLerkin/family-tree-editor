@@ -2,9 +2,13 @@
 
 This document contains the release history of the Family Tree Editor project, from the first commits to the current version 2.1.2. It highlights when new features were added, bug fixes, and CI/CD improvements.
 
-## 2.1.x Versions (June 2026)
+## 2.1.x Versions (June - July 2026)
 
-**v2.1.9** (2026-06-30) — Current release
+**v2.1.10** (2026-07-19) — Current release
+
+* **Documentation & Build:** Updated Gradle wrapper to the latest version and synchronized README versions with `libs.versions.toml`.
+
+**v2.1.9** (2026-06-30)
 
 * **Dependencies & Build:** Updated core dependencies (Ktor, Koin, Voyager, JNA, Llamatik, Compose BOM) to the latest stable versions. Updated Kotlin Wasm Yarn lock file to ensure successful Web builds.
 
