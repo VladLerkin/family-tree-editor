@@ -318,17 +318,17 @@ class AgentService(
                 }
         }
 
-        private val _agentLogs = MutableStateFlow<List<String>>(emptyList())
-        val agentLogs: StateFlow<List<String>> = _agentLogs.asStateFlow()
+        val agentLogs: StateFlow<List<String>>
+                field = MutableStateFlow<List<String>>(emptyList())
 
         fun loadConfig() = settingsStorage.loadConfig()
 
         fun clearLogs() {
-                _agentLogs.value = emptyList()
+                agentLogs.value = emptyList()
         }
 
         private fun log(message: String) {
-                _agentLogs.value = _agentLogs.value + message
+                agentLogs.value = agentLogs.value + message
                 println("[AGENT-LOG] $message")
         }
 
@@ -546,7 +546,7 @@ class AgentService(
 
                                 return withContext(NonCancellable) {
                                         val logsContext =
-                                                _agentLogs.value
+                                                agentLogs.value
                                                         .filter { !it.contains("[AI-DEBUG]") }
                                                         .joinToString("\n")
                                                         .takeLast(10000)

@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - July 2026)
 
-**v2.1.10** (2026-07-19) — Current release
+**v2.1.11** (2026-07-19) — Current release
+
+* **Codebase Refactoring:** Replaced manual private backing properties with Kotlin 2.4 explicit backing fields (`field`) across the codebase.
+
+**v2.1.10** (2026-07-19)
 
 * **Documentation & Build:** Updated Gradle wrapper to the latest version and synchronized README versions with `libs.versions.toml`.
 

@@ -10,14 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
  * Can be extended to multi-select and callbacks later.
  */
 class SelectionModel {
-    private val _selected = MutableStateFlow<IndividualId?>(null)
-    val selected: StateFlow<IndividualId?> = _selected.asStateFlow()
+    val selected: StateFlow<IndividualId?>
+        field = MutableStateFlow<IndividualId?>(null)
 
     fun select(id: IndividualId?) {
-        _selected.value = id
+        selected.value = id
     }
 
-    fun isSelected(id: IndividualId?): Boolean = id != null && _selected.value == id
+    fun isSelected(id: IndividualId?): Boolean = id != null && selected.value == id
 
-    fun clear() { _selected.value = null }
+    fun clear() { selected.value = null }
 }

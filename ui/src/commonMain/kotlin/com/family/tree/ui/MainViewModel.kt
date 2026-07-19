@@ -52,15 +52,15 @@ class MainViewModel(
 
     val voiceInputProcessor = voiceInputProcessorFactory(viewModelScope)
 
-    private val _state = MutableStateFlow(
-        MainState(
-            project = ProjectData(emptyList(), emptyList(), emptyList())
+    val state: StateFlow<MainState>
+        field = MutableStateFlow(
+            MainState(
+                project = ProjectData(emptyList(), emptyList(), emptyList())
+            )
         )
-    )
-    val state: StateFlow<MainState> = _state.asStateFlow()
 
     init {
-        searchService.updateProject(_state.value.project)
+        searchService.updateProject(state.value.project)
         loadSampleData()
     }
 
@@ -68,7 +68,7 @@ class MainViewModel(
         val loadedSample = SampleData.simpleThreeGenWithLayout()
         val positions = SimpleTreeLayout.layout(loadedSample.data.individuals, loadedSample.data.families)
         searchService.updateProject(loadedSample.data)
-        _state.update { 
+        state.update { 
             it.copy(
                 project = loadedSample.data,
                 projectLayout = loadedSample.layout,
@@ -80,7 +80,7 @@ class MainViewModel(
     fun newProject() = viewModelScope.launch(Dispatchers.Default) {
         val emptyProject = ProjectData(emptyList(), emptyList(), emptyList())
         searchService.updateProject(emptyProject)
-        _state.update {
+        state.update {
             it.copy(
                 project = emptyProject,
                 projectLayout = null,
@@ -94,7 +94,7 @@ class MainViewModel(
     fun loadProject(loadedProject: LoadedProject, autoFit: Boolean = false) = viewModelScope.launch(Dispatchers.Default) {
         val positions = SimpleTreeLayout.layout(loadedProject.data.individuals, loadedProject.data.families)
         searchService.updateProject(loadedProject.data)
-        _state.update {
+        state.update {
             it.copy(
                 project = loadedProject.data,
                 projectLayout = loadedProject.layout,
@@ -107,27 +107,27 @@ class MainViewModel(
     }
 
     fun selectIndividual(id: IndividualId) {
-        _state.update { it.copy(selectedIds = setOf(id), selectedFamilyId = null) }
+        state.update { it.copy(selectedIds = setOf(id), selectedFamilyId = null) }
     }
 
     fun selectFamily(familyId: FamilyId, memberIds: Set<IndividualId>) {
-        _state.update { it.copy(selectedIds = memberIds, selectedFamilyId = familyId) }
+        state.update { it.copy(selectedIds = memberIds, selectedFamilyId = familyId) }
     }
 
     fun clearSelection() {
-        _state.update { it.copy(selectedIds = emptySet(), selectedFamilyId = null) }
+        state.update { it.copy(selectedIds = emptySet(), selectedFamilyId = null) }
     }
 
     fun markAutoFitConsumed() {
-        _state.update { it.copy(shouldAutoFit = false) }
+        state.update { it.copy(shouldAutoFit = false) }
     }
 
     fun addIndividual(individual: Individual) = viewModelScope.launch(Dispatchers.Default) {
-        val newIndividuals = _state.value.project.individuals + individual
-        val newProject = _state.value.project.copy(individuals = newIndividuals)
+        val newIndividuals = state.value.project.individuals + individual
+        val newProject = state.value.project.copy(individuals = newIndividuals)
         val positions = SimpleTreeLayout.layout(newIndividuals, newProject.families)
         searchService.updateProject(newProject)
-        _state.update {
+        state.update {
             it.copy(
                 project = newProject,
                 cachedPositions = positions,
@@ -138,7 +138,7 @@ class MainViewModel(
     }
 
     fun deleteIndividual(idToDelete: IndividualId) = viewModelScope.launch(Dispatchers.Default) {
-        val currentProject = _state.value.project
+        val currentProject = state.value.project
         val newIndividuals = currentProject.individuals.filter { it.id != idToDelete }
         val newFamilies = currentProject.families.map { family ->
             family.copy(
@@ -151,7 +151,7 @@ class MainViewModel(
         val positions = SimpleTreeLayout.layout(newIndividuals, newFamilies)
         searchService.updateProject(newProject)
         
-        _state.update {
+        state.update {
             it.copy(
                 project = newProject,
                 cachedPositions = positions,
@@ -164,7 +164,7 @@ class MainViewModel(
     fun updateProjectInfo(project: ProjectData) = viewModelScope.launch(Dispatchers.Default) {
         val positions = SimpleTreeLayout.layout(project.individuals, project.families)
         searchService.updateProject(project)
-        _state.update { 
+        state.update { 
             it.copy(
                 project = project,
                 cachedPositions = positions
@@ -173,10 +173,10 @@ class MainViewModel(
     }
 
     fun openDialog(dialog: AppDialog) {
-        _state.update { it.copy(activeDialog = dialog) }
+        state.update { it.copy(activeDialog = dialog) }
     }
 
     fun closeDialog() {
-        _state.update { it.copy(activeDialog = null) }
+        state.update { it.copy(activeDialog = null) }
     }
 }
