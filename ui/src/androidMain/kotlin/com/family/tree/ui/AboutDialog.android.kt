@@ -39,7 +39,10 @@ actual fun AboutDialog(onDismiss: () -> Unit) {
             AboutDialogContent(
                 onDismiss = onDismiss,
                 onOpenEmail = { openEmail(context, it) },
-                onOpenUrl = { openUrl(context, it) }
+                onOpenUrl = { openUrl(context, it) },
+                showTitle = false,
+                showDismissButton = false,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     )

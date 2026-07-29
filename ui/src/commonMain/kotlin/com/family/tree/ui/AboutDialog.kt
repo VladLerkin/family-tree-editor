@@ -22,24 +22,30 @@ const val GITHUB_URL = "https://github.com/VladLerkin/family-tree-editor"
 @Composable
 expect fun AboutDialog(onDismiss: () -> Unit)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AboutDialogContent(
     onDismiss: () -> Unit,
     onOpenEmail: (String) -> Unit,
-    onOpenUrl: (String) -> Unit
+    onOpenUrl: (String) -> Unit,
+    showTitle: Boolean = true,
+    showDismissButton: Boolean = true,
+    modifier: Modifier = Modifier
+        .fillMaxWidth()
+        .padding(24.dp)
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(24.dp),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        Text(
-            text = APP_NAME,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
+        if (showTitle) {
+            Text(
+                text = APP_NAME,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
         Text(
             text = "Version v${BuildConfig.APP_VERSION}",
@@ -51,8 +57,8 @@ fun AboutDialogContent(
             fontSize = 14.sp
         )
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        FlowRow(
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = "Author: ",
@@ -69,11 +75,11 @@ fun AboutDialogContent(
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically
+        FlowRow(
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "The source code is available on",
+                text = "The source code is available on ",
                 fontSize = 14.sp
             )
             TextButton(
@@ -93,14 +99,16 @@ fun AboutDialogContent(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.weight(1f))
+        if (showDismissButton) {
+            Spacer(modifier = Modifier.weight(1f))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Button(onClick = onDismiss) {
-                Text("OK")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Button(onClick = onDismiss) {
+                    Text("OK")
+                }
             }
         }
     }
