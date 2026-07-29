@@ -4,7 +4,13 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - July 2026)
 
-**v2.1.11** (2026-07-19) — Current release
+**v2.1.12** (2026-07-29) — Current release
+
+* **AI & Voice Input:** Fixed Google Speech-to-Text v1 API integration by switching default model to `default` and ensuring `useEnhanced` is properly handled for v1 REST API.
+* **AI Models & Presets:** Added modern Google Gemini models (`gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3.5-pro`, `gemini-2.5-flash`) to AI configuration presets.
+* **AI Connection Testing:** Fixed STT connection test logic in settings dialog to test each provider using valid provider-specific models.
+
+**v2.1.11** (2026-07-19)
 
 * **Codebase Refactoring:** Replaced manual private backing properties with Kotlin 2.4 explicit backing fields (`field`) across the codebase.
 

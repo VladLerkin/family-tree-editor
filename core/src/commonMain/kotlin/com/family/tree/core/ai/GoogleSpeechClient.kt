@@ -181,19 +181,23 @@ class GoogleSpeechClient(
                     put("maxSpeakerCount", 2)
                 }
                 
-                // Enhanced модели (latest_long + useEnhanced) доступны не для всех языков
-                // Для ka-GE (грузинский) используем стандартную модель
-                // Список языков с enhanced моделями: en-US, en-GB, es-ES, fr-FR, ja-JP, ko-KR, pt-BR, ru-RU, zh-CN и др.
-                val supportsEnhanced = languageCode in listOf(
-                    "en-US", "en-GB", "en-AU", "en-IN",
-                    "es-ES", "fr-FR", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN"
-                )
+                // Выбор модели Google Speech-to-Text v1:
+                // default (стандартная и самая надежная модель v1 API), latest_long или latest_short.
+                val rawModel = config.googleSpeechModel.ifBlank { "default" }
+                // chirp_2 поддерживается только в v2 API, в v1 API используем 'default'
+                val speechModel = if (rawModel == "chirp_2") "default" else rawModel
+                put("model", speechModel)
                 
-                if (supportsEnhanced) {
-                    put("model", "latest_long")  // Модель с поддержкой длинных аудио
-                    put("useEnhanced", true)     // Улучшенная модель для лучшего качества
+                // useEnhanced допустим ТОЛЬКО для модели 'default' для поддерживаемых языков.
+                if (speechModel == "default") {
+                    val supportsEnhanced = languageCode in listOf(
+                        "en-US", "en-GB", "en-AU", "en-IN",
+                        "es-ES", "fr-FR", "ja-JP", "ko-KR", "pt-BR", "ru-RU", "zh-CN"
+                    )
+                    if (supportsEnhanced) {
+                        put("useEnhanced", true)
+                    }
                 }
-                // Для остальных языков (включая ka-GE) используется стандартная модель по умолчанию
             }
             putJsonObject("audio") {
                 put("content", audioBase64)

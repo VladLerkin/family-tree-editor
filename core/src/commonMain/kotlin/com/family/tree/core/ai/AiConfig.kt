@@ -44,6 +44,7 @@ data class AiConfig(
     // Separate API keys for each provider group
     val openaiApiKey: String = "",     // API key for OpenAI (GPT models and Whisper)
     val googleAiApiKey: String = "",   // API key for Google AI (Gemini models and Speech-to-Text)
+    val googleSpeechModel: String = "default", // Google Speech-to-Text model: default, latest_long, latest_short
     val yandexApiKey: String = "",      // API key for Yandex Cloud (SpeechKit)
     
     // Folder ID for Yandex Cloud (optional, can be omitted when using service account API key)
@@ -114,9 +115,30 @@ object AiPresets {
     
 
     
-    val GOOGLE_GEMINI_3_1_FLASH_LITE = AiConfig(
+    val GOOGLE_GEMINI_3_6_FLASH = AiConfig(
         provider = "GOOGLE",
-        model = "gemini-3.1-flash-lite",
+        model = "gemini-3.6-flash",
+        temperature = 0.7,
+        maxTokens = 4000
+    )
+
+    val GOOGLE_GEMINI_3_5_FLASH = AiConfig(
+        provider = "GOOGLE",
+        model = "gemini-3.5-flash",
+        temperature = 0.7,
+        maxTokens = 4000
+    )
+
+    val GOOGLE_GEMINI_3_5_PRO = AiConfig(
+        provider = "GOOGLE",
+        model = "gemini-3.5-pro",
+        temperature = 0.7,
+        maxTokens = 4000
+    )
+
+    val GOOGLE_GEMINI_2_5_FLASH = AiConfig(
+        provider = "GOOGLE",
+        model = "gemini-2.5-flash",
         temperature = 0.7,
         maxTokens = 4000
     )
@@ -207,7 +229,10 @@ object AiPresets {
     fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
         "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
 
-        "Google Gemini 3.1 Flash-Lite" to GOOGLE_GEMINI_3_1_FLASH_LITE,
+        "Google Gemini 3.6 Flash" to GOOGLE_GEMINI_3_6_FLASH,
+        "Google Gemini 3.5 Flash" to GOOGLE_GEMINI_3_5_FLASH,
+        "Google Gemini 3.5 Pro" to GOOGLE_GEMINI_3_5_PRO,
+        "Google Gemini 2.5 Flash" to GOOGLE_GEMINI_2_5_FLASH,
         "YandexGPT Lite" to YANDEX_GPT_LITE,
 
         "Ollama Gemma 4 E4B (local)" to OLLAMA_GEMMA_4_E4B,

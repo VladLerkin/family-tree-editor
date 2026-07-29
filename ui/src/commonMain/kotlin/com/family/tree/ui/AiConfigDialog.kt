@@ -634,7 +634,16 @@ fun AiConfigDialog(
                                 }
                                 
                                 if (sttEquivalentProvider != null) {
-                                    val sttConfig = currentConfig.copy(provider = sttEquivalentProvider)
+                                    val defaultModelForStt = when (sttEquivalentProvider) {
+                                        "GOOGLE" -> "gemini-2.5-flash"
+                                        "OPENAI" -> "gpt-4o-mini"
+                                        "YANDEX" -> "yandexgpt-lite"
+                                        else -> currentConfig.model
+                                    }
+                                    val sttConfig = currentConfig.copy(
+                                        provider = sttEquivalentProvider,
+                                        model = defaultModelForStt
+                                    )
                                     val sttClient = aiClientFactory.createClient(sttConfig)
                                     val sttResult = sttClient.sendPromptSafe("Hello?", sttConfig)
                                     
