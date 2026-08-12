@@ -86,9 +86,9 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 | Android Compose BOM | 2026.06.00 |
 | Gradle | 9.6.1 |
 | Android Gradle Plugin | 9.3.0 |
-| Ktor | 3.5.1 |
+| Ktor | 3.5.2 |
 | JDK | 25 |
-| Koog | 1.0.0 |
+| Koog | 1.1.1 |
 | Android Target SDK | 37 |
 
 ## 🐛 Troubleshooting

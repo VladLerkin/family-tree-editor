@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - July 2026)
 
-**v2.1.13** (2026-07-29) — Current release
+**v2.1.14** (2026-08-12) — Current release
+
+* **Dependencies:** Updated core libraries (Ktor to 3.5.2, Okio to 3.18.1, Llamatik to 1.10.0, and Koog to 1.1.1).
+
+**v2.1.13** (2026-07-29)
 
 * **UI & Mobile:** Fixed text wrapping of GitHub link and author email in the About dialog to prevent clipping on narrow screens. Fixed duplicate title, extra OK button, and double padding in Android native AlertDialog.
 
