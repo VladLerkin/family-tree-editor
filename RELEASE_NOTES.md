@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - July 2026)
 
-**v2.1.15** (2026-08-12) — Current release
+**v2.1.16** (2026-08-12) — Current release
+
+* **Build:** Downgraded Gradle to 9.6.1.
+
+**v2.1.15** (2026-08-12)
 
 * **Documentation & Build:** Updated Gradle wrapper to 9.7.0 and synchronized README versions with `libs.versions.toml`.
 

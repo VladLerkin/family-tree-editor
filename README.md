@@ -4,7 +4,7 @@
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.11.1-brightgreen)](https://www.jetbrains.com/lp/compose-multiplatform/)
-[![Gradle](https://img.shields.io/badge/Gradle-9.7.0-02303A.svg?logo=gradle)](https://gradle.org)
+[![Gradle](https://img.shields.io/badge/Gradle-9.6.1-02303A.svg?logo=gradle)](https://gradle.org)
 
 ## ✨ Features
 
@@ -84,7 +84,7 @@ The project uses **Gradle Version Catalog** for centralized dependency managemen
 | Kotlin | 2.4.10 |
 | Compose Multiplatform | 1.11.1 |
 | Android Compose BOM | 2026.06.01 |
-| Gradle | 9.7.0 |
+| Gradle | 9.6.1 |
 | Android Gradle Plugin | 9.3.1 |
 | Ktor | 3.5.2 |
 | JDK | 25 |
