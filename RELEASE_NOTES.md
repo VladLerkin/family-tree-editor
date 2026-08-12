@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - July 2026)
 
-**v2.1.14** (2026-08-12) — Current release
+**v2.1.15** (2026-08-12) — Current release
+
+* **Documentation & Build:** Updated Gradle wrapper to 9.7.0 and synchronized README versions with `libs.versions.toml`.
+
+**v2.1.14** (2026-08-12)
 
 * **Dependencies:** Updated core libraries (Ktor to 3.5.2, Okio to 3.18.1, Llamatik to 1.10.0, and Koog to 1.1.1).
 
