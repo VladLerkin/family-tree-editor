@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.family.tree.core.ai.AiConfig
 import com.family.tree.core.ai.AiPresets
-import com.family.tree.core.ai.VoskRecognizerManager
+import com.family.tree.core.ai.SherpaRecognizerManager
 import com.family.tree.core.ai.AiClientFactory
 import com.family.tree.core.ai.sendPromptSafe
 import com.family.tree.core.ai.AiResult
@@ -328,7 +328,7 @@ fun AiConfigDialog(
                             "OPENAI_WHISPER" to "OpenAI Whisper",
                             "GOOGLE_SPEECH" to "Google Speech-to-Text (best for Georgian)",
                             "YANDEX_SPEECHKIT" to "Yandex SpeechKit (best for Russian and CIS languages)",
-                            "VOSK_LOCAL" to "Vosk Local (Offline & Free)"
+                            "SHERPA_LOCAL" to "Sherpa-ONNX Local (Offline & Free)"
                         )
                         
                         // Transcription provider selection
@@ -398,12 +398,12 @@ fun AiConfigDialog(
                             )
                         }
                         
-                        // Vosk Download Manager
-                        if (transcriptionProvider == "VOSK_LOCAL") {
+                        // Sherpa Download Manager
+                        if (transcriptionProvider == "SHERPA_LOCAL") {
                             val scope = rememberCoroutineScope()
-                            val voskManager = remember { VoskRecognizerManager() }
+                            val sherpaManager = remember { SherpaRecognizerManager() }
                             val currentLang = if (language.isBlank()) "ru" else language
-                            var isDownloaded by remember(currentLang) { mutableStateOf(voskManager.isModelDownloaded(currentLang)) }
+                            var isDownloaded by remember(currentLang) { mutableStateOf(sherpaManager.isModelDownloaded(currentLang)) }
                             var downloadProgress by remember { mutableStateOf(-1f) }
                             var downloadError by remember { mutableStateOf<String?>(null) }
                             
@@ -416,7 +416,7 @@ fun AiConfigDialog(
                             } else {
                                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                     Text(
-                                        text = "Vosk requires a ~45MB language model to be downloaded for offline use.",
+                                        text = "Sherpa-ONNX requires a ~150-200MB language model to be downloaded for offline use.",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(bottom = 8.dp)
@@ -434,7 +434,7 @@ fun AiConfigDialog(
                                                 try {
                                                     downloadProgress = 0f
                                                     downloadError = null
-                                                    voskManager.downloadModel(currentLang) { progress ->
+                                                    sherpaManager.downloadModel(currentLang) { progress ->
                                                         downloadProgress = progress
                                                     }
                                                     isDownloaded = true

@@ -6,8 +6,8 @@ android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "37"
 java = "25"
-app-version = "2.1.17"
-app-versionCode = "117"
+app-version = "2.1.18"
+app-versionCode = "118"
 ktor = "3.5.2"
 okio = "3.18.2"
 llamatik = "1.10.1"
@@ -21,9 +21,8 @@ koin = "4.2.2"
 lifecycle = "2.11.0"
 voyager = "2.2.21-1.10.3"
 koog = "1.2.0"
-vosk = "0.3.38"
-vosk-android = "0.3.75"
 jna = "5.19.1"
+commons-compress = "1.26.1"
 [libraries]
 voyager-navigator = { module = "cafe.adriel.voyager:voyager-navigator", version.ref = "voyager" }
 voyager-screenmodel = { module = "cafe.adriel.voyager:voyager-screenmodel", version.ref = "voyager" }
@@ -53,9 +52,8 @@ lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifec
 koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 jetbrains-compose-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "compose" }
-vosk-android = { module = "com.alphacephei:vosk-android", version.ref = "vosk-android" }
-vosk-jvm = { module = "com.alphacephei:vosk", version.ref = "vosk" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
 [plugins]
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

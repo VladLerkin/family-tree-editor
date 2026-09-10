@@ -21,7 +21,7 @@ enum class TranscriptionProvider {
     OPENAI_WHISPER,    // OpenAI Whisper API
     GOOGLE_SPEECH,     // Google Cloud Speech-to-Text
     YANDEX_SPEECHKIT,  // Yandex SpeechKit
-    VOSK_LOCAL         // Local offline STT via Vosk
+    SHERPA_LOCAL       // Local offline STT via Sherpa-ONNX
 }
 
 /**
@@ -97,7 +97,7 @@ data class AiConfig(
             TranscriptionProvider.OPENAI_WHISPER -> openaiApiKey.ifBlank { apiKey }
             TranscriptionProvider.GOOGLE_SPEECH -> googleAiApiKey.ifBlank { googleApiKey }
             TranscriptionProvider.YANDEX_SPEECHKIT -> yandexApiKey.ifBlank { apiKey }
-            TranscriptionProvider.VOSK_LOCAL -> ""
+            TranscriptionProvider.SHERPA_LOCAL -> ""
         }
     }
 }

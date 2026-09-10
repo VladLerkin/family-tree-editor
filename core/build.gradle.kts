@@ -59,6 +59,7 @@ kotlin {
                 implementation(libs.ktor.client.core)
                 implementation(libs.okio)
                 implementation(libs.llamatik)
+                implementation(libs.commons.compress)
                 api(libs.koin.core)
                 api(libs.koog.agents)
             }
@@ -70,14 +71,14 @@ kotlin {
             implementation(libs.pdfbox.android)
             api(libs.koin.android)
             implementation(libs.kotlin.reflect)
-            implementation(libs.vosk.android)
+            compileOnly(files("../libs/sherpa-onnx/sherpa-onnx-1.13.8.aar"))
         }
         
         val desktopMain by getting {
             dependencies {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.kotlin.reflect)
-                implementation(libs.vosk.jvm)
+                implementation(files("../libs/sherpa-onnx/sherpa-onnx-jvm-1.13.8.jar"))
                 implementation(libs.jna)
             }
         }

@@ -110,6 +110,7 @@ kotlin {
 dependencies {
     implementation(project(":core"))
     implementation(project(":ui"))
+    implementation(files("../libs/sherpa-onnx/sherpa-onnx-1.13.8.aar"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.ui)

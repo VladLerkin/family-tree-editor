@@ -4,7 +4,14 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.17** (2026-09-10) — Current release
+**v2.1.18** (2026-09-11) — Current release
+
+* **AI & Voice Input:** Migrated offline voice transcription from Vosk to the Sherpa-ONNX engine.
+* **AI Models:** Added support for the highly optimized NVIDIA NeMo Fast Conformer CTC model for accurate Russian language recognition.
+* **UI/UX:** Improved offline model download reliability and progress tracking for the Compose UI.
+
+
+**v2.1.17** (2026-09-10)
 
 * **Dependencies:** Updated `kotlin` (2.4.20), `compose` (1.12.0), `agp` (9.4.0), `okio` (3.18.2), `llamatik` (1.10.1), `compose-bom` (2026.09.00), and `koog` (1.2.0).
 * **Documentation:** Updated dependency versions in README badges and tables.

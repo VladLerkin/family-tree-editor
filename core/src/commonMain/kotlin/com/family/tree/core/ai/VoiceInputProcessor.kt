@@ -64,7 +64,7 @@ class VoiceInputProcessor(
         // Select format based on provider
         val audioFormat = when (provider) {
             TranscriptionProvider.YANDEX_SPEECHKIT,
-            TranscriptionProvider.VOSK_LOCAL -> com.family.tree.core.platform.AudioFormat.WAV
+            TranscriptionProvider.SHERPA_LOCAL -> com.family.tree.core.platform.AudioFormat.WAV
             else -> com.family.tree.core.platform.AudioFormat.M4A
         }
         
@@ -91,7 +91,7 @@ class VoiceInputProcessor(
                             TranscriptionProvider.OPENAI_WHISPER -> "OpenAI Whisper"
                             TranscriptionProvider.GOOGLE_SPEECH -> "Google Speech-to-Text"
                             TranscriptionProvider.YANDEX_SPEECHKIT -> "Yandex SpeechKit"
-                            TranscriptionProvider.VOSK_LOCAL -> "Vosk Local STT"
+                            TranscriptionProvider.SHERPA_LOCAL -> "Sherpa-ONNX Local STT"
                         }
                         println("[DEBUG_LOG] VoiceInputProcessor: Transcribing audio through $providerName")
                         val transcribedText = transcriptionClient.transcribeAudio(audioData, aiConfig)
