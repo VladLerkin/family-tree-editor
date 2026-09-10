@@ -2,9 +2,15 @@
 
 This document contains the release history of the Family Tree Editor project, from the first commits to the current version 2.1.2. It highlights when new features were added, bug fixes, and CI/CD improvements.
 
-## 2.1.x Versions (June - July 2026)
+## 2.1.x Versions (June - September 2026)
 
-**v2.1.16** (2026-08-12) — Current release
+**v2.1.17** (2026-09-10) — Current release
+
+* **Dependencies:** Updated `kotlin` (2.4.20), `compose` (1.12.0), `agp` (9.4.0), `okio` (3.18.2), `llamatik` (1.10.1), `compose-bom` (2026.09.00), and `koog` (1.2.0).
+* **Documentation:** Updated dependency versions in README badges and tables.
+* **Agent Skills:** Organized and updated agent skills according to the Agent Skills specification (`release-app`, `debug-tv`, and newly added `update-dependencies`). Added exceptions for `vosk`.
+
+**v2.1.16** (2026-08-12)
 
 * **Build:** Downgraded Gradle to 9.6.1.
 
