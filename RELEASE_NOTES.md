@@ -4,7 +4,12 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.18** (2026-09-11) — Current release
+**v2.1.19** (2026-09-11) — Current release
+
+* **Build:** Increased Gradle JVM heap size to 4GB to prevent R8 OutOfMemoryError during Android release builds.
+
+
+**v2.1.18** (2026-09-11)
 
 * **AI & Voice Input:** Migrated offline voice transcription from Vosk to the Sherpa-ONNX engine.
 * **AI Models:** Added support for the highly optimized NVIDIA NeMo Fast Conformer CTC model for accurate Russian language recognition.
