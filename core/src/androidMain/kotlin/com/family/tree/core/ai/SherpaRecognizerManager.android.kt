@@ -40,7 +40,8 @@ actual class SherpaRecognizerManager actual constructor() {
 
     actual fun isModelDownloaded(language: String): Boolean {
         val modelPath = File(modelsDir, getModelDirName(language))
-        return modelPath.exists() && modelPath.isDirectory
+        val successFile = File(modelPath, "_SUCCESS")
+        return modelPath.exists() && modelPath.isDirectory && successFile.exists()
     }
 
     actual suspend fun downloadModel(language: String, onProgress: (Float) -> Unit): String = withContext(Dispatchers.IO) {
@@ -50,8 +51,11 @@ actual class SherpaRecognizerManager actual constructor() {
 
         val dirName = getModelDirName(language)
         val finalDir = File(modelsDir, dirName)
-        if (finalDir.exists()) {
+        val successFile = File(finalDir, "_SUCCESS")
+        if (finalDir.exists() && successFile.exists()) {
             return@withContext finalDir.absolutePath
+        } else if (finalDir.exists()) {
+            finalDir.deleteRecursively()
         }
 
         val urlString = getModelUrl(language)
@@ -92,27 +96,42 @@ actual class SherpaRecognizerManager actual constructor() {
                         onProgress(totalRead.toFloat() / totalBytes.toFloat())
                     }
                 }
+                if (totalBytes > 0 && totalRead != totalBytes) {
+                    throw Exception("Download incomplete: expected $totalBytes bytes but got $totalRead bytes")
+                }
+                onProgress(2.0f) // Signal extraction phase
             }
         }
 
-        val bzIn = BZip2CompressorInputStream(tarFile.inputStream())
-        val tarIn = TarArchiveInputStream(bzIn)
-        var entry = tarIn.nextTarEntry
-        while (entry != null) {
-            val newFile = File(modelsDir, entry.name)
-            if (entry.isDirectory) {
-                newFile.mkdirs()
-            } else {
-                newFile.parentFile?.mkdirs()
-                FileOutputStream(newFile).use { fos ->
-                    tarIn.copyTo(fos)
-                }
+        try {
+            val process = Runtime.getRuntime().exec(arrayOf("tar", "-xf", tarFile.absolutePath), null, modelsDir)
+            val exitCode = process.waitFor()
+            if (exitCode != 0) {
+                val errorMsg = process.errorStream.bufferedReader().use { it.readText() }
+                throw Exception("Native tar extraction failed with code $exitCode: $errorMsg")
             }
-            entry = tarIn.nextTarEntry
+        } catch (e: Exception) {
+            // Fallback to slow Java extraction if native tar fails or is not available
+            val bzIn = BZip2CompressorInputStream(tarFile.inputStream())
+            val tarIn = TarArchiveInputStream(bzIn)
+            var entry = tarIn.nextTarEntry
+            while (entry != null) {
+                val newFile = File(modelsDir, entry.name)
+                if (entry.isDirectory) {
+                    newFile.mkdirs()
+                } else {
+                    newFile.parentFile?.mkdirs()
+                    FileOutputStream(newFile).use { fos ->
+                        tarIn.copyTo(fos)
+                    }
+                }
+                entry = tarIn.nextTarEntry
+            }
+            tarIn.close()
         }
-        tarIn.close()
         
         tarFile.delete()
+        File(finalDir, "_SUCCESS").createNewFile()
         return@withContext finalDir.absolutePath
     }
 

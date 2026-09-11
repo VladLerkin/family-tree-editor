@@ -4,7 +4,13 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.20** (2026-09-11) — Current release
+**v2.1.21** (2026-09-11) — Current release
+
+* **Bug Fix:** Fixed an issue where Sherpa-ONNX model download interruptions would leave a corrupted model and silently fail.
+* **Performance:** Replaced slow Java-based bzip2 compression with native `tar` extraction, reducing model extraction time from ~60 minutes to ~1 minute.
+* **Bug Fix:** Fixed a crash on Android 11 (`NoSuchMethodError: removeFirst()`) in `AutoLayout.kt` by using `removeAt(0)`.
+
+**v2.1.20** (2026-09-11)
 
 * **Build:** Fixed Android compilation issues with Sherpa-ONNX SDK 1.13.8 by updating configuration parameters.
 

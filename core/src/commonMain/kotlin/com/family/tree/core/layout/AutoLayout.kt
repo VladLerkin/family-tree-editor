@@ -78,7 +78,7 @@ fun calculateAutoLayout(projectData: ProjectData): ProjectLayout {
             visited.add(id)
             
             while (queue.isNotEmpty()) {
-                val curr = queue.removeFirst()
+                val curr = queue.removeAt(0)
                 comp.add(curr)
                 val neighbors = adj[curr] ?: emptySet()
                 for (n in neighbors) {
@@ -202,7 +202,7 @@ private fun layoutSingleComponent(projectData: ProjectData): Map<String, NodePos
         unassigned.remove(startNode)
 
         while (queue.isNotEmpty()) {
-            val curr = queue.removeFirst()
+            val curr = queue.removeAt(0)
             val currGen = generations[curr]!!
 
             // Find all relatives of curr
@@ -330,7 +330,7 @@ private fun layoutSingleComponent(projectData: ProjectData): Map<String, NodePos
             unvisited.remove(startNode)
             
             while (queue.isNotEmpty()) {
-                val curr = queue.removeFirst()
+                val curr = queue.removeAt(0)
                 component.add(curr)
                 val neighbors = adj[curr] ?: emptyList()
                 for (n in neighbors) {
@@ -458,7 +458,7 @@ private fun layoutSingleComponent(projectData: ProjectData): Map<String, NodePos
     queue.add(rootBlock)
     
     while (queue.isNotEmpty()) {
-        val currBlock = queue.removeFirst()
+        val currBlock = queue.removeAt(0)
         val currTn = treeNodeOf[currBlock]!!
         val neighbors = blockNeighbors[currBlock] ?: emptySet()
         
