@@ -4,7 +4,15 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.22** (2026-09-11) — Current release
+**v2.1.23** (2026-09-11) — Current release
+
+* **Feature/Performance:** Implemented lightning-fast native `tar` extraction for Sherpa-ONNX Voice models across Android and Desktop, significantly reducing unpacking time.
+* **UI/UX:** Enhanced the Voice Model download UI with a determinate progress bar (0-100%) during download, followed by an indeterminate "running wave" animation during extraction.
+* **Bug Fix:** Fixed Desktop app hang during voice input by explicitly stopping `TargetDataLine` before thread interruption.
+* **Bug Fix:** Added a robust `_SUCCESS` marker file check to the Sherpa model extraction process to prevent partial downloads from being recognized as complete.
+* **Tooling:** Added `android-debug-launch` developer skill for correctly launching Android debug builds via ADB.
+
+**v2.1.22** (2026-09-11)
 
 * **Bug Fix:** Fixed an issue where Sherpa-ONNX Voice recognition crashed in release builds due to ProGuard/R8 obfuscating JNI fields. Added keep rules to `proguard-rules.pro`.
 

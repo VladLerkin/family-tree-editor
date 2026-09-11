@@ -52,5 +52,8 @@
 -keepattributes InnerClasses
 
 # Sherpa-ONNX (JNI reflection)
+# Required for release builds. R8/ProGuard obfuscates class fields and methods by default.
+# Sherpa-ONNX uses C++ (JNI) to interact with Kotlin/Java via reflection (e.g. searching for field "decodingMethod").
+# If we don't keep these classes intact, JNI won't find the renamed fields and will crash with "Failed to get field ID".
 -keep class com.k2fsa.sherpa.onnx.** { *; }
 -dontwarn com.k2fsa.sherpa.onnx.**

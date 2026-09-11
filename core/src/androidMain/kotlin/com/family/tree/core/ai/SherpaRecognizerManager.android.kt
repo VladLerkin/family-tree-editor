@@ -44,6 +44,13 @@ actual class SherpaRecognizerManager actual constructor() {
         return modelPath.exists() && modelPath.isDirectory && successFile.exists()
     }
 
+    actual fun deleteModel(language: String) {
+        val finalDir = File(modelsDir, getModelDirName(language))
+        if (finalDir.exists()) {
+            finalDir.deleteRecursively()
+        }
+    }
+
     actual suspend fun downloadModel(language: String, onProgress: (Float) -> Unit): String = withContext(Dispatchers.IO) {
         if (!modelsDir.exists()) {
             modelsDir.mkdirs()
@@ -99,9 +106,10 @@ actual class SherpaRecognizerManager actual constructor() {
                 if (totalBytes > 0 && totalRead != totalBytes) {
                     throw Exception("Download incomplete: expected $totalBytes bytes but got $totalRead bytes")
                 }
-                onProgress(2.0f) // Signal extraction phase
             }
         }
+
+        onProgress(2.0f) // Signal extraction phase
 
         try {
             val process = Runtime.getRuntime().exec(arrayOf("tar", "-xf", tarFile.absolutePath), null, modelsDir)
@@ -112,6 +120,7 @@ actual class SherpaRecognizerManager actual constructor() {
             }
         } catch (e: Exception) {
             // Fallback to slow Java extraction if native tar fails or is not available
+            val tarFileSize = tarFile.length()
             val bzIn = BZip2CompressorInputStream(tarFile.inputStream())
             val tarIn = TarArchiveInputStream(bzIn)
             var entry = tarIn.nextTarEntry

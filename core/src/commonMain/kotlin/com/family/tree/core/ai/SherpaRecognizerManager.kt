@@ -15,6 +15,11 @@ expect class SherpaRecognizerManager() {
      * Checks if the model for the given language is already downloaded.
      */
     fun isModelDownloaded(language: String): Boolean
+
+    /**
+     * Deletes the downloaded model for the given language.
+     */
+    fun deleteModel(language: String)
     
     /**
      * Transcribes the given audio data.

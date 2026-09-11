@@ -408,11 +408,22 @@ fun AiConfigDialog(
                             var downloadError by remember { mutableStateOf<String?>(null) }
                             
                             if (isDownloaded) {
-                                Text(
-                                    text = "✓ Model for '$currentLang' is downloaded and ready.",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "✓ Model for '$currentLang' is downloaded and ready.",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(onClick = {
+                                        sherpaManager.deleteModel(currentLang)
+                                        isDownloaded = false
+                                    }) {
+                                        Text("Delete Model", color = MaterialTheme.colorScheme.error)
+                                    }
+                                }
                             } else {
                                 Column(modifier = Modifier.padding(vertical = 8.dp)) {
                                     Text(
@@ -427,12 +438,13 @@ fun AiConfigDialog(
                                             progress = { downloadProgress },
                                             modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                                         )
-                                        Text("${(downloadProgress * 100).toInt()}% downloaded", style = MaterialTheme.typography.bodySmall)
+                                        val p = (downloadProgress * 100).toInt()
+                                        Text("Downloading: $p%", style = MaterialTheme.typography.bodySmall)
                                     } else if (downloadProgress > 1f) {
                                         LinearProgressIndicator(
                                             modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                                         )
-                                        Text("Extracting model (this may take a couple of minutes)...", style = MaterialTheme.typography.bodySmall)
+                                        Text("Downloaded ✓ Extracting...", style = MaterialTheme.typography.bodySmall)
                                     } else {
                                         Button(onClick = {
                                             scope.launch {
@@ -657,6 +669,13 @@ fun AiConfigDialog(
                                         is AiResult.Error -> "STT ($transcriptionProvider): Failed - ${sttResult.message}"
                                     }
                                     sttSuccess = sttResult is AiResult.Success
+                                } else if (transcriptionProvider == "SHERPA_LOCAL") {
+                                    val sherpaManager = SherpaRecognizerManager()
+                                    val currentLang = if (language.isBlank()) "ru" else language
+                                    if (!sherpaManager.isModelDownloaded(currentLang)) {
+                                        sttMessage = "STT (SHERPA_LOCAL): Model not fully downloaded/extracted yet"
+                                        sttSuccess = false
+                                    }
                                 }
                                 
                                 testConnectionSuccess = llmSuccess && sttSuccess
