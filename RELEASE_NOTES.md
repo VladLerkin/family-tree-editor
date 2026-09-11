@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.25** (2026-09-11) — Current release
+**v2.1.26** (2026-09-11) — Current release
+
+* **Bug Fix:** Fixed a UI freeze issue on older machines when pressing "Stop Recording". The heavy initialization of the Sherpa-ONNX model has been moved to a background thread to prevent blocking the UI.
+
+**v2.1.25** (2026-09-11)
 
 * **Bug Fix:** Fixed an issue where the desktop application's UI would freeze (deadlock) when stopping or cancelling voice recording.
 

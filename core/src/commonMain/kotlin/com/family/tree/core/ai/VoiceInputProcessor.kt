@@ -9,6 +9,11 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.parameter.parametersOf
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.withContext
+
 /**
  * Voice input processor for importing relatives
  * Connects VoiceRecorder (audio recording) -> AiClient (transcription via Whisper) -> AiTextImporter (processing via LLM)
@@ -19,6 +24,12 @@ class VoiceInputProcessor(
     private val transcriptionClientFactory: TranscriptionClientFactory,
     private val coroutineScope: CoroutineScope
 ) : KoinComponent {
+    
+    private val _isRecording = MutableStateFlow(false)
+    val isRecordingFlow: StateFlow<Boolean> = _isRecording.asStateFlow()
+    
+    private val _isProcessing = MutableStateFlow(false)
+    val isProcessingFlow: StateFlow<Boolean> = _isProcessing.asStateFlow()
     
     /**
      * Check if voice input is available
@@ -31,7 +42,7 @@ class VoiceInputProcessor(
      * Check if recording is in progress
      */
     fun isRecording(): Boolean {
-        return voiceRecorder.isRecording()
+        return _isRecording.value
     }
     
     /**
@@ -70,10 +81,16 @@ class VoiceInputProcessor(
         
         println("[DEBUG_LOG] VoiceInputProcessor: Using audio format $audioFormat for provider $provider")
         
+        _isRecording.value = true
+        _isProcessing.value = false
+        
         voiceRecorder.startRecording(
             format = audioFormat,
             onResult = { audioData ->
                 println("[DEBUG_LOG] VoiceInputProcessor: Received audio data: ${audioData.size} bytes")
+                
+                _isRecording.value = false
+                _isProcessing.value = true
                 
                 // Process audio via AI in coroutine
                 coroutineScope.launch {
@@ -82,8 +99,11 @@ class VoiceInputProcessor(
                         val aiConfig = settingsStorage.loadConfig()
                         println("[DEBUG_LOG] VoiceInputProcessor: Loaded AI config - provider=${aiConfig.getProvider()}, model=${aiConfig.model}, apiKey=${if (aiConfig.getApiKeyForProvider().isBlank()) "empty" else "present"}")
                         
-                        // Create clients with actual config
-                        val transcriptionClient = transcriptionClientFactory.createClient(aiConfig)
+                        // Create clients with actual config in a background dispatcher to prevent UI freezes
+                        // (e.g. System.load() for Sherpa ONNX can block the thread)
+                        val transcriptionClient = withContext(kotlinx.coroutines.Dispatchers.Default) {
+                            transcriptionClientFactory.createClient(aiConfig)
+                        }
                         val aiTextImporter = get<AiTextImporter> { parametersOf(aiConfig) }
                         
                         // Step 1: Transcribe audio via selected provider (Whisper, Google Speech or Yandex SpeechKit)
@@ -108,11 +128,15 @@ class VoiceInputProcessor(
                         println("[DEBUG_LOG] VoiceInputProcessor: $errorMsg")
                         e.printStackTrace()
                         onError(errorMsg)
+                    } finally {
+                        _isProcessing.value = false
                     }
                 }
             },
             onError = { errorMessage ->
                 println("[DEBUG_LOG] VoiceInputProcessor: Voice recording error: $errorMessage")
+                _isRecording.value = false
+                _isProcessing.value = false
                 onError("Audio recording error: $errorMessage")
             }
         )
@@ -124,6 +148,8 @@ class VoiceInputProcessor(
     fun stopRecording() {
         if (isRecording()) {
             println("[DEBUG_LOG] VoiceInputProcessor: Stopping recording")
+            _isRecording.value = false
+            _isProcessing.value = true
             voiceRecorder.stopRecording()
         }
     }
@@ -134,6 +160,8 @@ class VoiceInputProcessor(
     fun cancelRecording() {
         if (isRecording()) {
             println("[DEBUG_LOG] VoiceInputProcessor: Cancelling recording")
+            _isRecording.value = false
+            _isProcessing.value = false
             voiceRecorder.cancelRecording()
         }
     }

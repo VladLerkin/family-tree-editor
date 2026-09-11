@@ -197,6 +197,9 @@ fun MainScreenDialogs(
         }
         
         is AppDialog.VoiceInput -> {
+            val isRecording by voiceInputProcessor.isRecordingFlow.collectAsState()
+            val isProcessing by voiceInputProcessor.isProcessingFlow.collectAsState()
+            
             AlertDialog(
                 onDismissRequest = {
                     voiceInputProcessor.cancelRecording()
@@ -210,17 +213,21 @@ fun MainScreenDialogs(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        if (voiceInputProcessor.isRecording()) {
+                        if (isRecording) {
                             CircularProgressIndicator()
                             Text("Speak...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
-                        } else {
+                        } else if (isProcessing) {
+                            CircularProgressIndicator()
                             Text("Processing...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+                        } else {
+                            CircularProgressIndicator()
+                            Text("Preparing...", style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
                         }
                     }
                 },
                 confirmButton = {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (voiceInputProcessor.isRecording()) {
+                        if (isRecording) {
                             Button(onClick = { voiceInputProcessor.stopRecording() }) {
                                 Text("Stop Recording")
                             }
