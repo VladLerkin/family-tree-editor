@@ -137,7 +137,7 @@ actual class SherpaRecognizerManager actual constructor() {
             
             val modelConfig = if (model.isNotEmpty()) {
                 OfflineModelConfig(
-                    nemoCtc = OfflineNemoEncDecCtcModelConfig(model = model),
+                    nemo = OfflineNemoEncDecCtcModelConfig(model = model),
                     tokens = tokens,
                     modelType = "nemo_ctc",
                     numThreads = 4,
@@ -158,7 +158,7 @@ actual class SherpaRecognizerManager actual constructor() {
             }
             
             val config = OfflineRecognizerConfig(
-                featConfig = OfflineFeatureExtractorConfig(
+                featConfig = FeatureConfig(
                     sampleRate = 16000,
                     featureDim = 80
                 ),
