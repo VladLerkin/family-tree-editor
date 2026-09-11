@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.24** (2026-09-11) — Current release
+**v2.1.25** (2026-09-11) — Current release
+
+* **Bug Fix:** Fixed an issue where the desktop application's UI would freeze (deadlock) when stopping or cancelling voice recording.
+
+**v2.1.24** (2026-09-11)
 
 * **Performance:** Sped up Sherpa-ONNX model extraction on older Windows systems by adding stream buffering to the Java fallback extractor.
 

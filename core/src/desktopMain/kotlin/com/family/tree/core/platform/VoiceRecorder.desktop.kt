@@ -116,40 +116,44 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             return
         }
         
-        try {
-            println("[DEBUG_LOG] VoiceRecorder (Desktop): Stopping recording")
-            recording = false
-            
-            // Stop recording thread
-            recordingThread?.interrupt()
-            recordingThread?.join(1000)
-            
-            // Stop line
-            targetDataLine?.stop()
-            targetDataLine?.close()
-            
-            // Get recorded data
-            val audioData = audioOutputStream?.toByteArray()
-            if (audioData != null && audioData.isNotEmpty()) {
-                println("[DEBUG_LOG] VoiceRecorder (Desktop): Read ${audioData.size} bytes from audio recording")
+        println("[DEBUG_LOG] VoiceRecorder (Desktop): Stopping recording")
+        recording = false
+        
+        val currentResultCallback = resultCallback
+        val currentErrorCallback = errorCallback
+        
+        Thread {
+            try {
+                // Stop recording thread
+                recordingThread?.interrupt()
+                recordingThread?.join(1000)
                 
-                // Convert PCM to WAV format for compatibility
-                val wavData = convertPcmToWav(audioData)
-                resultCallback?.invoke(wavData)
-            } else {
-                println("[DEBUG_LOG] VoiceRecorder (Desktop): No audio data recorded")
-                errorCallback?.invoke("Audio data was not recorded")
+                // Stop line
+                targetDataLine?.stop()
+                targetDataLine?.close()
+                
+                // Get recorded data
+                val audioData = audioOutputStream?.toByteArray()
+                if (audioData != null && audioData.isNotEmpty()) {
+                    println("[DEBUG_LOG] VoiceRecorder (Desktop): Read ${audioData.size} bytes from audio recording")
+                    
+                    // Convert PCM to WAV format for compatibility
+                    val wavData = convertPcmToWav(audioData)
+                    currentResultCallback?.invoke(wavData)
+                } else {
+                    println("[DEBUG_LOG] VoiceRecorder (Desktop): No audio data recorded")
+                    currentErrorCallback?.invoke("Audio data was not recorded")
+                }
+                
+                cleanup()
+            } catch (e: Exception) {
+                val errorMsg = "Error stopping recording: ${e.message}"
+                println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
+                e.printStackTrace()
+                currentErrorCallback?.invoke(errorMsg)
+                cleanup()
             }
-            
-            cleanup()
-        } catch (e: Exception) {
-            recording = false
-            val errorMsg = "Error stopping recording: ${e.message}"
-            println("[DEBUG_LOG] VoiceRecorder (Desktop): $errorMsg")
-            e.printStackTrace()
-            errorCallback?.invoke(errorMsg)
-            cleanup()
-        }
+        }.start()
     }
     
     actual fun cancelRecording() {
@@ -158,29 +162,30 @@ actual class VoiceRecorder actual constructor(context: Any?) {
             return
         }
         
-        try {
-            println("[DEBUG_LOG] VoiceRecorder (Desktop): Cancelling recording (no callback)")
-            recording = false
-            
-            // Stop recording thread
-            recordingThread?.interrupt()
-            recordingThread?.join(1000)
-            
-            // Stop line
-            targetDataLine?.stop()
-            targetDataLine?.close()
-            
-            // Clear callbacks to avoid invocation
-            resultCallback = null
-            errorCallback = null
-            
-            cleanup()
-        } catch (e: Exception) {
-            recording = false
-            println("[DEBUG_LOG] VoiceRecorder (Desktop): Error cancelling recording: ${e.message}")
-            e.printStackTrace()
-            cleanup()
-        }
+        println("[DEBUG_LOG] VoiceRecorder (Desktop): Cancelling recording (no callback)")
+        recording = false
+        
+        // Clear callbacks immediately so they are not invoked
+        resultCallback = null
+        errorCallback = null
+        
+        Thread {
+            try {
+                // Stop recording thread
+                recordingThread?.interrupt()
+                recordingThread?.join(1000)
+                
+                // Stop line
+                targetDataLine?.stop()
+                targetDataLine?.close()
+                
+                cleanup()
+            } catch (e: Exception) {
+                println("[DEBUG_LOG] VoiceRecorder (Desktop): Error cancelling recording: ${e.message}")
+                e.printStackTrace()
+                cleanup()
+            }
+        }.start()
     }
     
     actual fun isRecording(): Boolean {
