@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.23** (2026-09-11) — Current release
+**v2.1.24** (2026-09-11) — Current release
+
+* **Performance:** Sped up Sherpa-ONNX model extraction on older Windows systems by adding stream buffering to the Java fallback extractor.
+
+**v2.1.23** (2026-09-11)
 
 * **Feature/Performance:** Implemented lightning-fast native `tar` extraction for Sherpa-ONNX Voice models across Android and Desktop, significantly reducing unpacking time.
 * **UI/UX:** Enhanced the Voice Model download UI with a determinate progress bar (0-100%) during download, followed by an indeterminate "running wave" animation during extraction.
