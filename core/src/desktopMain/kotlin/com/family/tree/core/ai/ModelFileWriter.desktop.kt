@@ -12,4 +12,13 @@ actual class ModelFileWriter actual constructor() {
     actual fun exists(absolutePath: String): Boolean {
         return File(absolutePath).exists()
     }
+    actual fun delete(absolutePath: String): Boolean {
+        return File(absolutePath).delete()
+    }
+    actual fun length(absolutePath: String): Long {
+        return File(absolutePath).length()
+    }
+    actual fun rename(from: String, to: String): Boolean {
+        return File(from).renameTo(File(to))
+    }
 }

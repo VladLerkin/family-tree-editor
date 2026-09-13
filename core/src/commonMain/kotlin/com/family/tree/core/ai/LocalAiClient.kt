@@ -208,8 +208,8 @@ class LocalAiClient(
         val lowerModel = modelName.lowercase()
         val sb = StringBuilder()
         
-        var qwenToolsStr = ""
-        if (lowerModel.contains("qwen") && tools.isNotEmpty()) {
+        var toolsStr = ""
+        if (tools.isNotEmpty() && (lowerModel.contains("qwen") || lowerModel.contains("gemma"))) {
             val toolsJsonBuilder = StringBuilder()
             toolsJsonBuilder.append("<tools>\n")
             tools.forEach { tool ->
@@ -220,22 +220,27 @@ class LocalAiClient(
             toolsJsonBuilder.append("</tools>\n")
             toolsJsonBuilder.append("\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n")
             toolsJsonBuilder.append("<tool_call>\n{\"name\": \"function_name\", \"arguments\": {\"arg_name\": \"arg_value\"}}\n</tool_call>\n")
-            qwenToolsStr = toolsJsonBuilder.toString()
+            toolsStr = toolsJsonBuilder.toString()
         }
         
         if (lowerModel.contains("gemma")) {
             for (message in messages) {
                 val role = if (message.role == "assistant") "model" else "user"
                 sb.append("<start_of_turn>${role}\n")
-                sb.append("${message.content}\n<end_of_turn>\n")
+                if (message.role == "system" && toolsStr.isNotEmpty()) {
+                    sb.append("${message.content}\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n$toolsStr")
+                } else {
+                    sb.append("${message.content}")
+                }
+                sb.append("\n<end_of_turn>\n")
             }
             sb.append("<start_of_turn>model\n")
         } else if (lowerModel.contains("qwen")) {
             // ChatML format for Qwen
             for (message in messages) {
                 sb.append("<|im_start|>${message.role}\n")
-                if (message.role == "system" && qwenToolsStr.isNotEmpty()) {
-                    sb.append("${message.content}\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n$qwenToolsStr")
+                if (message.role == "system" && toolsStr.isNotEmpty()) {
+                    sb.append("${message.content}\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools> XML tags:\n$toolsStr")
                 } else {
                     sb.append("${message.content}")
                 }

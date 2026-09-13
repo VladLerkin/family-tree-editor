@@ -194,7 +194,7 @@ fun AiConfigDialog(
                                 val localModelManager = org.koin.compose.koinInject<com.family.tree.core.ai.LocalModelManager>()
                                 var downloadProgress by remember { mutableStateOf(-1f) }
                                 var downloadError by remember { mutableStateOf<String?>(null) }
-                                var isDownloaded by remember { mutableStateOf(false) }
+                                var isDownloaded by remember(model) { mutableStateOf(localModelManager.isModelDownloaded(model)) }
                                 
                                 Column(modifier = Modifier.padding(bottom = 12.dp)) {
                                     Text(
@@ -205,17 +205,29 @@ fun AiConfigDialog(
                                     )
                                     
                                     if (isDownloaded) {
-                                        Text(
-                                            text = "✓ Model is downloaded or ready.",
-                                            color = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.padding(vertical = 8.dp)
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = "✓ Model '$model' is downloaded and ready.",
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            TextButton(onClick = {
+                                                localModelManager.deleteModel(model)
+                                                isDownloaded = false
+                                            }) {
+                                                Text("Delete Model", color = MaterialTheme.colorScheme.error)
+                                            }
+                                        }
                                     } else if (downloadProgress >= 0f && downloadProgress <= 1f) {
                                         LinearProgressIndicator(
                                             progress = { downloadProgress },
                                             modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                                         )
-                                        Text("${(downloadProgress * 100).toInt()}% downloaded", style = MaterialTheme.typography.bodySmall)
+                                        val p = (downloadProgress * 100).toInt()
+                                        Text("Downloading: $p%", style = MaterialTheme.typography.bodySmall)
                                     } else {
                                         Button(onClick = {
                                             scope.launch {

@@ -4,7 +4,13 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.26** (2026-09-11) — Current release
+**v2.1.27** (2026-09-13) — Current release
+
+* **Feature:** Implemented robust resumable downloads for local LLM models and offline Sherpa-ONNX Voice models across platforms.
+* **AI & Voice Input:** Cleaned up the AI models list by removing outdated/redundant models and properly mapping new Google Gemini versions.
+* **Bug Fix:** Fixed Google Gemini API connection errors by forcing `v1` endpoint for current models.
+
+**v2.1.26** (2026-09-11)
 
 * **Bug Fix:** Fixed a UI freeze issue on older machines when pressing "Stop Recording". The heavy initialization of the Sherpa-ONNX model has been moved to a background thread to prevent blocking the UI.
 

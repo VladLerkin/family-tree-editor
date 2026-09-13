@@ -87,16 +87,26 @@ actual class SherpaRecognizerManager actual constructor() {
             finalDir.deleteRecursively()
         }
 
+        val tarFile = File(modelsDir, "$dirName.tar.bz2")
+        val tmpFile = File(modelsDir, "$dirName.tar.bz2.tmp")
+        var downloadedBytes = 0L
+        if (tmpFile.exists()) {
+            downloadedBytes = tmpFile.length()
+        }
+
         val urlString = getModelUrl(language)
         val url = URL(urlString)
         val connection = url.openConnection() as HttpURLConnection
         connection.requestMethod = "GET"
         connection.instanceFollowRedirects = true
+        if (downloadedBytes > 0) {
+            connection.setRequestProperty("Range", "bytes=$downloadedBytes-")
+        }
         
         var actualConnection = connection
         var redirect = false
         var status = connection.responseCode
-        if (status != HttpURLConnection.HTTP_OK) {
+        if (status != HttpURLConnection.HTTP_OK && status != HttpURLConnection.HTTP_PARTIAL) {
             if (status == HttpURLConnection.HTTP_MOVED_TEMP
                 || status == HttpURLConnection.HTTP_MOVED_PERM
                 || status == HttpURLConnection.HTTP_SEE_OTHER)
@@ -106,16 +116,25 @@ actual class SherpaRecognizerManager actual constructor() {
         if (redirect) {
             val newUrl = connection.getHeaderField("Location")
             actualConnection = URL(newUrl).openConnection() as HttpURLConnection
+            if (downloadedBytes > 0) {
+                actualConnection.setRequestProperty("Range", "bytes=$downloadedBytes-")
+            }
         }
 
-        val totalBytes = actualConnection.contentLengthLong
-        val tarFile = File(modelsDir, "$dirName.tar.bz2")
+        var totalBytes = actualConnection.contentLengthLong
+        if (downloadedBytes > 0 && actualConnection.responseCode != HttpURLConnection.HTTP_PARTIAL) {
+            downloadedBytes = 0L
+            tmpFile.delete()
+        } else if (downloadedBytes > 0) {
+            if (totalBytes >= 0) totalBytes += downloadedBytes
+        }
         
         actualConnection.inputStream.use { input ->
-            FileOutputStream(tarFile).use { output ->
+            val append = downloadedBytes > 0
+            FileOutputStream(tmpFile, append).use { output ->
                 val buffer = ByteArray(8192)
                 var bytesRead: Int
-                var totalRead = 0L
+                var totalRead = downloadedBytes
                 while (true) {
                     bytesRead = input.read(buffer)
                     if (bytesRead == -1) break
@@ -125,8 +144,12 @@ actual class SherpaRecognizerManager actual constructor() {
                         onProgress(totalRead.toFloat() / totalBytes.toFloat())
                     }
                 }
+                if (totalBytes > 0 && totalRead != totalBytes) {
+                    throw Exception("Download incomplete: expected $totalBytes bytes but got $totalRead bytes")
+                }
             }
         }
+        tmpFile.renameTo(tarFile)
 
         onProgress(2.0f) // Signal extraction phase
 

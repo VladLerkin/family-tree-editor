@@ -7,4 +7,13 @@ actual class ModelFileWriter actual constructor() {
     actual fun exists(absolutePath: String): Boolean {
         return false
     }
+    actual fun delete(absolutePath: String): Boolean {
+        return false
+    }
+    actual fun length(absolutePath: String): Long {
+        return 0L
+    }
+    actual fun rename(from: String, to: String): Boolean {
+        return false
+    }
 }

@@ -38,4 +38,30 @@ actual class ModelFileWriter actual constructor() {
     actual fun exists(absolutePath: String): Boolean {
         return NSFileManager.defaultManager.fileExistsAtPath(absolutePath)
     }
+    actual fun delete(absolutePath: String): Boolean {
+        val fileManager = NSFileManager.defaultManager
+        if (fileManager.fileExistsAtPath(absolutePath)) {
+            return try {
+                fileManager.removeItemAtPath(absolutePath, null)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+        return false
+    }
+    actual fun length(absolutePath: String): Long {
+        val fileManager = NSFileManager.defaultManager
+        if (!fileManager.fileExistsAtPath(absolutePath)) return 0L
+        val attr = fileManager.attributesOfItemAtPath(absolutePath, null)
+        return (attr?.get(platform.Foundation.NSFileSize) as? platform.Foundation.NSNumber)?.longValue ?: 0L
+    }
+    actual fun rename(from: String, to: String): Boolean {
+        return try {
+            NSFileManager.defaultManager.moveItemAtPath(from, to, null)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
 }
