@@ -163,6 +163,6 @@ object AiPresets {
 
         "Ollama Gemma 4 E4B (local)" to OLLAMA_GEMMA_4_E4B,
         
-        "Local Gemma 4 E4B QAT (Compression, ~4GB)" to LOCAL_GEMMA_4_E4B
+        "Local Gemma 4 E4B QAT (Offline & Free, ~4GB)" to LOCAL_GEMMA_4_E4B
     )
 }

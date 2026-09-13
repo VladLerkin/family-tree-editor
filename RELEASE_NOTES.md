@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.27** (2026-09-13) — Current release
+**v2.1.28** (2026-09-14) — Current release
+
+* **AI Models:** Renamed "Local Gemma 4 E4B QAT" preset to clearly indicate "Offline & Free".
+
+**v2.1.27** (2026-09-13)
 
 * **Feature:** Implemented robust resumable downloads for local LLM models and offline Sherpa-ONNX Voice models across platforms.
 * **AI & Voice Input:** Cleaned up the AI models list by removing outdated/redundant models and properly mapping new Google Gemini versions.
