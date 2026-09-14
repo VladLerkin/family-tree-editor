@@ -13,8 +13,8 @@ import platform.Foundation.truncateFileAtOffset
 import platform.Foundation.writeData
 import platform.Foundation.closeFile
 
+@OptIn(ExperimentalForeignApi::class)
 actual class ModelFileWriter actual constructor() {
-    @OptIn(ExperimentalForeignApi::class)
     actual fun writeChunk(absolutePath: String, bytes: ByteArray, append: Boolean) {
         val data = bytes.usePinned { pinned ->
             NSData.dataWithBytes(pinned.addressOf(0), bytes.size.toULong())

@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.28** (2026-09-14) — Current release
+**v2.1.29** (2026-09-14) — Current release
+
+* **Bug Fix:** Fixed iOS compilation issue with ExperimentalForeignApi in ModelFileWriter and SherpaRecognizerManager.
+
+**v2.1.28** (2026-09-14)
 
 * **AI Models:** Renamed "Local Gemma 4 E4B QAT" preset to clearly indicate "Offline & Free".
 
