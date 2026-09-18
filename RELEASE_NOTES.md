@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.29** (2026-09-14) — Current release
+**v2.1.30** (2026-09-18) — Current release
+
+* **Update:** Update gradle wrapper
+
+**v2.1.29** (2026-09-14)
 
 * **Bug Fix:** Fixed iOS compilation issue with ExperimentalForeignApi in ModelFileWriter and SherpaRecognizerManager.
 
