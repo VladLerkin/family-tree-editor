@@ -4,7 +4,12 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.31** (2026-09-22) — Current release
+**v2.1.32** (2026-09-22) — Current release
+
+* **CI/CD:** Fixed GitHub Actions build by updating `setup-android` to v4 to use the modern cmdline-tools.
+* **Dependencies:** Updated JetBrains Compose to 1.12.1 and Android Gradle Plugin to 9.4.1.
+
+**v2.1.31** (2026-09-22)
 
 * **Documentation:** Update Ktor version to 3.6.0 in README.
 * **Build:** Add wasmJs executable binary to UI module.
