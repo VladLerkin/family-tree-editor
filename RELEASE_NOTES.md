@@ -4,7 +4,12 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.30** (2026-09-18) — Current release
+**v2.1.31** (2026-09-22) — Current release
+
+* **Documentation:** Update Ktor version to 3.6.0 in README.
+* **Build:** Add wasmJs executable binary to UI module.
+
+**v2.1.30** (2026-09-18)
 
 * **Update:** Update gradle wrapper
 
