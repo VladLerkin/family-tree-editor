@@ -4,7 +4,11 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.33** (2026-10-11) — Current release
+**v2.1.34** (2026-10-11) — Current release
+
+* **Dependencies:** Updated Gradle wrapper to 9.8.1.
+
+**v2.1.33** (2026-10-11)
 
 * **Dependencies:** Updated Kotlin to 2.4.21 and Koog to 1.3.0.
 
