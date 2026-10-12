@@ -4,7 +4,12 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - October 2026)
 
-**v2.1.36** (2026-10-12) — Current release
+**v2.1.37** (2026-10-12) — Current release
+
+* **Desktop & Build:** Prioritized Java 25 JMODs resolution for ProGuard build task, preventing incorrect fallback to Java 11 on GitHub Actions Ubuntu runners.
+* **Desktop & ProGuard:** Suppressed duplicate resource and class information notes (`-dontnote **`) in desktop ProGuard configuration.
+
+**v2.1.36** (2026-10-12)
 
 * **AI & STT:** Completely removed Yandex AI (YandexGPT) and Yandex SpeechKit clients, configurations, and UI options from the project.
 

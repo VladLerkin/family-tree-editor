@@ -87,26 +87,28 @@ compose.desktop {
 tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask>().configureEach {
     val task = this
     doFirst {
-        val javaHomeVal = task.javaHome.getOrNull() ?: System.getProperty("java.home")
-        val jmodsDir = findJmodsDir(javaHomeVal)
+        val javaToolchains = project.extensions.findByType<JavaToolchainService>()
+        val targetVersion = libs.versions.java.get().toInt()
+        val toolchainLauncher = runCatching {
+            javaToolchains?.launcherFor {
+                languageVersion.set(JavaLanguageVersion.of(targetVersion))
+            }?.orNull
+        }.getOrNull()
+        val toolchainJavaHome = toolchainLauncher?.metadata?.installationPath?.asFile?.absolutePath
+
+        val candidates = listOfNotNull(
+            task.javaHome.getOrNull(),
+            toolchainJavaHome,
+            System.getenv("JAVA_HOME"),
+            System.getProperty("java.home")
+        )
+
         val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
+        val resolvedJdkLib = resolveJdkLibraries(candidates, targetVersion.toString())
         
-        if (jmodsDir != null) {
-            val jmodsPath = jmodsDir.absolutePath
-            println("ProGuard: Using JDK JMODs at $jmodsPath")
-            localRulesFile.writeText("""
-                # Automatically resolved JDK modules for ProGuard
-                -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
-                -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
-                -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
-            """.trimIndent())
+        if (resolvedJdkLib != null) {
+            println("ProGuard: Using JDK JMODs at ${resolvedJdkLib.first}")
+            localRulesFile.writeText(resolvedJdkLib.second)
         } else {
             println("WARNING: ProGuard could not find a JDK JMODs folder! Preverification might fail.")
             localRulesFile.writeText("# No JDK JMODs found")
@@ -114,66 +116,107 @@ tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardT
     }
 }
 
-fun findJmodsDir(currentJavaHome: String): File? {
-    // 1. Try current javaHome
-    val currentJmods = File(currentJavaHome, "jmods")
-    if (currentJmods.exists() && currentJmods.isDirectory) {
-        return currentJmods
+fun resolveJdkLibraries(primaryCandidates: List<String>, targetVersion: String): Pair<String, String>? {
+    // 1. Try primary candidates first (toolchain, task.javaHome, JAVA_HOME, java.home)
+    for (candidate in primaryCandidates) {
+        val dir = File(candidate)
+        val result = findJmodsInJdkDir(dir)
+        if (result != null) return result
     }
-    
-    // 2. Try standard search paths
-    val searchDirs = mutableListOf<File>()
+
+    // 2. Search standard directories, prioritizing folders matching targetVersion
+    val searchRoots = mutableListOf<File>()
     val userHome = System.getProperty("user.home")
-    
-    // SDKMAN
-    searchDirs.add(File(userHome, ".sdkman/candidates/java"))
-    
-    // GitHub Actions Hosted Tool Cache
-    searchDirs.add(File("/opt/hostedtoolcache"))
-    searchDirs.add(File("C:/hostedtoolcache/windows"))
-    searchDirs.add(File(userHome, "hostedtoolcache"))
-    
-    // OS specific defaults
+    searchRoots.add(File(userHome, ".sdkman/candidates/java"))
+    searchRoots.add(File("/opt/hostedtoolcache"))
+    searchRoots.add(File("C:/hostedtoolcache/windows"))
+    searchRoots.add(File(userHome, "hostedtoolcache"))
+
     val osName = System.getProperty("os.name").lowercase()
     if (osName.contains("mac")) {
-        searchDirs.add(File("/Library/Java/JavaVirtualMachines"))
-        searchDirs.add(File(userHome, "Library/Java/JavaVirtualMachines"))
+        searchRoots.add(File("/Library/Java/JavaVirtualMachines"))
+        searchRoots.add(File(userHome, "Library/Java/JavaVirtualMachines"))
     } else if (osName.contains("win")) {
-        searchDirs.add(File("C:/Program Files/Java"))
-        searchDirs.add(File("C:/Users/runneradmin/.jdks"))
+        searchRoots.add(File("C:/Program Files/Java"))
+        searchRoots.add(File("C:/Users/runneradmin/.jdks"))
     } else {
-        searchDirs.add(File("/usr/lib/jvm"))
+        searchRoots.add(File("/usr/lib/jvm"))
     }
-    
-    // Search recursively up to 3 levels deep for any directory named "jmods"
-    for (dir in searchDirs) {
-        if (dir.exists() && dir.isDirectory) {
-            val found = findJmodsRecursively(dir, 0)
-            if (found != null) {
-                return found
-            }
+
+    // Collect all directories containing jmods
+    val jmodsDirs = mutableListOf<File>()
+    for (root in searchRoots) {
+        if (root.exists() && root.isDirectory) {
+            collectJmodsDirs(root, 0, jmodsDirs)
         }
     }
-    
+
+    // Sort to prioritize folders matching targetVersion (e.g. "25"), then highest version
+    jmodsDirs.sortWith(Comparator { a, b ->
+        val aMatch = a.absolutePath.contains(targetVersion)
+        val bMatch = b.absolutePath.contains(targetVersion)
+        when {
+            aMatch && !bMatch -> -1
+            !aMatch && bMatch -> 1
+            else -> b.absolutePath.compareTo(a.absolutePath)
+        }
+    })
+
+    if (jmodsDirs.isNotEmpty()) {
+        val best = jmodsDirs.first()
+        return createJmodsResult(best)
+    }
+
     return null
 }
 
-fun findJmodsRecursively(dir: File, depth: Int): File? {
-    if (depth > 3) return null
-    
-    val jmods = File(dir, "jmods")
-    if (jmods.exists() && jmods.isDirectory && jmods.listFiles()?.any { it.name.endsWith(".jmod") } == true) {
-        return jmods
+fun findJmodsInJdkDir(dir: File): Pair<String, String>? {
+    if (!dir.exists() || !dir.isDirectory) return null
+    val directJmods = File(dir, "jmods")
+    if (directJmods.exists() && File(directJmods, "java.base.jmod").exists()) {
+        return createJmodsResult(directJmods)
     }
-    
-    val subdirs = dir.listFiles { f -> f.isDirectory } ?: return null
-    for (sub in subdirs) {
-        val found = findJmodsRecursively(sub, depth + 1)
-        if (found != null) {
-            return found
-        }
+    val contentsHomeJmods = File(dir, "Contents/Home/jmods")
+    if (contentsHomeJmods.exists() && File(contentsHomeJmods, "java.base.jmod").exists()) {
+        return createJmodsResult(contentsHomeJmods)
     }
     return null
+}
+
+fun createJmodsResult(jmodsDir: File): Pair<String, String> {
+    val jmodsPath = jmodsDir.absolutePath
+    val rules = """
+        # Automatically resolved JDK modules for ProGuard
+        -libraryjars $jmodsPath/java.base.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.desktop.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.datatransfer.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.logging.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.xml.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.prefs.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.naming.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.security.jgss.jmod(!module-info.class)
+        -libraryjars $jmodsPath/java.instrument.jmod(!module-info.class)
+        -libraryjars $jmodsPath/jdk.unsupported.jmod(!module-info.class)
+    """.trimIndent()
+    return Pair(jmodsPath, rules)
+}
+
+fun collectJmodsDirs(dir: File, depth: Int, out: MutableList<File>) {
+    if (depth > 4) return
+    val jmods = File(dir, "jmods")
+    if (jmods.exists() && File(jmods, "java.base.jmod").exists()) {
+        out.add(jmods)
+        return
+    }
+    val contentsJmods = File(dir, "Contents/Home/jmods")
+    if (contentsJmods.exists() && File(contentsJmods, "java.base.jmod").exists()) {
+        out.add(contentsJmods)
+        return
+    }
+    val subdirs = dir.listFiles { f -> f.isDirectory } ?: return
+    for (sub in subdirs) {
+        collectJmodsDirs(sub, depth + 1, out)
+    }
 }
 
 tasks.register<JavaExec>("runCacheTest") {

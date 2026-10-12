@@ -27,3 +27,4 @@
 # Fix for Java 25 / ProGuard 7.7 issues with new class versions
 -dontwarn **
 -ignorewarnings
+-dontnote **
