@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -73,7 +73,7 @@ jobs:
           fi
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-release
           path: app-android/build/outputs/apk/release/*.apk
@@ -95,10 +95,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -118,7 +118,7 @@ jobs:
         continue-on-error: true
       
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: desktop-${{ matrix.suffix }}
           path: app-desktop/build/compose/binaries/main-release/*/*
@@ -127,10 +127,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       
       - name: Set up JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: 'temurin'
           java-version: '25'
@@ -171,7 +171,7 @@ jobs:
       
       - name: Upload Artifact
         if: hashFiles('ios-app-archive.zip') != ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ios-archive
           path: ios-app-archive.zip
@@ -183,10 +183,10 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download All Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
       
@@ -212,7 +212,7 @@ jobs:
           ls -lh release-files/
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           files: release-files/*
         env:

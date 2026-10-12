@@ -206,5 +206,92 @@ def check_dependencies():
         latest_stable_str = latest_stable if latest_stable else "None"
         print(f"{v_ref:<25} | {current_ver:<15} | {latest_stable_str:<15} | {latest_overall:<15} | {status:<12} | {coord_str}")
 
+def check_github_actions():
+    import glob
+    import json
+
+    workflow_files = glob.glob('.github/workflows/*.yml') + glob.glob('.github/workflows/*.yaml')
+    if not workflow_files:
+        return
+
+    actions_found = {}
+    for path in workflow_files:
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                m = re.search(r'uses:\s*([a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+)?)\s*@\s*([a-zA-Z0-9_.-]+)', line)
+                if m:
+                    full_action, current_ver = m.group(1), m.group(2)
+                    parts = full_action.split('/')
+                    gh_repo = f"{parts[0]}/{parts[1]}"
+                    if full_action not in actions_found:
+                        actions_found[full_action] = {
+                            'current_ver': current_ver,
+                            'gh_repo': gh_repo,
+                            'files': set()
+                        }
+                    actions_found[full_action]['files'].add(path)
+
+    if not actions_found:
+        return
+
+    print("\n" + "=" * 120)
+    print("GitHub Actions Workflows Dependencies")
+    print("=" * 120)
+    print(f"{'Action':<35} | {'Current':<15} | {'Latest Release':<15} | {'Latest Major':<15} | {'Status':<12} | {'Files'}")
+    print("-" * 120)
+
+    for full_action, info in sorted(actions_found.items()):
+        gh_repo = info['gh_repo']
+        current_ver = info['current_ver']
+        files_str = ", ".join(sorted(info['files']))
+
+        url = f"https://api.github.com/repos/{gh_repo}/releases/latest"
+        req = urllib.request.Request(
+            url,
+            headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        )
+        latest_tag = None
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode('utf-8'))
+                latest_tag = data.get('tag_name')
+        except Exception:
+            pass
+
+        if not latest_tag:
+            # Fallback to tags API if no releases
+            tags_url = f"https://api.github.com/repos/{gh_repo}/tags?per_page=1"
+            req_tags = urllib.request.Request(
+                tags_url,
+                headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+            )
+            try:
+                with urllib.request.urlopen(req_tags, timeout=10) as resp:
+                    data = json.loads(resp.read().decode('utf-8'))
+                    if data and isinstance(data, list) and len(data) > 0:
+                        latest_tag = data[0].get('name')
+            except Exception:
+                pass
+
+        if not latest_tag:
+            print(f"{full_action:<35} | {current_ver:<15} | {'Error':<15} | {'Error':<15} | {'Error':<12} | {files_str}")
+            continue
+
+        # Extract major version (e.g. "v7" from "v7.0.1")
+        major_match = re.search(r'(v\d+)', latest_tag)
+        latest_major = major_match.group(1) if major_match else latest_tag
+
+        status = "Up-to-date"
+        curr_clean = current_ver.lstrip('v')
+        latest_clean = latest_major.lstrip('v')
+        if curr_clean.isdigit() and latest_clean.isdigit():
+            if int(curr_clean) < int(latest_clean):
+                status = "Update Avail"
+        elif current_ver != latest_major and current_ver != latest_tag:
+            status = "Update Avail"
+
+        print(f"{full_action:<35} | {current_ver:<15} | {latest_tag:<15} | {latest_major:<15} | {status:<12} | {files_str}")
+
 if __name__ == '__main__':
     check_dependencies()
+    check_github_actions()
