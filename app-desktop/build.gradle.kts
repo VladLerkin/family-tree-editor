@@ -21,7 +21,7 @@ dependencies {
 kotlin {
     jvmToolchain(libs.versions.java.get().toInt())
     sourceSets {
-        val main by getting {
+        named("main") {
             kotlin.srcDirs("src/jvmMain/kotlin")
             resources.srcDirs("src/jvmMain/resources")
         }
@@ -87,7 +87,7 @@ compose.desktop {
 tasks.withType<org.jetbrains.compose.desktop.application.tasks.AbstractProguardTask>().configureEach {
     val task = this
     doFirst {
-        val javaHomeVal = task.javaHome.getOrNull()?.toString() ?: System.getProperty("java.home")
+        val javaHomeVal = task.javaHome.getOrNull() ?: System.getProperty("java.home")
         val jmodsDir = findJmodsDir(javaHomeVal)
         val localRulesFile = File(project.layout.buildDirectory.asFile.get(), "tmp/local-proguard-rules.pro")
         

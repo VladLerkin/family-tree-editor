@@ -65,14 +65,14 @@ kotlin {
             implementation(libs.jetbrains.compose.resources)
         }
         
-        val androidMain by getting {
+        named("androidMain") {
             resources.srcDirs("src/commonMain/composeResources")
             dependencies {
                 implementation(libs.androidx.activity.compose)
             }
         }
         
-        val desktopMain by getting {
+        named("desktopMain") {
             dependencies {
                 implementation(compose.desktop.currentOs)
             }

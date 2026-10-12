@@ -7,7 +7,7 @@ plugins {
 }
 
 kotlin {
-    androidLibrary {
+    android {
         namespace = "com.family.tree.core"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -25,7 +25,7 @@ kotlin {
         browser()
     }
 
-    val generateBuildConfig by tasks.registering {
+    val generateBuildConfig = tasks.register("generateBuildConfig") {
         val version = project.version.toString()
         val packageName = "com.family.tree.core"
         val outputDir = layout.buildDirectory.dir("generated/buildConfig/commonMain/kotlin").get().asFile
@@ -74,7 +74,7 @@ kotlin {
             compileOnly(files("../libs/sherpa-onnx/sherpa-onnx-1.13.8.aar"))
         }
         
-        val desktopMain by getting {
+        named("desktopMain") {
             dependencies {
                 implementation(libs.ktor.client.cio)
                 implementation(libs.kotlin.reflect)
@@ -87,7 +87,7 @@ kotlin {
             implementation(libs.ktor.client.darwin)
         }
         
-        val wasmJsMain by getting {
+        named("wasmJsMain") {
             dependencies {
                 implementation(libs.ktor.client.js)
             }

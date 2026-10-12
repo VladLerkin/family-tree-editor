@@ -4,7 +4,12 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - September 2026)
 
-**v2.1.34** (2026-10-11) — Current release
+**v2.1.35** (2026-10-12) — Current release
+
+* **Build:** Fixed Gradle 9.6+ deprecation warnings across modules (`by getting`, `by registering`, `androidLibrary`).
+* **Build:** Removed deprecated `kotlin.mpp.androidSourceSetLayoutVersion` and added `kotlin.native.ignoreDisabledTargets=true` to suppress warnings on Linux CI.
+
+**v2.1.34** (2026-10-11)
 
 * **Dependencies:** Updated Gradle wrapper to 9.8.1.
 

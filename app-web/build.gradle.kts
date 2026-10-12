@@ -18,7 +18,7 @@ kotlin {
     }
     
     sourceSets {
-        val wasmJsMain by getting {
+        named("wasmJsMain") {
             dependencies {
                 implementation(project(":core"))
                 implementation(project(":ui"))
