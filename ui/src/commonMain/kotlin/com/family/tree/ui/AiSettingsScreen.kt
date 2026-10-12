@@ -57,8 +57,6 @@ class AiSettingsScreen : Screen {
         
         var openAiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
         var googleKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
-        var yandexKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
-        var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
         
         Scaffold(
             topBar = {
@@ -83,9 +81,7 @@ class AiSettingsScreen : Screen {
                                 transcriptionProvider = transcriptionProvider,
                                 googleApiKey = googleApiKey,
                                 openaiApiKey = openAiKey,
-                                googleAiApiKey = googleKey,
-                                yandexApiKey = yandexKey,
-                                yandexFolderId = yandexFolderId
+                                googleAiApiKey = googleKey
                             )
                             storage.saveConfig(config)
                             navigator.pop()
@@ -164,27 +160,6 @@ class AiSettingsScreen : Screen {
                                 placeholder = "AIza...",
                                 supportingText = "Provided key is stored in memory and masked in logs.",
                                 modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        "YANDEX" -> {
-                            ApiKeyTextField(
-                                value = yandexKey,
-                                onValueChange = { yandexKey = it },
-                                label = "YandexGPT API Key",
-                                placeholder = "AQVN...",
-                                supportingText = "Provided key is stored in memory and masked in logs.",
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            OutlinedTextField(
-                                value = yandexFolderId,
-                                onValueChange = { yandexFolderId = it },
-                                label = { Text("Folder ID (optional)") },
-                                placeholder = { Text("default or b1g...") },
-                                supportingText = { Text("Yandex Cloud Folder ID. Leave as 'default' for automatic detection.") },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 12.dp),
-                                singleLine = true
                             )
                         }
                         "OLLAMA", "CUSTOM" -> {
@@ -280,18 +255,6 @@ class AiSettingsScreen : Screen {
                             )
                             Text("Google Speech-to-Text", modifier = Modifier.padding(start = 8.dp))
                         }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = transcriptionProvider == "YANDEX_SPEECHKIT",
-                                onClick = { transcriptionProvider = "YANDEX_SPEECHKIT" }
-                            )
-                            Text("Yandex SpeechKit", modifier = Modifier.padding(start = 8.dp))
-                        }
                     }
                     
                     if (transcriptionProvider == "OPENAI_WHISPER") {
@@ -311,16 +274,6 @@ class AiSettingsScreen : Screen {
                             label = "Google AI API Key (Speech-to-Text)",
                             placeholder = "AIza...",
                             supportingText = "API key for Google Speech-to-Text.",
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    if (transcriptionProvider == "YANDEX_SPEECHKIT") {
-                        ApiKeyTextField(
-                            value = yandexKey,
-                            onValueChange = { yandexKey = it },
-                            label = "Yandex Cloud API Key (SpeechKit)",
-                            placeholder = "AQVN...",
-                            supportingText = "API key for Yandex SpeechKit.",
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -411,9 +364,7 @@ class AiSettingsScreen : Screen {
                                         transcriptionProvider = transcriptionProvider,
                                         googleApiKey = googleApiKey,
                                         openaiApiKey = openAiKey,
-                                        googleAiApiKey = googleKey,
-                                        yandexApiKey = yandexKey,
-                                        yandexFolderId = yandexFolderId
+                                        googleAiApiKey = googleKey
                                     )
                                     val client = aiClientFactory.createClient(currentConfig)
                                     val result = client.sendPromptSafe("Hello, are you there?", currentConfig)

@@ -53,14 +53,6 @@ actual class AiSettingsStorage {
         }
         prefs.put(KEY_GOOGLE_AI_API_KEY, encryptedGoogleAiKey)
         
-        // Encrypt Yandex API key before saving
-        val encryptedYandexKey = if (config.yandexApiKey.isNotBlank()) {
-            encryptApiKey(config.yandexApiKey)
-        } else {
-            ""
-        }
-        prefs.put(KEY_YANDEX_API_KEY, encryptedYandexKey)
-        
         // Encrypt Tavily API key before saving
         val encryptedTavilyKey = if (config.tavilyApiKey.isNotBlank()) {
             encryptApiKey(config.tavilyApiKey)
@@ -142,18 +134,6 @@ actual class AiSettingsStorage {
             ""
         }
         
-        // Decrypt Yandex API key on load
-        val encryptedYandexKey = prefs.get(KEY_YANDEX_API_KEY, "")
-        val decryptedYandexKey = if (encryptedYandexKey.isNotBlank()) {
-            try {
-                decryptApiKey(encryptedYandexKey)
-            } catch (e: Exception) {
-                encryptedYandexKey
-            }
-        } else {
-            ""
-        }
-        
         // Decrypt Tavily API key on load
         val encryptedTavilyKey = prefs.get(KEY_TAVILY_API_KEY, "")
         val decryptedTavilyKey = if (encryptedTavilyKey.isNotBlank()) {
@@ -205,9 +185,6 @@ actual class AiSettingsStorage {
             openaiApiKey = decryptedOpenAiKey,
 
             googleAiApiKey = decryptedGoogleAiKey,
-            yandexApiKey = decryptedYandexKey,
-            // If folderId is not saved, use default value
-            yandexFolderId = prefs.get(KEY_YANDEX_FOLDER_ID, ""),
             tavilyApiKey = decryptedTavilyKey,
             autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy"),
             pamyatNarodaCookies = decryptedCookies,
@@ -230,8 +207,6 @@ actual class AiSettingsStorage {
         prefs.remove(KEY_OPENAI_API_KEY)
 
         prefs.remove(KEY_GOOGLE_AI_API_KEY)
-        prefs.remove(KEY_YANDEX_API_KEY)
-        prefs.remove(KEY_YANDEX_FOLDER_ID)
         prefs.remove(KEY_TAVILY_API_KEY)
         prefs.remove(KEY_AUTORESEARCH_REPO_PATH)
         prefs.remove(KEY_PAMYAT_NARODA_COOKIES)
@@ -295,8 +270,6 @@ actual class AiSettingsStorage {
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
 
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
-        private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
-        private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         private const val KEY_TAVILY_API_KEY = "ai_tavily_api_key"
         private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         private const val KEY_PAMYAT_NARODA_COOKIES = "ai_pamyat_naroda_cookies"

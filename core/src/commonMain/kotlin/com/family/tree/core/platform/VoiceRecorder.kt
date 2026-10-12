@@ -18,7 +18,7 @@ enum class AudioFormat {
     FLAC,
     
     /**
-     * WAV (LPCM) format - required for Yandex SpeechKit
+     * WAV (LPCM) format - required for Sherpa-ONNX Local STT
      * Supported: Android (via AudioRecord), iOS (default), Desktop
      */
     WAV

@@ -41,7 +41,7 @@
 1. **Распознавание речи**: На Android используется встроенный SpeechRecognizer API для преобразования голоса в текст (русский язык). Поддерживаются следующие провайдеры транскрипции:
    - **OpenAI Whisper** - высокая точность, поддержка многих языков
    - **Google Speech-to-Text** - быстрая обработка, хорошая точность
-   - **Yandex SpeechKit** - отличная поддержка русского языка и языков СНГ
+   - **Sherpa-ONNX Local** - локальное и бесплатное распознавание
 2. **Обработка через AI**: Распознанный текст отправляется в настроенный LLM (OpenAI, Anthropic, Ollama или Custom)
 3. **Извлечение структуры**: AI анализирует текст и извлекает:
    - Имена и фамилии людей
@@ -56,7 +56,7 @@
 ### Android
 - Android 5.0 (Lollipop) или новее
 - Разрешение RECORD_AUDIO
-- Подключение к интернету (для распознавания речи через OpenAI Whisper, Google Speech-to-Text или Yandex SpeechKit)
+- Подключение к интернету (для распознавания речи через OpenAI Whisper или Google Speech-to-Text, либо локальный Sherpa-ONNX)
 - Настроенный AI сервис (через меню "AI Settings...")
 
 ### Настройка AI
@@ -153,7 +153,7 @@ VoiceInputProcessor
     ↓ (текст)
 AiTextImporter
     ↓ (запрос к AI)
-Transcription API (OpenAI Whisper / Google Speech / Yandex SpeechKit)
+Transcription API (OpenAI Whisper / Google Speech / Sherpa Local)
     ↓ (транскрибированный текст)
 LLM API (OpenAI/Anthropic/Ollama/Custom)
     ↓ (JSON)
@@ -170,7 +170,6 @@ Canvas (отображение)
 - `/core/src/commonMain/kotlin/com/family/tree/core/ai/VoiceInputProcessor.kt` - Обработчик
 - `/core/src/commonMain/kotlin/com/family/tree/core/ai/OpenAiWhisperClient.kt` - Клиент OpenAI Whisper
 - `/core/src/commonMain/kotlin/com/family/tree/core/ai/GoogleSpeechClient.kt` - Клиент Google Speech-to-Text
-- `/core/src/commonMain/kotlin/com/family/tree/core/ai/YandexSpeechClient.kt` - Клиент Yandex SpeechKit
 - `/ui/src/commonMain/kotlin/com/family/tree/ui/MainScreen.kt` - UI интеграция
 
 ## Будущие улучшения

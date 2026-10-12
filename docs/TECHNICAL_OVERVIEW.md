@@ -85,7 +85,7 @@ A pure-Kotlin module with **no UI dependencies**. Source sets: `commonMain`, `an
 | `io` | Project serialization / deserialization | `ProjectDto.kt`, `RelImporter.kt` (38 kB — .rel format parser), `ProjectJson.kt` |
 | `gedcom` | GEDCOM 5.5.5 import / export | `GedcomImporter.kt` (17 kB), `GedcomExporter.kt` (8.5 kB), `GedcomMapper.kt` |
 | `layout` | Tree auto-layout algorithm | `AutoLayout.kt` (30 kB), `SimpleTreeLayout.kt` |
-| `ai` | AI clients for LLM and STT | `OpenAiClient.kt`, `GoogleClient.kt`, `YandexClient.kt`, `OllamaClient.kt`, `LocalAiClient.kt` (Llamatik), `CustomClient.kt`, `AiTextImporter.kt` (20 kB) |
+| `ai` | AI clients for LLM and STT | `OpenAiClient.kt`, `GoogleClient.kt`, `OllamaClient.kt`, `LocalAiClient.kt` (Llamatik), `CustomClient.kt`, `AiTextImporter.kt` (20 kB) |
 | `ai.agent` | Autonomous AI agent (genealogy researcher) | `AgentService.kt` (30 kB), `GenealogyTools.kt` (57 kB — the largest file in the project), `AutoresearchStrategy.kt` (20 kB), `TavilyClient.kt` |
 | `ai.koog` | Adapter for the Koog AI framework | `KoogModelAdapter.kt` |
 | `genealogy` | Integration with genealogical APIs | `FamilySearchClient.kt`, `GenealogyApiService.kt`, `GenealogyApiConfig.kt` |
@@ -210,7 +210,6 @@ flowchart TB
 graph LR
     FACTORY["AiClientFactory"] --> OAI["OpenAI (GPT-4)"]
     FACTORY --> GG["Google (Gemini)"]
-    FACTORY --> YA["Yandex (YandexGPT)"]
     FACTORY --> OL["Ollama (local models)"]
     FACTORY --> LO["Local (Llamatik + Metal GPU)"]
     FACTORY --> CU["Custom endpoint"]
@@ -237,7 +236,7 @@ An autonomous AI agent for genealogical research, built on **Koog Agents** (1.0.
 | **Vosk** | Desktop (JVM), Android | Offline |
 | **OpenAI Whisper** | All | Online |
 | **Google Speech** | All | Online |
-| **Yandex Speech** | All | Online |
+| **Sherpa-ONNX** | All | Offline |
 
 Architecture: `VoiceRecorder` (expect/actual) → `TranscriptionClientFactory` → `VoiceInputProcessor`
 
@@ -278,10 +277,10 @@ initKoin()
  │    ├── QuickSearchService (singleton)
  │    ├── AiSettingsStorage (singleton)
  │    ├── MarkdownTreeExporter (singleton)
- │    ├── AI Clients: OpenAI, Google, Yandex, Ollama, Custom, Local (singletons)
+ │    ├── AI Clients: OpenAI, Google, Ollama, Custom, Local (singletons)
  │    ├── LocalModelManager (singleton)
  │    ├── AiClientFactory (singleton)
- │    ├── Transcription: Whisper, GoogleSpeech, YandexSpeech (singletons)
+ │    ├── Transcription: Whisper, GoogleSpeech (singletons)
  │    ├── AgentService (singleton)
  │    ├── TavilyClient (singleton)
  │    ├── Json (singleton, lenient, coerceInputValues)
@@ -347,6 +346,6 @@ ui/src/
 | Gradle modules | **6** (core, ui, app-desktop, app-android, app-ios, app-web) |
 | Target platforms | **4** (Desktop, Android, iOS, Web) |
 | Distribution formats | **7** (DMG, MSI, DEB, AppImage, APK, iOS Framework, Wasm) |
-| LLM AI providers | **6** (OpenAI, Google, Yandex, Ollama, Local/Llamatik, Custom) |
-| STT engines | **4** (Vosk, Whisper, Google Speech, Yandex Speech) |
+| LLM AI providers | **5** (OpenAI, Google, Ollama, Local/Llamatik, Custom) |
+| STT engines | **4** (Vosk, Whisper, Google Speech, Sherpa-ONNX) |
 | Releases | **70+** (since August 2025) |

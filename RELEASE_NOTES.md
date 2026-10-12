@@ -2,9 +2,13 @@
 
 This document contains the release history of the Family Tree Editor project, from the first commits to the current version 2.1.2. It highlights when new features were added, bug fixes, and CI/CD improvements.
 
-## 2.1.x Versions (June - September 2026)
+## 2.1.x Versions (June - October 2026)
 
-**v2.1.35** (2026-10-12) — Current release
+**v2.1.36** (2026-10-12) — Current release
+
+* **AI & STT:** Completely removed Yandex AI (YandexGPT) and Yandex SpeechKit clients, configurations, and UI options from the project.
+
+**v2.1.35** (2026-10-12)
 
 * **Build:** Fixed Gradle 9.6+ deprecation warnings across modules (`by getting`, `by registering`, `androidLibrary`).
 * **Build:** Removed deprecated `kotlin.mpp.androidSourceSetLayoutVersion` and added `kotlin.native.ignoreDisabledTargets=true` to suppress warnings on Linux CI.

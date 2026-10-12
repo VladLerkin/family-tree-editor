@@ -47,8 +47,6 @@ actual class AiSettingsStorage {
             putString(KEY_OPENAI_API_KEY, config.openaiApiKey)
 
             putString(KEY_GOOGLE_AI_API_KEY, config.googleAiApiKey)
-            putString(KEY_YANDEX_API_KEY, config.yandexApiKey)
-            putString(KEY_YANDEX_FOLDER_ID, config.yandexFolderId)
             putString(KEY_TAVILY_API_KEY, config.tavilyApiKey)
             putString(KEY_AUTORESEARCH_REPO_PATH, config.autoresearchRepoPath)
             putString(KEY_PAMYAT_NARODA_COOKIES, config.pamyatNarodaCookies)
@@ -73,8 +71,6 @@ actual class AiSettingsStorage {
             openaiApiKey = prefs.getString(KEY_OPENAI_API_KEY, "") ?: "",
 
             googleAiApiKey = prefs.getString(KEY_GOOGLE_AI_API_KEY, "") ?: "",
-            yandexApiKey = prefs.getString(KEY_YANDEX_API_KEY, "") ?: "",
-            yandexFolderId = prefs.getString(KEY_YANDEX_FOLDER_ID, "") ?: "",
             tavilyApiKey = prefs.getString(KEY_TAVILY_API_KEY, "") ?: "",
             autoresearchRepoPath = prefs.getString(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy") ?: "./autoresearch-genealogy",
             pamyatNarodaCookies = prefs.getString(KEY_PAMYAT_NARODA_COOKIES, "") ?: "",
@@ -98,8 +94,6 @@ actual class AiSettingsStorage {
             remove(KEY_OPENAI_API_KEY)
 
             remove(KEY_GOOGLE_AI_API_KEY)
-            remove(KEY_YANDEX_API_KEY)
-            remove(KEY_YANDEX_FOLDER_ID)
             remove(KEY_TAVILY_API_KEY)
             remove(KEY_AUTORESEARCH_REPO_PATH)
             remove(KEY_PAMYAT_NARODA_COOKIES)
@@ -124,8 +118,6 @@ actual class AiSettingsStorage {
         private const val KEY_OPENAI_API_KEY = "ai_openai_api_key"
 
         private const val KEY_GOOGLE_AI_API_KEY = "ai_google_ai_api_key"
-        private const val KEY_YANDEX_API_KEY = "ai_yandex_api_key"
-        private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         private const val KEY_TAVILY_API_KEY = "ai_tavily_api_key"
         private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         private const val KEY_PAMYAT_NARODA_COOKIES = "ai_pamyat_naroda_cookies"

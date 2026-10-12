@@ -154,7 +154,7 @@ core/src/commonMain/kotlin/com/family/tree/core/genealogy/
 
 1. **AiClient и AiConfig** (уже реализованы)
    - Используются в `AiPersonMatcher` для интеллектуального сопоставления
-   - Поддерживают OpenAI, Google Gemini, Yandex GPT, Ollama
+   - Поддерживают OpenAI, Google Gemini, Ollama
 
 2. **Individual** (существующая модель)
    - Используется как входные данные для поиска

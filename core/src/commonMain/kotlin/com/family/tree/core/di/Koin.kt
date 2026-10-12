@@ -24,18 +24,16 @@ val coreModule = module {
     // AI Clients
     single { OpenAiClient() }
     single { GoogleClient() }
-    single { YandexClient() }
     single { OllamaClient() }
     single { CustomClient() }
     single { LocalAiClient(get()) }
     single { LocalModelManager(get(), get()) }
-    single { AiClientFactory(get(), get(), get(), get(), get(), get()) }
+    single { AiClientFactory(get(), get(), get(), get(), get()) }
 
     // Transcription Clients
     single { OpenAiWhisperClient(get(), get()) }
     single { GoogleSpeechClient(get(), get()) }
-    single { YandexSpeechClient(get(), get()) }
-    single { TranscriptionClientFactory(get(), get(), get()) }
+    single { TranscriptionClientFactory(get(), get()) }
 
     // Tavily Client
     single { TavilyClient(get(), get()) }

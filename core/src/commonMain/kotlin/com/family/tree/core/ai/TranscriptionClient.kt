@@ -20,7 +20,6 @@ interface TranscriptionClient {
 class TranscriptionClientFactory(
     private val openAiWhisperClient: OpenAiWhisperClient,
     private val googleSpeechClient: GoogleSpeechClient,
-    private val yandexSpeechClient: YandexSpeechClient,
     private val sherpaTranscriptionClient: SherpaTranscriptionClient = SherpaTranscriptionClient()
 ) {
     /**
@@ -30,7 +29,6 @@ class TranscriptionClientFactory(
         return when (config.getTranscriptionProvider()) {
             TranscriptionProvider.OPENAI_WHISPER -> openAiWhisperClient
             TranscriptionProvider.GOOGLE_SPEECH -> googleSpeechClient
-            TranscriptionProvider.YANDEX_SPEECHKIT -> yandexSpeechClient
             TranscriptionProvider.SHERPA_LOCAL -> sherpaTranscriptionClient
         }
     }

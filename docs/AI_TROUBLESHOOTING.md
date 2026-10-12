@@ -14,12 +14,10 @@ In the application's **AI Settings** menu, there is a **"Test Connection"** butt
 **Symptom:** The connection test fails with `401 Unauthorized` or "Invalid API Key".
 **Causes & Solutions:**
 - **OpenAI / Anthropic / Google:** You either entered an incorrect API key, or your API key has been revoked. Ensure there are no leading or trailing spaces.
-- **Yandex Cloud:** You are using a Service Account API Key but your service account does not have the required roles. Ensure your service account has `ai.languageModels.user` (for YandexGPT) and `ai.speechkit-stt.user` (for SpeechKit). See [YANDEX_AI_SETUP.md](YANDEX_AI_SETUP.md) for details.
 
 ### 🔴 HTTP 403 Forbidden / Permission Denied
 **Symptom:** Connection test fails with `403 Forbidden` or "Permission to resource denied".
 **Causes & Solutions:**
-- **Yandex Cloud:** You specified a "Folder ID" but your key does not have access to that folder. Try leaving the Folder ID field as `default`.
 - **Google / OpenAI:** Your account might be suspended or restricted by region.
 
 ---
@@ -73,5 +71,4 @@ The AI model returned malformed JSON or included markdown code blocks instead of
 If the AI Agent is repeatedly failing because it "remembers" bad search results or cached web pages, go to **AI Settings** and click **"Clear Research Search Cache"**. This deletes cached methodology guides and search engine results.
 
 ## See Also
-- [Yandex AI Setup Guide](YANDEX_AI_SETUP.md)
 - [Voice Input Troubleshooting](VOICE_INPUT.md)

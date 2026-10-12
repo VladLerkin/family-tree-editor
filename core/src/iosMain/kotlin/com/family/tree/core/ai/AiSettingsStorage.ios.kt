@@ -57,16 +57,6 @@ actual class AiSettingsStorage {
             deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
         }
         
-        // Save Yandex API key to Keychain
-        if (config.yandexApiKey.isNotBlank()) {
-            saveToKeychain(KEYCHAIN_KEY_YANDEX_API_KEY, config.yandexApiKey)
-        } else {
-            deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
-        }
-        
-        // Save Yandex Folder ID to NSUserDefaults (no encryption needed)
-        defaults.setObject(config.yandexFolderId, KEY_YANDEX_FOLDER_ID)
-        
         // Save Tavily API key to Keychain
         if (config.tavilyApiKey.isNotBlank()) {
             saveToKeychain(KEYCHAIN_KEY_TAVILY_API_KEY, config.tavilyApiKey)
@@ -107,7 +97,6 @@ actual class AiSettingsStorage {
         val openaiApiKey = loadFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY) ?: ""
 
         val googleAiApiKey = loadFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY) ?: ""
-        val yandexApiKey = loadFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY) ?: ""
         val tavilyApiKey = loadFromKeychain(KEYCHAIN_KEY_TAVILY_API_KEY) ?: ""
         val pamyatNarodaCookies = loadFromKeychain(KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES) ?: ""
         val familySearchCookies = loadFromKeychain(KEYCHAIN_KEY_FAMILYSEARCH_COOKIES) ?: ""
@@ -122,7 +111,6 @@ actual class AiSettingsStorage {
         val maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
         val language = defaults.stringForKey(KEY_LANGUAGE) ?: ""
         val transcriptionProvider = defaults.stringForKey(KEY_TRANSCRIPTION_PROVIDER) ?: "OPENAI_WHISPER"
-        val yandexFolderId = defaults.stringForKey(KEY_YANDEX_FOLDER_ID) ?: ""
         val autoresearchRepoPath = defaults.stringForKey(KEY_AUTORESEARCH_REPO_PATH) ?: "./autoresearch-genealogy"
         
         println("[DEBUG_LOG] AiSettingsStorage (iOS): provider=$provider, model=$model")
@@ -142,8 +130,6 @@ actual class AiSettingsStorage {
             openaiApiKey = openaiApiKey,
 
             googleAiApiKey = googleAiApiKey,
-            yandexApiKey = yandexApiKey,
-            yandexFolderId = yandexFolderId,
             tavilyApiKey = tavilyApiKey,
             autoresearchRepoPath = autoresearchRepoPath,
             pamyatNarodaCookies = pamyatNarodaCookies,
@@ -166,8 +152,6 @@ actual class AiSettingsStorage {
         deleteFromKeychain(KEYCHAIN_KEY_OPENAI_API_KEY)
 
         deleteFromKeychain(KEYCHAIN_KEY_GOOGLE_AI_API_KEY)
-        deleteFromKeychain(KEYCHAIN_KEY_YANDEX_API_KEY)
-        defaults.removeObjectForKey(KEY_YANDEX_FOLDER_ID)
         deleteFromKeychain(KEYCHAIN_KEY_TAVILY_API_KEY)
         defaults.removeObjectForKey(KEY_AUTORESEARCH_REPO_PATH)
         deleteFromKeychain(KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES)
@@ -315,7 +299,6 @@ actual class AiSettingsStorage {
         private const val KEY_MAX_TOKENS = "ai_max_tokens"
         private const val KEY_LANGUAGE = "ai_language"
         private const val KEY_TRANSCRIPTION_PROVIDER = "ai_transcription_provider"
-        private const val KEY_YANDEX_FOLDER_ID = "ai_yandex_folder_id"
         
         // Keychain keys for API keys
         private const val KEYCHAIN_KEY_API_KEY = "com.family.tree.ai_api_key"
@@ -325,7 +308,6 @@ actual class AiSettingsStorage {
         private const val KEYCHAIN_KEY_OPENAI_API_KEY = "com.family.tree.ai_openai_api_key"
 
         private const val KEYCHAIN_KEY_GOOGLE_AI_API_KEY = "com.family.tree.ai_google_ai_api_key"
-        private const val KEYCHAIN_KEY_YANDEX_API_KEY = "com.family.tree.ai_yandex_api_key"
         private const val KEYCHAIN_KEY_TAVILY_API_KEY = "com.family.tree.ai_tavily_api_key"
         private const val KEY_AUTORESEARCH_REPO_PATH = "ai_autoresearch_repo_path"
         private const val KEYCHAIN_KEY_PAMYAT_NARODA_COOKIES = "com.family.tree.ai_pamyat_naroda_cookies"

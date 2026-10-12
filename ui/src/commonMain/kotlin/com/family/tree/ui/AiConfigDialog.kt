@@ -64,8 +64,6 @@ fun AiConfigDialog(
     // New separate API keys for each provider group
     var openAiKey by remember { mutableStateOf(initialConfig.openaiApiKey) }
     var googleKey by remember { mutableStateOf(initialConfig.googleAiApiKey) }
-    var yandexKey by remember { mutableStateOf(initialConfig.yandexApiKey) }
-    var yandexFolderId by remember { mutableStateOf(initialConfig.yandexFolderId) }
     var tavilyApiKey by remember { mutableStateOf(initialConfig.tavilyApiKey) }
     var autoresearchRepoPath by remember { mutableStateOf(initialConfig.autoresearchRepoPath) }
     var pamyatNarodaCookies by remember { mutableStateOf(initialConfig.pamyatNarodaCookies) }
@@ -166,27 +164,6 @@ fun AiConfigDialog(
                                     placeholder = "AIza...",
                                     supportingText = "Provided key is stored in memory and masked in logs.",
                                     modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            "YANDEX" -> {
-                                ApiKeyTextField(
-                                    value = yandexKey,
-                                    onValueChange = { yandexKey = it },
-                                    label = "YandexGPT API Key",
-                                    placeholder = "AQVN...",
-                                    supportingText = "Provided key is stored in memory and masked in logs.",
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                                OutlinedTextField(
-                                    value = yandexFolderId,
-                                    onValueChange = { yandexFolderId = it },
-                                    label = { Text("Folder ID (optional)") },
-                                    placeholder = { Text("default or b1g...") },
-                                    supportingText = { Text("Yandex Cloud Folder ID. Leave as 'default' for automatic detection when using a service account API key.") },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = 12.dp),
-                                    singleLine = true
                                 )
                             }
                             "LOCAL_LLAMATIK" -> {
@@ -339,7 +316,6 @@ fun AiConfigDialog(
                         val transcriptionProviders = listOf(
                             "OPENAI_WHISPER" to "OpenAI Whisper",
                             "GOOGLE_SPEECH" to "Google Speech-to-Text (best for Georgian)",
-                            "YANDEX_SPEECHKIT" to "Yandex SpeechKit (best for Russian and CIS languages)",
                             "SHERPA_LOCAL" to "Sherpa-ONNX Local (Offline & Free)"
                         )
                         
@@ -394,18 +370,6 @@ fun AiConfigDialog(
                                 label = "Google AI API Key (Speech-to-Text)",
                                 placeholder = "AIza...",
                                 supportingText = "API key for Google Speech-to-Text. Uses the same key as for Gemini models.",
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                        
-                        // Yandex API Key (shown only when Yandex SpeechKit is selected)
-                        if (transcriptionProvider == "YANDEX_SPEECHKIT") {
-                            ApiKeyTextField(
-                                value = yandexKey,
-                                onValueChange = { yandexKey = it },
-                                label = "Yandex Cloud API Key (SpeechKit)",
-                                placeholder = "AQVN...",
-                                supportingText = "API key for Yandex SpeechKit. Get it from the Yandex Cloud Console.",
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -635,8 +599,6 @@ fun AiConfigDialog(
                                     googleApiKey = googleApiKey,
                                     openaiApiKey = openAiKey,
                                     googleAiApiKey = googleKey,
-                                    yandexApiKey = yandexKey,
-                                    yandexFolderId = yandexFolderId,
                                     tavilyApiKey = tavilyApiKey,
                                     autoresearchRepoPath = autoresearchRepoPath,
                                     pamyatNarodaCookies = pamyatNarodaCookies,
@@ -658,7 +620,6 @@ fun AiConfigDialog(
                                 val sttEquivalentProvider = when (transcriptionProvider) {
                                     "OPENAI_WHISPER" -> "OPENAI"
                                     "GOOGLE_SPEECH" -> "GOOGLE"
-                                    "YANDEX_SPEECHKIT" -> "YANDEX"
                                     else -> null
                                 }
                                 
@@ -666,7 +627,6 @@ fun AiConfigDialog(
                                     val defaultModelForStt = when (sttEquivalentProvider) {
                                         "GOOGLE" -> "gemini-2.5-flash"
                                         "OPENAI" -> "gpt-4o-mini"
-                                        "YANDEX" -> "yandexgpt-lite"
                                         else -> currentConfig.model
                                     }
                                     val sttConfig = currentConfig.copy(
@@ -753,8 +713,6 @@ fun AiConfigDialog(
                                 // New fields for separate provider group keys
                                 openaiApiKey = openAiKey,
                                 googleAiApiKey = googleKey,
-                                yandexApiKey = yandexKey,
-                                yandexFolderId = yandexFolderId,
                                 tavilyApiKey = tavilyApiKey,
                                 autoresearchRepoPath = autoresearchRepoPath,
                                 pamyatNarodaCookies = pamyatNarodaCookies,

@@ -46,9 +46,8 @@
 │                            │              │  │  AiClient (existing)      │  │
 │  ┌──────────────────────┐  │              │  │   • OpenAI GPT            │  │
 │  │ WikiTreeClient       │  │              │  │   • Google Gemini         │  │
-│  │  (TODO)              │  │              │  │   • Yandex GPT            │  │
-│  └──────────────────────┘  │              │  │   • Ollama                │  │
-│                            │              │  └───────────────────────────┘  │
+│  │  (TODO)              │  │              │  │   • Ollama                │  │
+│  └──────────────────────┘  │              │  └───────────────────────────┘  │
 └────────────┬───────────────┘              └─────────────────────────────────┘
              │                                            │
              │ HTTP Request                               │ AI Prompt
@@ -60,8 +59,8 @@
 │                            │              │                                 │
 │  • FamilySearch API        │              │  • GPT-4o-mini                  │
 │  • Ancestry API            │              │  • Gemini 2.0 Flash             │
-│  • MyHeritage API          │              │  • YandexGPT                    │
-│  • WikiTree API            │              │  • Llama 3.2                    │
+│  • MyHeritage API          │              │  • Llama 3.2                    │
+│  • WikiTree API            │              │                                 │
 │                            │              │                                 │
 └────────────┬───────────────┘              └─────────────────────────────────┘
              │
@@ -162,7 +161,7 @@
                  │    │     с внешней: Ivan Ivanov (circa 1852)..."
                  │    │
                  │    ├─→ AiClient.sendMessage(prompt)
-                 │    │    └─→ LLM (GPT/Gemini/Yandex)
+                 │    │    └─→ LLM (GPT/Gemini/Ollama)
                  │    │
                  │    ├─→ Response: JSON с оценкой совпадения
                  │    │

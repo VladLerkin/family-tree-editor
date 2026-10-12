@@ -90,7 +90,6 @@ data class AiToolDescriptor(
 class AiClientFactory(
     private val openAiClient: OpenAiClient,
     private val googleClient: GoogleClient,
-    private val yandexClient: YandexClient,
     private val ollamaClient: OllamaClient,
     private val customClient: CustomClient,
     private val localAiClient: LocalAiClient
@@ -102,7 +101,6 @@ class AiClientFactory(
         return when (provider) {
             AiProvider.OPENAI -> openAiClient
             AiProvider.GOOGLE -> googleClient
-            AiProvider.YANDEX -> yandexClient
             AiProvider.OLLAMA -> ollamaClient
             AiProvider.CUSTOM -> customClient
             AiProvider.LOCAL_LLAMATIK -> localAiClient
