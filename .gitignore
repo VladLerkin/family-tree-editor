@@ -54,3 +54,6 @@ Thumbs.db
 
 # Generated/Synced Android Assets
 app-android/src/main/assets/files/
+# Xcode per-user state
+xcuserdata/
+*.xcuserstate
