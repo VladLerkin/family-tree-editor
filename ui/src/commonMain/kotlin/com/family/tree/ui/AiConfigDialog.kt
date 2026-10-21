@@ -85,7 +85,7 @@ fun AiConfigDialog(
                     .padding(24.dp)
             ) {
 
-                TabRow(selectedTabIndex = selectedTabIndex) {
+                PrimaryTabRow(selectedTabIndex = selectedTabIndex) {
                     tabs.forEachIndexed { index, title ->
                         Tab(
                             selected = selectedTabIndex == index,
@@ -256,6 +256,7 @@ fun AiConfigDialog(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.weight(1f)
                                     )
+                                    @Suppress("DEPRECATION")
                                     val clipboardManager = LocalClipboardManager.current
                                     IconButton(onClick = {
                                         clipboardManager.setText(AnnotatedString(ollamaCommand))
@@ -493,6 +494,7 @@ fun AiConfigDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
                             )
+                            @Suppress("DEPRECATION")
                             val clipboardManager = LocalClipboardManager.current
                             IconButton(onClick = {
                                 clipboardManager.setText(AnnotatedString(ollamaCommand))

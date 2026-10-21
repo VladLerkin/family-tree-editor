@@ -4,7 +4,14 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - October 2026)
 
-**v2.1.38** (2026-10-12) — Current release
+**v2.1.39** (2026-10-21) — Current release
+
+* **Dependencies:** Updated Compose Multiplatform to 1.12.2 and kotlinx-serialization to 1.12.0.
+* **UI:** Migrated deprecated `TabRow` to `PrimaryTabRow` and `ClickableText` to `Text` with `LinkAnnotation` links in the AI config dialog, left sidebar and auto-search dialog; silenced remaining `LocalClipboardManager` deprecation warnings.
+* **iOS:** Raised the deployment target to 18.5 to fix the linker version mismatch warning.
+* **Agent Skills:** Linked `.claude/skills` to `.agents/skills`.
+
+**v2.1.38** (2026-10-12)
 
 * **CI/CD & GitHub Actions:** Updated GitHub Actions workflow steps across CI and Release to their latest major versions (`actions/checkout@v7`, `actions/setup-java@v6`, `actions/upload-artifact@v7`, `actions/download-artifact@v8`, and `softprops/action-gh-release@v3`).
 * **Agent Skills:** Enhanced the `update-dependencies` skill to inspect and update GitHub Actions workflows alongside project dependencies, and removed obsolete references to `vosk`.

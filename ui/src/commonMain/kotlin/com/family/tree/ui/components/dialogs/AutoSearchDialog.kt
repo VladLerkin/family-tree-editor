@@ -13,7 +13,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -111,7 +111,6 @@ fun AutoSearchDialog(
                             .padding(16.dp)
                     ) {
                         androidx.compose.foundation.text.selection.SelectionContainer {
-                            val uriHandler = LocalUriHandler.current
                             val urlRegex = remember { "(https?://[\\w\\d\\.\\-\\/\\?\\=\\&\\%\\+]+)".toRegex() }
                             
                             LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -127,27 +126,20 @@ fun AutoSearchDialog(
                                                 start = match.range.first,
                                                 end = match.range.last + 1
                                             )
-                                            addStringAnnotation(
-                                                tag = "URL",
-                                                annotation = match.value,
+                                            addLink(
+                                                LinkAnnotation.Url(match.value),
                                                 start = match.range.first,
                                                 end = match.range.last + 1
                                             )
                                         }
                                     }
                                     
-                                    ClickableText(
+                                    Text(
                                         text = annotatedResults,
                                         style = MaterialTheme.typography.bodyMedium.copy(
                                             fontFamily = FontFamily.Monospace,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        onClick = { offset ->
-                                            annotatedResults.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                                                .firstOrNull()?.let { annotation ->
-                                                    uriHandler.openUri(annotation.item)
-                                                }
-                                        }
+                                        )
                                     )
                                 }
                             }
@@ -202,6 +194,7 @@ fun AutoSearchDialog(
                     ) {
                         Text("Agent Output Console:", style = MaterialTheme.typography.labelMedium)
                         
+                        @Suppress("DEPRECATION")
                         val clipboardManager = LocalClipboardManager.current
                         Row {
                             TextButton(
@@ -329,27 +322,20 @@ fun AutoSearchDialog(
                                                 start = match.range.first,
                                                 end = match.range.last + 1
                                             )
-                                            addStringAnnotation(
-                                                tag = "URL",
-                                                annotation = match.value,
+                                            addLink(
+                                                LinkAnnotation.Url(match.value),
                                                 start = match.range.first,
                                                 end = match.range.last + 1
                                             )
                                         }
                                     }
                                     
-                                    ClickableText(
+                                    Text(
                                         text = annotatedLog,
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontFamily = FontFamily.Monospace,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        onClick = { offset ->
-                                            annotatedLog.getStringAnnotations(tag = "URL", start = offset, end = offset)
-                                                .firstOrNull()?.let { annotation ->
-                                                    uriHandler.openUri(annotation.item)
-                                                }
-                                        }
+                                        )
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                 }

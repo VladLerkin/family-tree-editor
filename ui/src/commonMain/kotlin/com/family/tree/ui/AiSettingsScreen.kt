@@ -171,6 +171,7 @@ class AiSettingsScreen : Screen {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f)
                                 )
+                                @Suppress("DEPRECATION")
                                 val clipboardManager = LocalClipboardManager.current
                                 IconButton(onClick = {
                                     clipboardManager.setText(AnnotatedString(ollamaCommand))
