@@ -33,7 +33,9 @@ class OpenAiClient : BaseAiClient() {
         val requestBody = buildJsonObject {
             put("model", config.model)
             put("temperature", config.temperature)
-            put("max_tokens", config.maxTokens)
+            put("max_completion_tokens", config.maxTokens)
+            // Only GPT-6 needs it for tools; older models reject the parameter.
+            if (config.model.startsWith("gpt-6")) put("reasoning_effort", "none")
             putJsonArray("messages") {
                 messages.forEach { msg ->
                     addJsonObject {

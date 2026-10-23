@@ -104,8 +104,9 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                 return
             }
             
-            // Handle WAV format separately using AudioRecord
-            if (format == AudioFormat.WAV) {
+            // MediaRecorder has no FLAC encoder, so Google Speech gets 16 kHz mono PCM WAV
+            // (LINEAR16) recorded through AudioRecord, same as the local Sherpa model.
+            if (format == AudioFormat.WAV || format == AudioFormat.FLAC) {
                 startWavRecording()
                 return
             }
@@ -121,29 +122,8 @@ actual class VoiceRecorder actual constructor(context: Any?) {
                         description = "AAC/M4A format, 16kHz, 64kbps"
                     )
                 }
-                AudioFormat.FLAC -> {
-                    // FLAC формат - оптимален для Google Speech-to-Text API
-                    // Требует Android API 26+
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        RecordingFormat(
-                            fileExtension = ".flac",
-                            outputFormat = MediaRecorder.OutputFormat.OGG,  // OGG container для FLAC
-                            audioEncoder = 17,  // MediaRecorder.AudioEncoder.FLAC (константа недоступна на старых API)
-                            description = "FLAC format, 16kHz"
-                        )
-                    } else {
-                        // Fallback на M4A для старых Android
-                        println("[DEBUG_LOG] VoiceRecorder: FLAC not supported on API ${Build.VERSION.SDK_INT}, using M4A fallback")
-                        RecordingFormat(
-                            fileExtension = ".m4a",
-                            outputFormat = MediaRecorder.OutputFormat.MPEG_4,
-                            audioEncoder = MediaRecorder.AudioEncoder.AAC,
-                            description = "AAC/M4A format (FLAC fallback), 16kHz, 64kbps"
-                        )
-                    }
-                }
-                AudioFormat.WAV -> {
-                    throw IllegalStateException("WAV format should be handled separately")
+                AudioFormat.FLAC, AudioFormat.WAV -> {
+                    throw IllegalStateException("$format should be handled separately")
                 }
             }
             

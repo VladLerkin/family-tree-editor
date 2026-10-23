@@ -206,7 +206,7 @@ class AiSettingsScreen : Screen {
                         value = model,
                         onValueChange = { model = it },
                         label = { Text("Model") },
-                        placeholder = { Text("gpt-4o-mini") },
+                        placeholder = { Text("gpt-6-luna") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),

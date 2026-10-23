@@ -8,6 +8,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
 
+private data class AudioPayload(val data: ByteArray, val contentType: String, val fileName: String)
+
 /**
  * Клиент для работы с OpenAI Whisper API (транскрипция аудио).
  */
@@ -28,9 +30,9 @@ class OpenAiWhisperClient(
         // .caf файлы начинаются с "caff" (0x63616666)
         // .amr файлы начинаются с "#!AMR" (0x2321414D52) для AMR-NB или "#!AMR-WB" для AMR-WB
         // .m4a файлы содержат "ftyp" на позиции 4-8
-        val isCAF = audioData.size >= 4 && audioData.decodeToString(0, 4) == "caff"
+        val isCAF = audioData.hasAscii("caff")
         
-        val isAMR = audioData.size >= 6 && audioData.decodeToString(0, 5) == "#!AMR"
+        val isAMR = audioData.hasAscii("#!AMR")
         
         // Если это CAF или AMR файл, конвертируем его в WAV для Whisper API
         val (finalData, contentType, fileName) = when {
@@ -38,7 +40,7 @@ class OpenAiWhisperClient(
                 println("[DEBUG_LOG] OpenAiWhisperClient: Converting CAF to WAV format")
                 val wavData = convertCafToWav(audioData)
                 println("[DEBUG_LOG] OpenAiWhisperClient: Converted to WAV (size: ${wavData.size} bytes)")
-                Triple(wavData, "audio/wav", "audio.wav")
+                AudioPayload(wavData, "audio/wav", "audio.wav")
             }
             isAMR -> {
                 println("[DEBUG_LOG] OpenAiWhisperClient: Detected AMR format, not supported by Whisper API")
@@ -48,7 +50,7 @@ class OpenAiWhisperClient(
                 throw IllegalArgumentException("AMR audio format is not supported by OpenAI Whisper API. Please use a different recording format (WAV, M4A, MP3, etc.) or switch to Google Speech-to-Text transcription provider.")
             }
             else -> {
-                Triple(audioData, "audio/m4a", "audio.m4a")
+                AudioPayload(audioData, "audio/m4a", "audio.m4a")
             }
         }
         
@@ -91,154 +93,14 @@ class OpenAiWhisperClient(
         return text
     }
     
-    /**
-     * Конвертирует CAF (Linear PCM) в WAV формат.
-     * CAF файлы с iOS используют Linear PCM, который легко конвертируется в WAV.
-     */
+    /** Конвертирует CAF (Linear PCM 16-bit mono 16kHz, iOS) в WAV. */
     private fun convertCafToWav(cafData: ByteArray): ByteArray {
-        // Ищем начало аудио данных в CAF файле
-        // CAF структура: заголовок "caff" + version + flags + chunks
-        // Нас интересует chunk "data" который содержит PCM данные
-        
-        var dataOffset = -1
-        var dataSize = 0
-        
-        // Простой поиск data chunk в CAF файле
-        // CAF chunk structure: chunk type (4 bytes) + chunk size (8 bytes) + data
-        var i = 8 // Пропускаем "caff" + version + flags
-        while (i < cafData.size - 12) {
-            // Читаем тип chunk (4 байта)
-            val chunkType = cafData.decodeToString(startIndex = i, endIndex = i + 4)
-            
-            // Читаем размер chunk (8 байт, big-endian long)
-            val chunkSize = readBigEndianLong(cafData, i + 4).toInt()
-            
-            if (chunkType == "data") {
-                dataOffset = i + 12 + 4 // После заголовка chunk + 4 байта edit count
-                dataSize = chunkSize - 4 // Минус 4 байта edit count
-                break
-            }
-            
-            i += 12 + chunkSize
-        }
-        
-        if (dataOffset == -1 || dataSize <= 0) {
+        val pcm = WavAudio.findCafPcm(cafData)
+        if (pcm == null) {
             println("[DEBUG_LOG] OpenAiWhisperClient: Failed to find data chunk in CAF")
             throw IllegalArgumentException("Invalid CAF file format: 'data' chunk not found.")
         }
-        
-        println("[DEBUG_LOG] OpenAiWhisperClient: Found PCM data in CAF: offset=$dataOffset, size=$dataSize")
-        
-        // Создаем WAV заголовок для Linear PCM 16-bit mono 16kHz напрямую из исходного массива
-        return createWavFile(cafData, dataOffset, dataSize, sampleRate = 16000, channels = 1, bitsPerSample = 16)
-    }
-    
-    /**
-     * Читает 64-битное целое число в big-endian формате.
-     */
-    private fun readBigEndianLong(data: ByteArray, offset: Int): Long {
-        return ((data[offset].toLong() and 0xFF) shl 56) or
-               ((data[offset + 1].toLong() and 0xFF) shl 48) or
-               ((data[offset + 2].toLong() and 0xFF) shl 40) or
-               ((data[offset + 3].toLong() and 0xFF) shl 32) or
-               ((data[offset + 4].toLong() and 0xFF) shl 24) or
-               ((data[offset + 5].toLong() and 0xFF) shl 16) or
-               ((data[offset + 6].toLong() and 0xFF) shl 8) or
-               (data[offset + 7].toLong() and 0xFF)
-    }
-    
-    /**
-     * Создает WAV файл из PCM данных без промежуточных аллокаций.
-     */
-    private fun createWavFile(sourceData: ByteArray, dataOffset: Int, dataSize: Int, sampleRate: Int, channels: Int, bitsPerSample: Int): ByteArray {
-        val byteRate = sampleRate * channels * bitsPerSample / 8
-        val blockAlign = channels * bitsPerSample / 8
-        val actualDataSize = dataSize.coerceAtMost(sourceData.size - dataOffset)
-        val fileSize = 36 + actualDataSize
-        
-        val wav = ByteArray(44 + actualDataSize)
-        var offset = 0
-        
-        // RIFF заголовок
-        wav[offset++] = 'R'.code.toByte()
-        wav[offset++] = 'I'.code.toByte()
-        wav[offset++] = 'F'.code.toByte()
-        wav[offset++] = 'F'.code.toByte()
-        
-        // Размер файла - 8
-        writeInt32LE(wav, offset, fileSize)
-        offset += 4
-        
-        // WAVE
-        wav[offset++] = 'W'.code.toByte()
-        wav[offset++] = 'A'.code.toByte()
-        wav[offset++] = 'V'.code.toByte()
-        wav[offset++] = 'E'.code.toByte()
-        
-        // fmt chunk
-        wav[offset++] = 'f'.code.toByte()
-        wav[offset++] = 'm'.code.toByte()
-        wav[offset++] = 't'.code.toByte()
-        wav[offset++] = ' '.code.toByte()
-        
-        // fmt chunk size (16 для PCM)
-        writeInt32LE(wav, offset, 16)
-        offset += 4
-        
-        // Audio format (1 = PCM)
-        writeInt16LE(wav, offset, 1)
-        offset += 2
-        
-        // Количество каналов
-        writeInt16LE(wav, offset, channels)
-        offset += 2
-        
-        // Sample rate
-        writeInt32LE(wav, offset, sampleRate)
-        offset += 4
-        
-        // Byte rate
-        writeInt32LE(wav, offset, byteRate)
-        offset += 4
-        
-        // Block align
-        writeInt16LE(wav, offset, blockAlign)
-        offset += 2
-        
-        // Bits per sample
-        writeInt16LE(wav, offset, bitsPerSample)
-        offset += 2
-        
-        // data chunk
-        wav[offset++] = 'd'.code.toByte()
-        wav[offset++] = 'a'.code.toByte()
-        wav[offset++] = 't'.code.toByte()
-        wav[offset++] = 'a'.code.toByte()
-        
-        // data chunk size
-        writeInt32LE(wav, offset, actualDataSize)
-        offset += 4
-        
-        // Копируем PCM данные напрямую из исходного массива
-        sourceData.copyInto(
-            destination = wav,
-            destinationOffset = offset,
-            startIndex = dataOffset,
-            endIndex = dataOffset + actualDataSize
-        )
-        
-        return wav
-    }
-    
-    private fun writeInt16LE(data: ByteArray, offset: Int, value: Int) {
-        data[offset] = (value and 0xFF).toByte()
-        data[offset + 1] = ((value shr 8) and 0xFF).toByte()
-    }
-    
-    private fun writeInt32LE(data: ByteArray, offset: Int, value: Int) {
-        data[offset] = (value and 0xFF).toByte()
-        data[offset + 1] = ((value shr 8) and 0xFF).toByte()
-        data[offset + 2] = ((value shr 16) and 0xFF).toByte()
-        data[offset + 3] = ((value shr 24) and 0xFF).toByte()
+        println("[DEBUG_LOG] OpenAiWhisperClient: Found PCM data in CAF: offset=${pcm.offset}, size=${pcm.size}")
+        return WavAudio.fromPcm(cafData, pcm)
     }
 }

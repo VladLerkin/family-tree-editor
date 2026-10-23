@@ -1,16 +1,23 @@
 package com.family.tree.ui
 
 import androidx.compose.foundation.text.selection.DisableSelection
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.platform.InterceptPlatformTextInput
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
+import kotlinx.coroutines.awaitCancellation
 
 /**
  * Visual transformation for masking the API key.
@@ -57,7 +64,11 @@ class ApiKeyVisualTransformation : VisualTransformation {
 
 /**
  * A reusable TextField for entering API keys with masking and copy/paste protection.
+ *
+ * Keys are only ever pasted, so on touch platforms the soft keyboard is suppressed and a
+ * paste button replaces the long-press menu (blocked by [DisableSelection]).
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ApiKeyTextField(
     value: String,
@@ -70,7 +81,8 @@ fun ApiKeyTextField(
     @Suppress("DEPRECATION")
     val clipboardManager = LocalClipboardManager.current
     
-    DisableSelection {
+    val field = @Composable {
+        DisableSelection {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
@@ -78,6 +90,11 @@ fun ApiKeyTextField(
             placeholder = { Text(placeholder) },
             supportingText = { Text(supportingText) },
             visualTransformation = ApiKeyVisualTransformation(),
+            trailingIcon = {
+                IconButton(onClick = { clipboardManager.getText()?.text?.let(onValueChange) }) {
+                    Icon(Icons.Default.ContentPaste, contentDescription = "Paste")
+                }
+            },
             modifier = modifier
                 .onPreviewKeyEvent { keyEvent ->
                     // Custom copy/paste handling because selection is disabled
@@ -95,5 +112,13 @@ fun ApiKeyTextField(
                 },
             singleLine = true
         )
+        }
+    }
+
+    if (PlatformEnv.isDesktop) {
+        field()
+    } else {
+        // Swallow the IME session so tapping the field never opens the keyboard.
+        InterceptPlatformTextInput(interceptor = { _, _ -> awaitCancellation() }, content = field)
     }
 }

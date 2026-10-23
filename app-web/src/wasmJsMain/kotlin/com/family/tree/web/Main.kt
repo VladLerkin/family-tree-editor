@@ -13,7 +13,7 @@ fun main() {
     initKoin(
         additionalModules = listOf(uiModule, platformModule)
     )
-    ComposeViewport(document.body!!) {
+    ComposeViewport(checkNotNull(document.body) { "document.body is not available" }) {
         App()
     }
 }

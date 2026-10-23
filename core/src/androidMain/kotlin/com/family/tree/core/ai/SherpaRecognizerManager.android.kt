@@ -174,7 +174,7 @@ actual class SherpaRecognizerManager actual constructor() {
             throw Exception("Model not downloaded. Call downloadModel first.")
         }
         
-        if (cachedRecognizer == null || cachedModelPath != finalDir.absolutePath) {
+        val recognizer = if (cachedRecognizer == null || cachedModelPath != finalDir.absolutePath) {
             cachedRecognizer?.release()
             
             val encoder = finalDir.listFiles()?.find { (it.name.startsWith("encoder-") || it.name == "encoder.onnx") && it.name.endsWith(".onnx") }?.absolutePath ?: ""
@@ -212,11 +212,14 @@ actual class SherpaRecognizerManager actual constructor() {
                 ),
                 modelConfig = modelConfig
             )
-            cachedRecognizer = OfflineRecognizer(config = config)
-            cachedModelPath = finalDir.absolutePath
+            OfflineRecognizer(config = config).also {
+                cachedRecognizer = it
+                cachedModelPath = finalDir.absolutePath
+            }
+        } else {
+            checkNotNull(cachedRecognizer)
         }
         
-        val recognizer = cachedRecognizer!!
         
         // Strip WAV header if present (44 bytes)
         val startIndex = if (audioData.size > 44 && 

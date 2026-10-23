@@ -7,7 +7,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
 import kotlin.io.encoding.Base64
-import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
  * Клиент для работы с Google Cloud Speech-to-Text API (транскрипция аудио).
@@ -95,7 +94,6 @@ class GoogleSpeechClient(
         }
     }
     
-    @OptIn(ExperimentalEncodingApi::class)
     override suspend fun transcribeAudio(audioData: ByteArray, config: AiConfig): String {
         val apiKey = config.getApiKeyForTranscription()
         if (apiKey.isBlank()) {
@@ -114,36 +112,17 @@ class GoogleSpeechClient(
         // FLAC файлы начинаются с "fLaC" (0x664C6143)
         // M4A/MP4 файлы содержат "ftyp" на позиции 4-8 (после 4-байтового размера заголовка)
         // WAV файлы начинаются с "RIFF"
-        val isCAF = audioData.size >= 4 && 
-                    audioData[0] == 0x63.toByte() &&  // 'c'
-                    audioData[1] == 0x61.toByte() &&  // 'a'
-                    audioData[2] == 0x66.toByte() &&  // 'f'
-                    audioData[3] == 0x66.toByte()     // 'f'
-        
-        val isFlac = audioData.size >= 4 && 
-                     audioData[0] == 0x66.toByte() &&  // 'f'
-                     audioData[1] == 0x4C.toByte() &&  // 'L'
-                     audioData[2] == 0x61.toByte() &&  // 'a'
-                     audioData[3] == 0x43.toByte()     // 'C'
-        
-        val isM4A = audioData.size >= 12 && 
-                    audioData[4] == 0x66.toByte() &&  // 'f'
-                    audioData[5] == 0x74.toByte() &&  // 't'
-                    audioData[6] == 0x79.toByte() &&  // 'y'
-                    audioData[7] == 0x70.toByte()     // 'p'
-        
-        val isWav = audioData.size >= 4 && 
-                    audioData[0] == 0x52.toByte() &&  // 'R'
-                    audioData[1] == 0x49.toByte() &&  // 'I'
-                    audioData[2] == 0x46.toByte() &&  // 'F'
-                    audioData[3] == 0x46.toByte()     // 'F'
-        
+        val isCAF = audioData.hasAscii("caff")
+        val isFlac = audioData.hasAscii("fLaC")
+        val isM4A = audioData.size >= 12 && audioData.hasAscii("ftyp", 4)
+        val isWav = audioData.hasAscii("RIFF")
+
         // Если это CAF файл (iOS), конвертируем его в WAV
         val (finalData, encoding) = if (isCAF) {
             println("[DEBUG_LOG] GoogleSpeechClient: Converting CAF to WAV format")
             val wavData = convertCafToWav(audioData)
             println("[DEBUG_LOG] GoogleSpeechClient: Converted to WAV (size: ${wavData.size} bytes)")
-            Pair(wavData, "LINEAR16")
+            wavData to "LINEAR16"
         } else {
             // Google Speech API поддерживает: FLAC, LINEAR16 (WAV), MP3, WEBM_OPUS, OGG_OPUS
             // Для M4A/AAC используем MP3 encoding (работает для большинства случаев)
@@ -153,7 +132,7 @@ class GoogleSpeechClient(
                 isM4A -> "MP3"  // M4A/AAC обрабатывается как MP3
                 else -> "MP3"   // Fallback на MP3 для неизвестных форматов
             }
-            Pair(audioData, detectedEncoding)
+            audioData to detectedEncoding
         }
         
         println("[DEBUG_LOG] GoogleSpeechClient: Detected audio format: $encoding (isCAF=$isCAF, isFlac=$isFlac, isM4A=$isM4A, isWav=$isWav)")
@@ -263,153 +242,14 @@ class GoogleSpeechClient(
         }
     }
     
-    /**
-     * Конвертирует CAF (Linear PCM) в WAV формат.
-     * CAF файлы с iOS используют Linear PCM, который легко конвертируется в WAV.
-     */
+    /** Конвертирует CAF (Linear PCM 16-bit mono 16kHz, iOS) в WAV. */
     private fun convertCafToWav(cafData: ByteArray): ByteArray {
-        // Ищем начало аудио данных в CAF файле
-        // CAF структура: заголовок "caff" + version + flags + chunks
-        // Нас интересует chunk "data" который содержит PCM данные
-        
-        var dataOffset = -1
-        var dataSize = 0
-        
-        // Простой поиск data chunk в CAF файле
-        // CAF chunk structure: chunk type (4 bytes) + chunk size (8 bytes) + data
-        var i = 8 // Пропускаем "caff" + version + flags
-        while (i < cafData.size - 12) {
-            // Читаем тип chunk (4 байта)
-            val chunkType = cafData.sliceArray(i until i + 4).map { it.toInt().toChar() }.toCharArray().concatToString()
-            
-            // Читаем размер chunk (8 байт, big-endian long)
-            val chunkSize = readBigEndianLong(cafData, i + 4).toInt()
-            
-            if (chunkType == "data") {
-                dataOffset = i + 12 + 4 // После заголовка chunk + 4 байта edit count
-                dataSize = chunkSize - 4 // Минус 4 байта edit count
-                break
-            }
-            
-            i += 12 + chunkSize
-        }
-        
-        if (dataOffset == -1 || dataSize <= 0) {
+        val pcm = WavAudio.findCafPcm(cafData) ?: run {
             println("[DEBUG_LOG] GoogleSpeechClient: Failed to find data chunk in CAF, using original data")
             // Если не нашли data chunk, пробуем просто взять данные после заголовка
-            dataOffset = 4096.coerceAtMost(cafData.size / 2)
-            dataSize = cafData.size - dataOffset
+            val offset = 4096.coerceAtMost(cafData.size / 2)
+            PcmRange(offset, cafData.size - offset)
         }
-        
-        val pcmData = cafData.sliceArray(dataOffset until (dataOffset + dataSize).coerceAtMost(cafData.size))
-        
-        println("[DEBUG_LOG] GoogleSpeechClient: Extracted PCM data from CAF: offset=$dataOffset, size=${pcmData.size}")
-        
-        // Создаем WAV заголовок для Linear PCM 16-bit mono 16kHz
-        return createWavFile(pcmData, sampleRate = 16000, channels = 1, bitsPerSample = 16)
-    }
-    
-    /**
-     * Читает 64-битное целое число в big-endian формате.
-     */
-    private fun readBigEndianLong(data: ByteArray, offset: Int): Long {
-        return ((data[offset].toLong() and 0xFF) shl 56) or
-               ((data[offset + 1].toLong() and 0xFF) shl 48) or
-               ((data[offset + 2].toLong() and 0xFF) shl 40) or
-               ((data[offset + 3].toLong() and 0xFF) shl 32) or
-               ((data[offset + 4].toLong() and 0xFF) shl 24) or
-               ((data[offset + 5].toLong() and 0xFF) shl 16) or
-               ((data[offset + 6].toLong() and 0xFF) shl 8) or
-               (data[offset + 7].toLong() and 0xFF)
-    }
-    
-    /**
-     * Создает WAV файл из PCM данных.
-     */
-    private fun createWavFile(pcmData: ByteArray, sampleRate: Int, channels: Int, bitsPerSample: Int): ByteArray {
-        val byteRate = sampleRate * channels * bitsPerSample / 8
-        val blockAlign = channels * bitsPerSample / 8
-        val dataSize = pcmData.size
-        val fileSize = 36 + dataSize
-        
-        val wav = ByteArray(44 + dataSize)
-        var offset = 0
-        
-        // RIFF заголовок
-        wav[offset++] = 'R'.code.toByte()
-        wav[offset++] = 'I'.code.toByte()
-        wav[offset++] = 'F'.code.toByte()
-        wav[offset++] = 'F'.code.toByte()
-        
-        // Размер файла - 8
-        writeInt32LE(wav, offset, fileSize)
-        offset += 4
-        
-        // WAVE
-        wav[offset++] = 'W'.code.toByte()
-        wav[offset++] = 'A'.code.toByte()
-        wav[offset++] = 'V'.code.toByte()
-        wav[offset++] = 'E'.code.toByte()
-        
-        // fmt chunk
-        wav[offset++] = 'f'.code.toByte()
-        wav[offset++] = 'm'.code.toByte()
-        wav[offset++] = 't'.code.toByte()
-        wav[offset++] = ' '.code.toByte()
-        
-        // fmt chunk size (16 для PCM)
-        writeInt32LE(wav, offset, 16)
-        offset += 4
-        
-        // Audio format (1 = PCM)
-        writeInt16LE(wav, offset, 1)
-        offset += 2
-        
-        // Количество каналов
-        writeInt16LE(wav, offset, channels)
-        offset += 2
-        
-        // Sample rate
-        writeInt32LE(wav, offset, sampleRate)
-        offset += 4
-        
-        // Byte rate
-        writeInt32LE(wav, offset, byteRate)
-        offset += 4
-        
-        // Block align
-        writeInt16LE(wav, offset, blockAlign)
-        offset += 2
-        
-        // Bits per sample
-        writeInt16LE(wav, offset, bitsPerSample)
-        offset += 2
-        
-        // data chunk
-        wav[offset++] = 'd'.code.toByte()
-        wav[offset++] = 'a'.code.toByte()
-        wav[offset++] = 't'.code.toByte()
-        wav[offset++] = 'a'.code.toByte()
-        
-        // data chunk size
-        writeInt32LE(wav, offset, dataSize)
-        offset += 4
-        
-        // Копируем PCM данные
-        pcmData.copyInto(wav, offset)
-        
-        return wav
-    }
-    
-    private fun writeInt16LE(data: ByteArray, offset: Int, value: Int) {
-        data[offset] = (value and 0xFF).toByte()
-        data[offset + 1] = ((value shr 8) and 0xFF).toByte()
-    }
-    
-    private fun writeInt32LE(data: ByteArray, offset: Int, value: Int) {
-        data[offset] = (value and 0xFF).toByte()
-        data[offset + 1] = ((value shr 8) and 0xFF).toByte()
-        data[offset + 2] = ((value shr 16) and 0xFF).toByte()
-        data[offset + 3] = ((value shr 24) and 0xFF).toByte()
+        return WavAudio.fromPcm(cafData, pcm)
     }
 }

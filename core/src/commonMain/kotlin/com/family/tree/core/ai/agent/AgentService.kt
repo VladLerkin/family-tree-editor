@@ -37,7 +37,7 @@ class AgentService(
                                 header("Content-Type", "application/json")
                                 setBody("""
                                         {
-                                                "model": "gpt-4o-mini",
+                                                "model": "gpt-6-luna",
                                                 "messages": [
                                                         {"role": "user", "content": "Hello!"}
                                                 ]
@@ -55,9 +55,9 @@ class AgentService(
                         println("AgentService: testOpenAiPayload() starting...")
                         val payload = """
 {
-  "model": "gpt-4o-mini",
+  "model": "gpt-6-luna",
   "temperature": 0.7,
-  "max_tokens": 4000,
+  "max_completion_tokens": 4000,
   "messages": [
     {
       "role": "system",

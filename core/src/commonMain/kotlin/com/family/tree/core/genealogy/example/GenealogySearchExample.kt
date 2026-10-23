@@ -310,7 +310,7 @@ suspend fun main() {
     val aiConfig = AiConfig(
         provider = "OPENAI",
         openaiApiKey = "your-openai-key",
-        model = "gpt-4o-mini"
+        model = "gpt-6-luna"
     )
     val aiClientFactory: com.family.tree.core.ai.AiClientFactory = koinComponent.getKoin().get()
     val aiClient = aiClientFactory.createClient(aiConfig)

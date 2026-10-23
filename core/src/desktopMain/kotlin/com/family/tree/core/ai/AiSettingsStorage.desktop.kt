@@ -171,9 +171,9 @@ actual class AiSettingsStorage {
         }
         
         return AiConfig(
-            provider = prefs.get(KEY_PROVIDER, AiPresets.OPENAI_GPT4O_MINI.provider),
+            provider = prefs.get(KEY_PROVIDER, AiPresets.OPENAI_GPT6_LUNA.provider),
             apiKey = decryptedKey,
-            model = prefs.get(KEY_MODEL, AiPresets.OPENAI_GPT4O_MINI.model),
+            model = prefs.get(KEY_MODEL, AiPresets.OPENAI_GPT6_LUNA.model),
             baseUrl = prefs.get(KEY_BASE_URL, ""),
             temperature = prefs.getDouble(KEY_TEMPERATURE, 0.7),
             maxTokens = prefs.getInt(KEY_MAX_TOKENS, 4000),
@@ -189,7 +189,7 @@ actual class AiSettingsStorage {
             autoresearchRepoPath = prefs.get(KEY_AUTORESEARCH_REPO_PATH, "./autoresearch-genealogy"),
             pamyatNarodaCookies = decryptedCookies,
             familySearchCookies = decryptedFamilySearchCookies
-        )
+        ).withMigratedModel()
     }
     
     actual fun clearConfig() {

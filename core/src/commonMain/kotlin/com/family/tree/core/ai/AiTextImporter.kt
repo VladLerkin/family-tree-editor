@@ -16,7 +16,7 @@ import org.koin.core.component.inject
  * and returns JSON with the results. This class converts the results into ProjectData.
  */
 class AiTextImporter(
-    private val config: AiConfig = AiPresets.OPENAI_GPT4O_MINI,
+    private val config: AiConfig = AiPresets.OPENAI_GPT6_LUNA,
     private val aiClientFactory: AiClientFactory
 ) : KoinComponent {
     

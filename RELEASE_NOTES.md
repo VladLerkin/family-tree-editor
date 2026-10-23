@@ -4,7 +4,15 @@ This document contains the release history of the Family Tree Editor project, fr
 
 ## 2.1.x Versions (June - October 2026)
 
-**v2.1.39** (2026-10-21) — Current release
+**Unreleased**
+
+* **OpenAI Model Migration:** Replaced the retiring `gpt-4o-mini` (API shutdown 2027-01-14) with `gpt-6-luna` in the preset, defaults and connection test. Settings saved with `gpt-4o-mini` are migrated automatically on load, API keys are kept. OpenAI requests now send `reasoning_effort=none` (GPT-6 only) so tools keep working, and `max_completion_tokens` instead of `max_tokens`.
+* **Android Voice Fix:** Google Speech recording on Android now uses `AudioRecord` (16 kHz mono WAV) instead of `MediaRecorder` with a non-existent FLAC encoder, which failed immediately with "Invalid audio encoder".
+* **iOS Crash Fix:** Dropdown menus in the AI config dialog no longer crash in landscape (infinite height constraint); their height is now capped.
+* **API Key Fields:** The soft keyboard no longer opens on Android/iOS when tapping an API key field; a paste button inserts the key from the clipboard.
+* **Kotlin Refactoring:** Shared `WavAudio` helper replaces ~200 lines of duplicated CAF-to-WAV code in the Whisper and Google Speech clients; `Pair`/`Triple` replaced by `AiPreset` and a small data class; removed `!!` in Sherpa and web entry code; dropped an unneeded `@OptIn` for Base64.
+
+**v2.1.39** (2026-10-21)
 
 * **Dependencies:** Updated Compose Multiplatform to 1.12.2 and kotlinx-serialization to 1.12.0.
 * **UI:** Migrated deprecated `TabRow` to `PrimaryTabRow` and `ClickableText` to `Text` with `LinkAnnotation` links in the AI config dialog, left sidebar and auto-search dialog; silenced remaining `LocalClipboardManager` deprecation warnings.

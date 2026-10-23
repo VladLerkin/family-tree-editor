@@ -30,7 +30,7 @@ data class AiConfig(
     val provider: String = "OPENAI",  // String for kotlinx.serialization compatibility
     @Deprecated("Use openaiApiKey, anthropicApiKey, or googleApiKey instead")
     val apiKey: String = "",  // Kept for backward compatibility
-    val model: String = "gpt-4o-mini",
+    val model: String = "gpt-6-luna",
     val baseUrl: String = "",  // For CUSTOM and OLLAMA
     val temperature: Double = 0.7,
     val maxTokens: Int = 4000,
@@ -95,12 +95,22 @@ data class AiConfig(
 }
 
 /**
+ * Moves settings saved with the retired `gpt-4o-mini` (API shutdown 2027-01-14) to
+ * [AiPresets.OPENAI_GPT6_LUNA]; everything else, including API keys, is kept as is.
+ */
+fun AiConfig.withMigratedModel(): AiConfig =
+    if (provider == "OPENAI" && model == "gpt-4o-mini") copy(model = AiPresets.OPENAI_GPT6_LUNA.model) else this
+
+/** A named [AiConfig] shown in the presets dropdown. */
+data class AiPreset(val name: String, val config: AiConfig)
+
+/**
  * Preset configurations for popular models.
  */
 object AiPresets {
-    val OPENAI_GPT4O_MINI = AiConfig(
+    val OPENAI_GPT6_LUNA = AiConfig(
         provider = "OPENAI",
-        model = "gpt-4o-mini",
+        model = "gpt-6-luna",
         temperature = 0.7,
         maxTokens = 4000
     )
@@ -139,14 +149,14 @@ object AiPresets {
     )
 
     
-    fun getAllPresets(): List<Pair<String, AiConfig>> = listOf(
-        "OpenAI GPT-4o-mini (recommended)" to OPENAI_GPT4O_MINI,
+    fun getAllPresets(): List<AiPreset> = listOf(
+        AiPreset("OpenAI GPT-6 Luna (recommended)", OPENAI_GPT6_LUNA),
 
-        "Google Gemini 3.8 Flash" to GOOGLE_GEMINI_3_8_FLASH,
-        "Google Gemini 2.5 Flash" to GOOGLE_GEMINI_2_5_FLASH,
+        AiPreset("Google Gemini 3.8 Flash", GOOGLE_GEMINI_3_8_FLASH),
+        AiPreset("Google Gemini 2.5 Flash", GOOGLE_GEMINI_2_5_FLASH),
 
-        "Ollama Gemma 4 E4B (local)" to OLLAMA_GEMMA_4_E4B,
+        AiPreset("Ollama Gemma 4 E4B (local)", OLLAMA_GEMMA_4_E4B),
         
-        "Local Gemma 4 E4B QAT (Offline & Free, ~4GB)" to LOCAL_GEMMA_4_E4B
+        AiPreset("Local Gemma 4 E4B QAT (Offline & Free, ~4GB)", LOCAL_GEMMA_4_E4B)
     )
 }

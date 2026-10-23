@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun AiConfigDialog(
-    initialConfig: AiConfig = AiPresets.OPENAI_GPT4O_MINI,
+    initialConfig: AiConfig = AiPresets.OPENAI_GPT6_LUNA,
     onDismiss: () -> Unit,
     onConfirm: (AiConfig) -> Unit
 ) {
@@ -117,12 +117,12 @@ fun AiConfigDialog(
                                 onClick = { presetsExpanded = true },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(presets.getOrNull(selectedPresetIndex)?.first ?: "Select Preset")
+                                Text(presets.getOrNull(selectedPresetIndex)?.name ?: "Select Preset")
                             }
                             DropdownMenu(
                                 expanded = presetsExpanded,
                                 onDismissRequest = { presetsExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                modifier = Modifier.fillMaxWidth(0.9f).heightIn(max = 300.dp)
                             ) {
                                 presets.forEachIndexed { index, (name, preset) ->
                                     DropdownMenuItem(
@@ -293,7 +293,7 @@ fun AiConfigDialog(
                             value = model,
                             onValueChange = { model = it },
                             label = { Text("Model") },
-                            placeholder = { Text("gpt-4o-mini") },
+                            placeholder = { Text("gpt-6-luna") },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),
@@ -314,7 +314,7 @@ fun AiConfigDialog(
                         )
                         
                         var transcriptionExpanded by remember { mutableStateOf(false) }
-                        val transcriptionProviders = listOf(
+                        val transcriptionProviders = mapOf(
                             "OPENAI_WHISPER" to "OpenAI Whisper",
                             "GOOGLE_SPEECH" to "Google Speech-to-Text (best for Georgian)",
                             "SHERPA_LOCAL" to "Sherpa-ONNX Local (Offline & Free)"
@@ -332,12 +332,12 @@ fun AiConfigDialog(
                                 onClick = { transcriptionExpanded = true },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(transcriptionProviders.find { it.first == transcriptionProvider }?.second ?: "Select Provider")
+                                Text(transcriptionProviders[transcriptionProvider] ?: "Select Provider")
                             }
                             DropdownMenu(
                                 expanded = transcriptionExpanded,
                                 onDismissRequest = { transcriptionExpanded = false },
-                                modifier = Modifier.fillMaxWidth(0.9f)
+                                modifier = Modifier.fillMaxWidth(0.9f).heightIn(max = 300.dp)
                             ) {
                                 transcriptionProviders.forEach { (id, name) ->
                                     DropdownMenuItem(
@@ -628,7 +628,7 @@ fun AiConfigDialog(
                                 if (sttEquivalentProvider != null) {
                                     val defaultModelForStt = when (sttEquivalentProvider) {
                                         "GOOGLE" -> "gemini-2.5-flash"
-                                        "OPENAI" -> "gpt-4o-mini"
+                                        "OPENAI" -> "gpt-6-luna"
                                         else -> currentConfig.model
                                     }
                                     val sttConfig = currentConfig.copy(

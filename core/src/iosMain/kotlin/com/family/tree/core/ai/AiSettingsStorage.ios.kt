@@ -104,8 +104,8 @@ actual class AiSettingsStorage {
         println("[DEBUG_LOG] AiSettingsStorage (iOS): loadConfig called")
         println("[DEBUG_LOG] AiSettingsStorage (iOS): apiKey from Keychain = ${if (apiKey.isBlank()) "empty" else "present (${apiKey.length} chars)"}")
         
-        val provider = defaults.stringForKey(KEY_PROVIDER) ?: AiPresets.OPENAI_GPT4O_MINI.provider
-        val model = defaults.stringForKey(KEY_MODEL) ?: AiPresets.OPENAI_GPT4O_MINI.model
+        val provider = defaults.stringForKey(KEY_PROVIDER) ?: AiPresets.OPENAI_GPT6_LUNA.provider
+        val model = defaults.stringForKey(KEY_MODEL) ?: AiPresets.OPENAI_GPT6_LUNA.model
         val baseUrl = defaults.stringForKey(KEY_BASE_URL) ?: ""
         val temperature = defaults.doubleForKey(KEY_TEMPERATURE).takeIf { it != 0.0 } ?: 0.7
         val maxTokens = defaults.integerForKey(KEY_MAX_TOKENS).toInt().takeIf { it != 0 } ?: 4000
@@ -134,7 +134,7 @@ actual class AiSettingsStorage {
             autoresearchRepoPath = autoresearchRepoPath,
             pamyatNarodaCookies = pamyatNarodaCookies,
             familySearchCookies = familySearchCookies
-        )
+        ).withMigratedModel()
     }
     
     actual fun clearConfig() {
