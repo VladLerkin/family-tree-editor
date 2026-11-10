@@ -1,10 +1,15 @@
 # Release Notes
 
-This document contains the release history of the Family Tree Editor project, from the first commits to the current version 2.1.40. It highlights when new features were added, bug fixes, and CI/CD improvements.
+This document contains the release history of the Family Tree Editor project, from the first commits to the current version 2.1.41. It highlights when new features were added, bug fixes, and CI/CD improvements.
 
-## 2.1.x Versions (June - October 2026)
+## 2.1.x Versions (June - November 2026)
 
-**v2.1.40** (2026-10-23) — Current release
+**v2.1.41** (2026-11-10) — Current release
+
+* **Dependencies:** Updated Android Gradle Plugin to 9.5.1 and Ktor to 3.6.1.
+* **Documentation:** Updated dependency versions in README.md.
+
+**v2.1.40** (2026-10-23)
 
 * **OpenAI Model Migration:** Replaced the retiring `gpt-4o-mini` (API shutdown 2027-01-14) with `gpt-6-luna` in the preset, defaults and connection test. Settings saved with `gpt-4o-mini` are migrated automatically on load, API keys are kept. OpenAI requests now send `reasoning_effort=none` (GPT-6 only) so tools keep working, and `max_completion_tokens` instead of `max_tokens`.
 * **Android Voice Fix:** Google Speech recording on Android now uses `AudioRecord` (16 kHz mono WAV) instead of `MediaRecorder` with a non-existent FLAC encoder, which failed immediately with "Invalid audio encoder".
